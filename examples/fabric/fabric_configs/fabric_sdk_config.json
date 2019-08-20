@@ -1,0 +1,160 @@
+{
+    "certificateAuthorities": {
+        "ca-org1": {
+            "grpcOptions": {
+                "verify": true
+            },
+            "registrar": [
+                {
+                    "enrollId": "admin",
+                    "enrollSecret": "admin_pw"
+                }
+            ],
+            "tlsCACerts": {
+                "path": "/home/raphael/git/playground/umbra/examples/fabric/fabric_configs/peerOrganizations/org1.example.com/ca/ca.org1.example.com-cert.pem"
+            },
+            "url": "localhost:7054"
+        },
+        "ca-org2": {
+            "grpcOptions": {
+                "verify": true
+            },
+            "registrar": [
+                {
+                    "enrollId": "admin",
+                    "enrollSecret": "admin_pw"
+                }
+            ],
+            "tlsCACerts": {
+                "path": "/home/raphael/git/playground/umbra/examples/fabric/fabric_configs/peerOrganizations/org2.example.com/ca/ca.org2.example.com-cert.pem"
+            },
+            "url": "localhost:7055"
+        }
+    },
+    "client": {
+        "credentialStore": {
+            "cryptoStore": {
+                "path": "/tmp/hfc-cvs"
+            },
+            "path": "/tmp/hfc-kvs",
+            "wallet": "wallet-name"
+        },
+        "organization": "org1"
+    },
+    "description": "Sample network contains 4 peers (2 orgs), 1 orderer and 2 cas for Python SDK testing",
+    "name": "sample-network",
+    "orderers": {
+        "orderer.example.com": {
+            "grpcOptions": {
+                "grpc-max-send-message-length": 15,
+                "grpc.ssl_target_name_override": "orderer.example.com"
+            },
+            "tlsCACerts": {
+                "path": "/home/raphael/git/playground/umbra/examples/fabric/fabric_configs/ordererOrganizations/example.com/tlsca/tlsca.example.com-cert.pem"
+            },
+            "url": "localhost:7050"
+        }
+    },
+    "organizations": {
+        "orderer.example.com": {
+            "certificateAuthorities": [],
+            "mspid": "ordererMSP",
+            "orderers": [
+                "orderer.example.com"
+            ],
+            "users": {
+                "Admin": {
+                    "cert": "/home/raphael/git/playground/umbra/examples/fabric/fabric_configs/ordererOrganizations/example.com/users/Admin@example.com/msp/signcerts/Admin@example.com-cert.pem",
+                    "private_key": "/home/raphael/git/playground/umbra/examples/fabric/fabric_configs/ordererOrganizations/example.com/users/Admin@example.com/msp/keystore/11a8f695322f0a663e63915c7a8c80eb4e3d06c3641faa2d29eb3f58260a25b9_sk"
+                }
+            }
+        },
+        "org1.example.com": {
+            "certificateAuthorities": [
+                "ca-org1"
+            ],
+            "mspid": "org1MSP",
+            "peers": [
+                "peer0.org1.example.com",
+                "peer1.org1.example.com"
+            ],
+            "users": {
+                "Admin": {
+                    "cert": "/home/raphael/git/playground/umbra/examples/fabric/fabric_configs/peerOrganizations/org1.example.com/users/Admin@org1.example.com/msp/signcerts/Admin@org1.example.com-cert.pem",
+                    "private_key": "/home/raphael/git/playground/umbra/examples/fabric/fabric_configs/peerOrganizations/org1.example.com/users/Admin@org1.example.com/msp/keystore/939aba34bcd9c26a6fea36f0610796c85579a794980fb6b5e4baa5fcf31e0b84_sk"
+                },
+                "User1": {
+                    "cert": "/home/raphael/git/playground/umbra/examples/fabric/fabric_configs/peerOrganizations/org1.example.com/users/User1@org1.example.com/msp/signcerts/User1@org1.example.com-cert.pem",
+                    "private_key": "/home/raphael/git/playground/umbra/examples/fabric/fabric_configs/peerOrganizations/org1.example.com/users/User1@org1.example.com/msp/keystore/232ec9c405108b155aa75eaeba2e9e99ce33b7f9dabfb30976d1dae228907a9a_sk"
+                }
+            }
+        },
+        "org2.example.com": {
+            "certificateAuthorities": [
+                "ca-org2"
+            ],
+            "mspid": "org2MSP",
+            "peers": [
+                "peer0.org2.example.com",
+                "peer1.org2.example.com"
+            ],
+            "users": {
+                "Admin": {
+                    "cert": "/home/raphael/git/playground/umbra/examples/fabric/fabric_configs/peerOrganizations/org2.example.com/users/Admin@org2.example.com/msp/signcerts/Admin@org2.example.com-cert.pem",
+                    "private_key": "/home/raphael/git/playground/umbra/examples/fabric/fabric_configs/peerOrganizations/org2.example.com/users/Admin@org2.example.com/msp/keystore/7d0e721f821a003afafcf8ae7ef4ad6719017d62e0c637f27603f9115e3de36a_sk"
+                },
+                "User1": {
+                    "cert": "/home/raphael/git/playground/umbra/examples/fabric/fabric_configs/peerOrganizations/org2.example.com/users/User1@org2.example.com/msp/signcerts/User1@org2.example.com-cert.pem",
+                    "private_key": "/home/raphael/git/playground/umbra/examples/fabric/fabric_configs/peerOrganizations/org2.example.com/users/User1@org2.example.com/msp/keystore/57758ec63ef7eb1ab99273e31fccf27d5f60e0ac0b0ed05ab5726af056c4ce25_sk"
+                }
+            }
+        }
+    },
+    "peers": {
+        "peer0.org1.example.com": {
+            "eventUrl": "localhost:9053",
+            "grpcOptions": {
+                "grpc.http2.keepalive_time": 15,
+                "grpc.ssl_target_name_override": "peer0.org1.example.com"
+            },
+            "tlsCACerts": {
+                "path": "/home/raphael/git/playground/umbra/examples/fabric/fabric_configs/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/msp/tlscacerts/tlsca.org1.example.com-cert.pem"
+            },
+            "url": "localhost:7051"
+        },
+        "peer0.org2.example.com": {
+            "eventUrl": "localhost:9053",
+            "grpcOptions": {
+                "grpc.http2.keepalive_time": 15,
+                "grpc.ssl_target_name_override": "peer0.org2.example.com"
+            },
+            "tlsCACerts": {
+                "path": "/home/raphael/git/playground/umbra/examples/fabric/fabric_configs/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/msp/tlscacerts/tlsca.org2.example.com-cert.pem"
+            },
+            "url": "localhost:9051"
+        },
+        "peer1.org1.example.com": {
+            "eventUrl": "localhost:9053",
+            "grpcOptions": {
+                "grpc.http2.keepalive_time": 15,
+                "grpc.ssl_target_name_override": "peer1.org1.example.com"
+            },
+            "tlsCACerts": {
+                "path": "/home/raphael/git/playground/umbra/examples/fabric/fabric_configs/peerOrganizations/org1.example.com/peers/peer1.org1.example.com/msp/tlscacerts/tlsca.org1.example.com-cert.pem"
+            },
+            "url": "localhost:8051"
+        },
+        "peer1.org2.example.com": {
+            "eventUrl": "localhost:9053",
+            "grpcOptions": {
+                "grpc.http2.keepalive_time": 15,
+                "grpc.ssl_target_name_override": "peer1.org2.example.com"
+            },
+            "tlsCACerts": {
+                "path": "/home/raphael/git/playground/umbra/examples/fabric/fabric_configs/peerOrganizations/org2.example.com/peers/peer1.org2.example.com/msp/tlscacerts/tlsca.org2.example.com-cert.pem"
+            },
+            "url": "localhost:10051"
+        }
+    },
+    "version": "0.1"
+}

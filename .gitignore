@@ -1,0 +1,9 @@
+.vscode/
+*.pyc
+html/
+latex/
+/Doxyfile.bak
+*.egg-info
+*~
+build/
+dist/

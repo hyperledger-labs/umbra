@@ -1,0 +1,263 @@
+---
+Application:
+    Capabilities:
+        V1_1: false
+        V1_2: false
+        V1_3: true
+    Organizations: null
+    Policies:
+        Admins:
+            Rule: MAJORITY Admins
+            Type: ImplicitMeta
+        Readers:
+            Rule: ANY Readers
+            Type: ImplicitMeta
+        Writers:
+            Rule: ANY Writers
+            Type: ImplicitMeta
+Capabilities:
+    Application:
+        V1_1: false
+        V1_2: false
+        V1_3: true
+    Channel:
+        V1_3: true
+    Orderer:
+        V1_1: true
+Channel:
+    Capabilities:
+        V1_3: true
+    Policies:
+        Admins:
+            Rule: MAJORITY Admins
+            Type: ImplicitMeta
+        Readers:
+            Rule: ANY Readers
+            Type: ImplicitMeta
+        Writers:
+            Rule: ANY Writers
+            Type: ImplicitMeta
+Orderer:
+    Addresses:
+    - orderer.example.com:7050
+    BatchSize:
+        AbsoluteMaxBytes: 99 MB
+        MaxMessageCount: 10
+        PreferredMaxBytes: 512 KB
+    BatchTimeout: 2s
+    Kafka:
+        Brokers:
+        - 127.0.0.1:9092
+    OrdererType: solo
+    Organizations: null
+    Policies:
+        Admins:
+            Rule: MAJORITY Admins
+            Type: ImplicitMeta
+        BlockValidation:
+            Rule: ANY Writers
+            Type: ImplicitMeta
+        Readers:
+            Rule: ANY Readers
+            Type: ImplicitMeta
+        Writers:
+            Rule: ANY Writers
+            Type: ImplicitMeta
+Organizations:
+-   AnchorPeers:
+    -   Host: peer0.org1.example.com
+        Port: 7051
+    ID: org1MSP
+    MSPDir: /home/raphael/git/playground/umbra/examples/fabric/fabric_configs/peerOrganizations/org1.example.com/msp
+    Name: org1MSP
+    Policies:
+        Admins:
+            Rule: OR('org1MSP.admin')
+            Type: Signature
+        Readers:
+            Rule: OR('org1MSP.admin', 'org1MSP.peer', 'org1MSP.client')
+            Type: Signature
+        Writers:
+            Rule: OR('org1MSP.admin', 'org1MSP.client')
+            Type: Signature
+-   AnchorPeers:
+    -   Host: peer0.org2.example.com
+        Port: 9051
+    ID: org2MSP
+    MSPDir: /home/raphael/git/playground/umbra/examples/fabric/fabric_configs/peerOrganizations/org2.example.com/msp
+    Name: org2MSP
+    Policies:
+        Admins:
+            Rule: OR('org2MSP.admin')
+            Type: Signature
+        Readers:
+            Rule: OR('org2MSP.admin', 'org2MSP.peer', 'org2MSP.client')
+            Type: Signature
+        Writers:
+            Rule: OR('org2MSP.admin', 'org2MSP.client')
+            Type: Signature
+-   ID: ordererMSP
+    MSPDir: /home/raphael/git/playground/umbra/examples/fabric/fabric_configs/ordererOrganizations/example.com/msp
+    Name: ordererOrg
+    Policies:
+        Admins:
+            Rule: OR('ordererMSP.admin')
+            Type: Signature
+        Readers:
+            Rule: OR('ordererMSP.member')
+            Type: Signature
+        Writers:
+            Rule: OR('ordererMSP.member')
+            Type: Signature
+Profiles:
+    TwoOrgsChannel:
+        Application:
+            Capabilities:
+                V1_1: false
+                V1_2: false
+                V1_3: true
+            Organizations:
+            -   AnchorPeers:
+                -   Host: peer0.org1.example.com
+                    Port: 7051
+                ID: org1MSP
+                MSPDir: /home/raphael/git/playground/umbra/examples/fabric/fabric_configs/peerOrganizations/org1.example.com/msp
+                Name: org1MSP
+                Policies:
+                    Admins:
+                        Rule: OR('org1MSP.admin')
+                        Type: Signature
+                    Readers:
+                        Rule: OR('org1MSP.admin', 'org1MSP.peer', 'org1MSP.client')
+                        Type: Signature
+                    Writers:
+                        Rule: OR('org1MSP.admin', 'org1MSP.client')
+                        Type: Signature
+            -   AnchorPeers:
+                -   Host: peer0.org2.example.com
+                    Port: 9051
+                ID: org2MSP
+                MSPDir: /home/raphael/git/playground/umbra/examples/fabric/fabric_configs/peerOrganizations/org2.example.com/msp
+                Name: org2MSP
+                Policies:
+                    Admins:
+                        Rule: OR('org2MSP.admin')
+                        Type: Signature
+                    Readers:
+                        Rule: OR('org2MSP.admin', 'org2MSP.peer', 'org2MSP.client')
+                        Type: Signature
+                    Writers:
+                        Rule: OR('org2MSP.admin', 'org2MSP.client')
+                        Type: Signature
+            Policies:
+                Admins:
+                    Rule: MAJORITY Admins
+                    Type: ImplicitMeta
+                Readers:
+                    Rule: ANY Readers
+                    Type: ImplicitMeta
+                Writers:
+                    Rule: ANY Writers
+                    Type: ImplicitMeta
+        Capabilities:
+            V1_3: true
+        Consortium: SampleConsortium
+        Policies:
+            Admins:
+                Rule: MAJORITY Admins
+                Type: ImplicitMeta
+            Readers:
+                Rule: ANY Readers
+                Type: ImplicitMeta
+            Writers:
+                Rule: ANY Writers
+                Type: ImplicitMeta
+    TwoOrgsOrdererGenesis:
+        Capabilities:
+            V1_3: true
+        Consortiums:
+            SampleConsortium:
+                Organizations:
+                -   AnchorPeers:
+                    -   Host: peer0.org1.example.com
+                        Port: 7051
+                    ID: org1MSP
+                    MSPDir: /home/raphael/git/playground/umbra/examples/fabric/fabric_configs/peerOrganizations/org1.example.com/msp
+                    Name: org1MSP
+                    Policies:
+                        Admins:
+                            Rule: OR('org1MSP.admin')
+                            Type: Signature
+                        Readers:
+                            Rule: OR('org1MSP.admin', 'org1MSP.peer', 'org1MSP.client')
+                            Type: Signature
+                        Writers:
+                            Rule: OR('org1MSP.admin', 'org1MSP.client')
+                            Type: Signature
+                -   AnchorPeers:
+                    -   Host: peer0.org2.example.com
+                        Port: 9051
+                    ID: org2MSP
+                    MSPDir: /home/raphael/git/playground/umbra/examples/fabric/fabric_configs/peerOrganizations/org2.example.com/msp
+                    Name: org2MSP
+                    Policies:
+                        Admins:
+                            Rule: OR('org2MSP.admin')
+                            Type: Signature
+                        Readers:
+                            Rule: OR('org2MSP.admin', 'org2MSP.peer', 'org2MSP.client')
+                            Type: Signature
+                        Writers:
+                            Rule: OR('org2MSP.admin', 'org2MSP.client')
+                            Type: Signature
+        Orderer:
+            Addresses:
+            - orderer.example.com:7050
+            BatchSize:
+                AbsoluteMaxBytes: 99 MB
+                MaxMessageCount: 10
+                PreferredMaxBytes: 512 KB
+            BatchTimeout: 2s
+            Capabilities:
+                V1_1: true
+            Kafka:
+                Brokers:
+                - 127.0.0.1:9092
+            OrdererType: solo
+            Organizations:
+            -   ID: ordererMSP
+                MSPDir: /home/raphael/git/playground/umbra/examples/fabric/fabric_configs/ordererOrganizations/example.com/msp
+                Name: ordererOrg
+                Policies:
+                    Admins:
+                        Rule: OR('ordererMSP.admin')
+                        Type: Signature
+                    Readers:
+                        Rule: OR('ordererMSP.member')
+                        Type: Signature
+                    Writers:
+                        Rule: OR('ordererMSP.member')
+                        Type: Signature
+            Policies:
+                Admins:
+                    Rule: MAJORITY Admins
+                    Type: ImplicitMeta
+                BlockValidation:
+                    Rule: ANY Writers
+                    Type: ImplicitMeta
+                Readers:
+                    Rule: ANY Readers
+                    Type: ImplicitMeta
+                Writers:
+                    Rule: ANY Writers
+                    Type: ImplicitMeta
+        Policies:
+            Admins:
+                Rule: MAJORITY Admins
+                Type: ImplicitMeta
+            Readers:
+                Rule: ANY Readers
+                Type: ImplicitMeta
+            Writers:
+                Rule: ANY Writers
+                Type: ImplicitMeta

@@ -1,0 +1,83 @@
+peer-base:
+  image: hyperledger/fabric-peer:{image_tag}
+  environment:
+    - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
+    - FABRIC_LOGGING_SPEC=INFO
+    #- FABRIC_LOGGING_SPEC=DEBUG
+    - CORE_PEER_TLS_ENABLED=true
+    - CORE_PEER_GOSSIP_USELEADERELECTION=true
+    - CORE_PEER_GOSSIP_ORGLEADER=false
+    - CORE_PEER_PROFILE_ENABLED=true
+    - CORE_PEER_TLS_CERT_FILE=/etc/hyperledger/fabric/tls/server.crt
+    - CORE_PEER_TLS_KEY_FILE=/etc/hyperledger/fabric/tls/server.key
+    - CORE_PEER_TLS_ROOTCERT_FILE=/etc/hyperledger/fabric/tls/ca.crt
+  environment_format:
+    # the following setting starts chaincode containers on the same
+    # bridge network as the peers
+    # https://docs.docker.com/compose/networking/
+    - CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE={project_network}
+    - CORE_PEER_ID={peer_fqdn}
+    - CORE_PEER_ADDRESS={peer_fqdn}:{port}
+    - CORE_PEER_LISTENADDRESS=0.0.0.0:{port}
+    - CORE_PEER_CHAINCODEADDRESS={peer_fqdn}:{chaincode_port}
+    - CORE_PEER_CHAINCODELISTENADDRESS=0.0.0.0:{chaincode_port}
+    - CORE_PEER_GOSSIP_EXTERNALENDPOINT={peer_fqdn}:{port}
+    - CORE_PEER_GOSSIP_BOOTSTRAP={peer_anchor_fqdn}:{peer_anchor_port}
+    - CORE_PEER_LOCALMSPID={peer_msp_id}
+  volumes:
+      - "/var/run/:/host/var/run/:rw"
+      - "{peer_path}/msp:/etc/hyperledger/fabric/msp:rw"
+      - "{peer_path}/tls:/etc/hyperledger/fabric/tls:rw"
+      - "{peer_fqdn}:/var/hyperledger/production:rw"
+  ports:
+    - "{port}:{port}"
+  working_dir: /opt/gopath/src/github.com/hyperledger/fabric/peer
+  command: peer node start
+
+
+orderer-base:
+  image: hyperledger/fabric-orderer:{image_tag}
+  environment:
+    - FABRIC_LOGGING_SPEC=DEBUG
+    - ORDERER_GENERAL_LISTENADDRESS=0.0.0.0
+    - ORDERER_GENERAL_GENESISMETHOD=file
+    - ORDERER_GENERAL_GENESISFILE=/var/hyperledger/orderer/orderer.genesis.block
+    - ORDERER_GENERAL_LOCALMSPDIR=/var/hyperledger/orderer/msp
+    # enabled TLS
+    - ORDERER_GENERAL_TLS_ENABLED=true
+    - ORDERER_GENERAL_TLS_PRIVATEKEY=/var/hyperledger/orderer/tls/server.key
+    - ORDERER_GENERAL_TLS_CERTIFICATE=/var/hyperledger/orderer/tls/server.crt
+    - ORDERER_GENERAL_TLS_ROOTCAS=[/var/hyperledger/orderer/tls/ca.crt]
+    - ORDERER_KAFKA_TOPIC_REPLICATIONFACTOR=1
+    - ORDERER_KAFKA_VERBOSE=true
+    - ORDERER_GENERAL_CLUSTER_CLIENTCERTIFICATE=/var/hyperledger/orderer/tls/server.crt
+    - ORDERER_GENERAL_CLUSTER_CLIENTPRIVATEKEY=/var/hyperledger/orderer/tls/server.key
+    - ORDERER_GENERAL_CLUSTER_ROOTCAS=[/var/hyperledger/orderer/tls/ca.crt]
+  environment_format:
+    - ORDERER_GENERAL_LOCALMSPID={msp_id}
+  volumes:
+    - "{root_config}/genesis.block:/var/hyperledger/orderer/orderer.genesis.block:rw"
+    - "{orderer_path}/msp:/var/hyperledger/orderer/msp:rw"
+    - "{orderer_path}/tls/:/var/hyperledger/orderer/tls:rw"
+    - "{orderer_fqdn}:/var/hyperledger/production/orderer:rw"
+  ports:
+    - "{port}:{port}"
+  working_dir: /opt/gopath/src/github.com/hyperledger/fabric
+  command: orderer
+
+
+ca-base:
+  image: hyperledger/fabric-ca:{image_tag}
+  environment:
+    - FABRIC_CA_HOME=/etc/hyperledger/fabric-ca-server
+    - FABRIC_CA_SERVER_TLS_ENABLED=true
+  environment_format:
+    - FABRIC_CA_SERVER_CA_NAME={name_org}
+    - FABRIC_CA_SERVER_PORT={port}
+    - FABRIC_CA_SERVER_TLS_CERTFILE=/etc/hyperledger/fabric-ca-server-config/{ca_fqdn}-cert.pem
+    - FABRIC_CA_SERVER_TLS_KEYFILE=/etc/hyperledger/fabric-ca-server-config/{ca_keyfile}
+  ports:
+    - "{port}:{port}"
+  command: sh -c 'fabric-ca-server start --ca.certfile /etc/hyperledger/fabric-ca-server-config/{ca_fqdn}-cert.pem --ca.keyfile /etc/hyperledger/fabric-ca-server-config/{ca_keyfile} -b {ca_admin}:{ca_admin_pw} -d'
+  volumes:
+    - "{org_path}/ca/:/etc/hyperledger/fabric-ca-server-config:rw"
