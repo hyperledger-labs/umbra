@@ -7,7 +7,6 @@ import asyncio
 import time
 
 from umbra_cfgs.config import Topology, Scenario
-from umbra_orch.store import Storage
 from umbra_orch.plugins.fabric import FabricEvents
 
 
@@ -134,7 +133,6 @@ class Operator:
         self.topology = None
         self.paths = Paths()
         self.msgs = Messages()
-        self.storage = Storage()
         self.events_fabric = FabricEvents(self.asyncio_loop)
         self.plugins = {}
 

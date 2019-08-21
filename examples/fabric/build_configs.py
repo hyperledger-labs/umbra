@@ -22,7 +22,7 @@ def build_simple_fabric_cfg():
     fab_topo = FabricTopology('fabric_simple', configs_dir, chaincode_dir)
 
     domain = "example.com"
-    image_tag = "1.4.1"
+    image_tag = "1.4.0.1"
 
     fab_topo.add_org("org1", domain, None, policies=org1_policy)
     fab_topo.add_peer("peer0", "org1", anchor=True, image_tag=image_tag)
@@ -63,7 +63,7 @@ def build_simple_fabric_cfg():
     fab_topo.add_org_network_link("orderer", "s0", "E-Line")
 
     node_resources = fab_topo.create_node_profile(cpus=1, memory=1024, disk=None)
-    link_resources = fab_topo.create_link_profile(bw=1, delay='10ms', loss=None)
+    link_resources = fab_topo.create_link_profile(bw=1, delay='2ms', loss=None)
     
     fab_topo.add_node_profile(node_resources, node_type="container")
     fab_topo.add_link_profile(link_resources, link_type="E-Line")
@@ -80,48 +80,43 @@ def build_simple_fabric_cfg():
         "org": "org1",
         "user": "Admin",
         "orderer": "orderer",
-        "channel": "mychannel",
+        "channel": "testchannel",
         "profile": "TwoOrgsChannel",
     }
-    scenario.add_event("0", "fabric", ev_create_channel)
 
     ev_join_channel_org1 = {
         "action": "join_channel",
         "org": "org1",
         "user": "Admin",
         "orderer": "orderer",
-        "channel": "mychannel",
+        "channel": "testchannel",
         "peers": ["peer0", "peer1"],
     }
-    scenario.add_event("2", "fabric", ev_join_channel_org1)
 
     ev_join_channel_org2 = {
         "action": "join_channel",
         "org": "org2",
         "user": "Admin",
         "orderer": "orderer",
-        "channel": "mychannel",
+        "channel": "testchannel",
         "peers": ["peer0", "peer1"],
     }
-    scenario.add_event("2", "fabric", ev_join_channel_org2)
 
     ev_info_channel = {
         "action": "info_channel",
         "org": "org1",
         "user": "Admin",
-        "channel": "mychannel",
+        "channel": "testchannel",
         "peers": ["peer0"],
     }
-    scenario.add_event("4", "fabric", ev_info_channel)
 
     ev_info_channel_config = {
         "action": "info_channel_config",
         "org": "org1",
         "user": "Admin",
-        "channel": "mychannel",
+        "channel": "testchannel",
         "peers": ["peer0"],
     }
-    scenario.add_event("5", "fabric", ev_info_channel_config)
 
     ev_info_channels = {
         "action": "info_channels",
@@ -129,14 +124,11 @@ def build_simple_fabric_cfg():
         "user": "Admin",
         "peers": ["peer0"],
     }
-    scenario.add_event("6", "fabric", ev_info_channels)
 
     ev_info_network = {
         "action": "info_network",
         "orderer": "orderer",
     }
-    scenario.add_event("7", "fabric", ev_info_network)
-
 
     ev_chaincode_install_org1 = {
         "action": "chaincode_install",
@@ -147,7 +139,6 @@ def build_simple_fabric_cfg():
         "chaincode_version": "v1.0",
         "peers": ["peer0", "peer1"],
     }
-    scenario.add_event("8", "fabric", ev_chaincode_install_org1)
 
     ev_chaincode_install_org2 = {
         "action": "chaincode_install",
@@ -158,30 +149,27 @@ def build_simple_fabric_cfg():
         "chaincode_version": "v1.0",
         "peers": ["peer0", "peer1"],
     }
-    scenario.add_event("8", "fabric", ev_chaincode_install_org2)
 
     ev_chaincode_instantiate_org1 = {
         "action": "chaincode_instantiate",
         "org": "org1",
         "user": "Admin",
         "peers": ["peer0"],
-        "channel": "mychannel",
+        "channel": "testchannel",
         "chaincode_name": "example_cc",
         "chaincode_args": ['a', '200', 'b', '300'],
         "chaincode_version": "v1.0",        
     }
-    scenario.add_event("10", "fabric", ev_chaincode_instantiate_org1)
 
     ev_chaincode_invoke_org1 = {
         "action": "chaincode_invoke",
         "org": "org1",
         "user": "Admin",
         "peers": ["peer0"],
-        "channel": "mychannel",
+        "channel": "testchannel",
         "chaincode_name": "example_cc",
         "chaincode_args": ['a', 'b', '100'],
     }
-    scenario.add_event("14", "fabric", ev_chaincode_invoke_org1)
 
 
     ev_chaincode_query_org1 = {
@@ -189,12 +177,24 @@ def build_simple_fabric_cfg():
         "org": "org1",
         "user": "Admin",
         "peers": ["peer0"],
-        "channel": "mychannel",
+        "channel": "testchannel",
         "chaincode_name": "example_cc",
         "chaincode_args": ['b'],
     }
-    scenario.add_event("18", "fabric", ev_chaincode_query_org1)
 
+    scenario.add_event("0", "fabric", ev_info_channels)
+    scenario.add_event("1", "fabric", ev_create_channel)
+    scenario.add_event("3", "fabric", ev_join_channel_org1)
+    scenario.add_event("3", "fabric", ev_join_channel_org2)
+    scenario.add_event("4", "fabric", ev_info_channel)
+    scenario.add_event("5", "fabric", ev_info_channel_config)
+    scenario.add_event("6", "fabric", ev_info_channels)
+    scenario.add_event("7", "fabric", ev_info_network)
+    scenario.add_event("8", "fabric", ev_chaincode_install_org1)
+    scenario.add_event("8", "fabric", ev_chaincode_install_org2)
+    scenario.add_event("10", "fabric", ev_chaincode_instantiate_org1)
+    scenario.add_event("16", "fabric", ev_chaincode_invoke_org1)
+    scenario.add_event("20", "fabric", ev_chaincode_query_org1)
 
     cfg = Cfg("config_fabric_simple", configs_dir)
     cfg.set_scenario(scenario)

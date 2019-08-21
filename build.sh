@@ -1,6 +1,6 @@
 #!/bin/bash 
 
-sudo apt update && apt install python3-dev python3-pip python-dev python-pip 
+sudo apt update && apt install byobu python3-dev python3-pip python-dev python-pip 
 sudo pip3 install setuptools
 sudo pip install setuptools
 

@@ -7,3 +7,4 @@ latex/
 *~
 build/
 dist/
+examples/fabric/fabric_configs/

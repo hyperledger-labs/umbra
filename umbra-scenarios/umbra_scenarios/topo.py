@@ -560,7 +560,8 @@ class Experiment:
         config = host.cmd( 'ifconfig %s 2>/dev/null' % intf)
         # LOG.info("get host %s config ips %s", host, config)
         if not config:
-            LOG.info('Error: %s does not exist!\n', intf)
+            # LOG.info('Error: %s does not exist!\n', intf)
+            return None
         ips = re.findall( r'\d+\.\d+\.\d+\.\d+', config )
         if ips:
             # LOG.info("host intf ips %s", ips)

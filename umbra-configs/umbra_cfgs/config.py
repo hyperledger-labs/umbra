@@ -1202,7 +1202,7 @@ class FabricTopology(Topology):
         channel_args = [
             "-configPath", output_path,
             "-profile", "TwoOrgsChannel",
-            "-channelID", "mychannel",
+            "-channelID", "testchannel",
             "-outputCreateChannelTx", output_path+"/channel.tx"
         ]
         
@@ -1210,7 +1210,7 @@ class FabricTopology(Topology):
         anchor_args1 = [
             "-configPath", output_path,
             "-profile", "TwoOrgsChannel",
-            "-channelID", "mychannel",
+            "-channelID", "testchannel",
             "-outputAnchorPeersUpdate", output_path+"/Org2MSPanchors.tx",
             "-asOrg", "org2MSP",
         ]
@@ -1218,7 +1218,7 @@ class FabricTopology(Topology):
         anchor_args2 = [
             "-configPath", output_path,
             "-profile", "TwoOrgsChannel",
-            "-channelID", "mychannel",
+            "-channelID", "testchannel",
             "-outputAnchorPeersUpdate", output_path+"/Org1MSPanchors.tx",
             "-asOrg", "org1MSP",
         ]
