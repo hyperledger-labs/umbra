@@ -132,3 +132,5 @@ upgradeDockerImages() {
 
 dockerImages
 upgradeDockerImages ${FABRIC_TAG}
+
+mkdir ./fabric_configs
