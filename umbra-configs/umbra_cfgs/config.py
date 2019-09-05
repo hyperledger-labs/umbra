@@ -502,7 +502,7 @@ class Topology(Graph):
         data = {}
         try:
             with open(filepath, 'r') as f:
-                data = load(f)
+                data = load(f, Loader=yaml.FullLoader)
         except Exception as e:
             logger.debug('exception: could not read file %s - %s', filepath, e)
         finally:
@@ -1319,6 +1319,7 @@ class FabricTopology(Topology):
         
             orderer_tls_dir = os.path.join(
                 orderer_dir, "tlsca/")
+
             orderer_tls_file = self.get_filepath(orderer_tls_dir, endswith=".pem", full_path=True)
 
             orderer_frmt = {

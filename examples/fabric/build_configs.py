@@ -10,12 +10,12 @@ from base_configtx.fabric import org1_policy, org2_policy, orderer_policy, confi
 
 def build_simple_fabric_cfg():
     temp_dir = "./fabric_configs"
-    configs_dir = os.path.normpath(
+    configs_dir = os.path.abspath(
         os.path.join(
             os.path.dirname(__file__), temp_dir))
 
     temp_dir = "./chaincode"
-    chaincode_dir = os.path.normpath(
+    chaincode_dir = os.path.abspath(
         os.path.join(
             os.path.dirname(__file__), temp_dir))
 
