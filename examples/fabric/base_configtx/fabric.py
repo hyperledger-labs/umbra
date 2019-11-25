@@ -28,6 +28,40 @@ org2_policy = {
     },
 }
 
+
+org3_policy = {
+    "Readers": {
+        "Type": "Signature",
+        "Rule": "OR('org3MSP.admin', 'org3MSP.peer', 'org3MSP.client')"
+    },                
+    "Writers": {
+        "Type": "Signature",
+        "Rule": "OR('org3MSP.admin', 'org3MSP.client')"
+    },
+    "Admins": {
+        "Type": "Signature",
+        "Rule": "OR('org3MSP.admin')"
+    },
+}
+
+
+org4_policy = {
+    "Readers": {
+        "Type": "Signature",
+        "Rule": "OR('org4MSP.admin', 'org4MSP.peer', 'org4MSP.client')"
+    },                
+    "Writers": {
+        "Type": "Signature",
+        "Rule": "OR('org4MSP.admin', 'org4MSP.client')"
+    },
+    "Admins": {
+        "Type": "Signature",
+        "Rule": "OR('org4MSP.admin')"
+    },
+}
+
+
+
 orderer_policy = {
     "Readers": {
         "Type": "Signature",
@@ -140,14 +174,14 @@ configtx = {
             },  
             "Consortiums": {
                 "SampleConsortium": {
-                    "Organizations": ["org1", "org2"]
+                    "Organizations": ["org1", "org2", "org3", "org4"]
                 }
             }
         },            
         "TwoOrgsChannel": {
             "Consortium": "SampleConsortium",  
             "Application": {
-                "Organizations": ["org1", "org2"],
+                "Organizations": ["org1", "org2", "org3", "org4"],
                 "Capabilities": ApplicationCapabilities,
             }
         }

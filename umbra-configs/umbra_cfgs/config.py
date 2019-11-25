@@ -502,7 +502,7 @@ class Topology(Graph):
         data = {}
         try:
             with open(filepath, 'r') as f:
-                data = load(f)
+                data = load(f, Loader=yaml.FullLoader)
         except Exception as e:
             logger.debug('exception: could not read file %s - %s', filepath, e)
         finally:
@@ -517,6 +517,9 @@ class Topology(Graph):
                 # dump(data, f, default_flow_style=False)
         except Exception as e:
             logger.debug('exception: could not write file %s - %s', filepath, e)
+        else:
+            logger.debug('write file ok %s - \n%s', filepath, data)
+
 
     def _join_full_path(self, temp_dir, filename):
         return os.path.normpath(
@@ -1319,6 +1322,7 @@ class FabricTopology(Topology):
         
             orderer_tls_dir = os.path.join(
                 orderer_dir, "tlsca/")
+
             orderer_tls_file = self.get_filepath(orderer_tls_dir, endswith=".pem", full_path=True)
 
             orderer_frmt = {
@@ -1399,6 +1403,15 @@ class FabricTopology(Topology):
         logger.info("Saving Fabric SDK config file %s", filepath) 
         self.writefile_json(config, filepath)
         self._configsdk_path = filepath
+
+
+class IrohaTopology(Topology):
+    def __init__(self, name, cfgs_dir, clear_dir=True):
+        Topology.__init__(self, name)
+        self._tmp_dir = cfgs_dir
+        self.project_network = "umbra" #HARDCODED
+        self.network_mode = "umbra"
+
 
 
 class Events:
