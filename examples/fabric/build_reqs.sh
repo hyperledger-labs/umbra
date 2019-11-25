@@ -134,3 +134,4 @@ dockerImages
 upgradeDockerImages ${FABRIC_TAG}
 
 mkdir ./fabric_configs
+chmod -R 777 ./fabric_configs
