@@ -43,7 +43,7 @@ class FabricEvents:
         os.environ['GOPATH'] = os.path.abspath(gopath)
 
     def build_cli(self):
-        pathlist = ["/home/raphael/hl/bin",]
+        pathlist = ["$HOME/hl/bin",]
         os.environ["PATH"] += os.pathsep + os.pathsep.join(pathlist)
 
         self._cli = Client(net_profile=self._config_sdk)
@@ -117,7 +117,6 @@ class FabricEvents:
             task = self.event_chaincode_invoke(event)
         if action == "chaincode_query":
             task = self.event_chaincode_query(event)
-
 
         if task:
             self.run_task(task)

@@ -61,7 +61,7 @@ To be defined.
 ## Process View (Test Execution Flow)
 Shows how a project instance runs a test case, as stated in the following sequence diagram.
 
-![Figure 1. Sequence Diagram of an Experiment](https://github.com/hyperledger-labs/umbra/doc/imgs/hl-workflow.png "Figure 1. Sequence Diagram of an Experiment")
+![Figure 1. Sequence Diagram of an Experiment](https://github.com/raphaelvrosa/umbra/blob/master/docs/imgs/hl-workflow.png "Figure 1. Sequence Diagram of an Experiment")
 
 To explain the process view shown above in Fig. 1, the items below make reference to each one of the numbered circles. It is considered the infrastructure is already set up with all the components installed and ready to execute the experiment.
 

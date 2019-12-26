@@ -134,3 +134,9 @@ dockerImages
 upgradeDockerImages ${FABRIC_TAG}
 
 mkdir ./fabric_configs
+chmod -R 777 ./fabric_configs
+
+mkdir $HOME/hl/bin
+cp ../../umbra-configs/umbra_cfgs/fabric/bin/* $HOME/hl/bin/
+export PATH=$PATH:$HOME/hl/bin
+

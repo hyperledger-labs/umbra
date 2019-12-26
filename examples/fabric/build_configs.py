@@ -154,10 +154,21 @@ def build_simple_fabric_cfg():
         "action": "chaincode_instantiate",
         "org": "org1",
         "user": "Admin",
-        "peers": ["peer0"],
+        "peers": ["peer1"],
         "channel": "testchannel",
         "chaincode_name": "example_cc",
-        "chaincode_args": ['a', '200', 'b', '300'],
+        "chaincode_args": ['a', '200', 'b', '50'],
+        "chaincode_version": "v1.0",        
+    }
+
+    ev_chaincode_instantiate_org2 = {
+        "action": "chaincode_instantiate",
+        "org": "org2",
+        "user": "Admin",
+        "peers": ["peer1"],
+        "channel": "testchannel",
+        "chaincode_name": "example_cc",
+        "chaincode_args": ['a', '200', 'b', '50'],
         "chaincode_version": "v1.0",        
     }
 
@@ -165,22 +176,32 @@ def build_simple_fabric_cfg():
         "action": "chaincode_invoke",
         "org": "org1",
         "user": "Admin",
-        "peers": ["peer0"],
+        "peers": ["peer1"],
         "channel": "testchannel",
         "chaincode_name": "example_cc",
         "chaincode_args": ['a', 'b', '100'],
     }
 
-
     ev_chaincode_query_org1 = {
         "action": "chaincode_query",
-        "org": "org1",
+        "org": "org2",
         "user": "Admin",
-        "peers": ["peer0"],
+        "peers": ["peer1"],
         "channel": "testchannel",
         "chaincode_name": "example_cc",
         "chaincode_args": ['b'],
     }
+
+    ev_chaincode_query_org2 = {
+        "action": "chaincode_query",
+        "org": "org2",
+        "user": "Admin",
+        "peers": ["peer1"],
+        "channel": "testchannel",
+        "chaincode_name": "example_cc",
+        "chaincode_args": ['b'],
+    }
+
 
     scenario.add_event("0", "fabric", ev_info_channels)
     scenario.add_event("1", "fabric", ev_create_channel)
@@ -193,8 +214,10 @@ def build_simple_fabric_cfg():
     scenario.add_event("8", "fabric", ev_chaincode_install_org1)
     scenario.add_event("8", "fabric", ev_chaincode_install_org2)
     scenario.add_event("10", "fabric", ev_chaincode_instantiate_org1)
-    scenario.add_event("16", "fabric", ev_chaincode_invoke_org1)
-    scenario.add_event("20", "fabric", ev_chaincode_query_org1)
+    scenario.add_event("10", "fabric", ev_chaincode_instantiate_org2)    
+    scenario.add_event("20", "fabric", ev_chaincode_invoke_org1)
+    scenario.add_event("30", "fabric", ev_chaincode_query_org1)
+    scenario.add_event("32", "fabric", ev_chaincode_query_org2)
 
     cfg = Cfg("config_fabric_simple", configs_dir)
     cfg.set_scenario(scenario)
@@ -202,7 +225,7 @@ def build_simple_fabric_cfg():
     cfg.save()
 
 
-def setup_logging(log_level=logging.INFO):
+def setup_logging(log_level=logging.DEBUG):
     """Set up the logging."""
     logging.basicConfig(level=log_level)
     fmt = ("%(asctime)s %(levelname)s (%(threadName)s) "

@@ -11,6 +11,9 @@ The files/folder structure is described below:
 
 ## Installing Requirements
 
+First of all, you must have go language installed and set to your PATH env (e.g., https://golang.org/doc/install).
+And mostly important, you must have the folder inside umbra/umbra-configs/umbra_cfgs/fabric/bin set to your PATH, so the configtxgen and cryptogen binaries can be used by the fabric-python-sdk. 
+
 ```bash
 $ sudo ./build_reqs.sh
 ```
@@ -30,6 +33,12 @@ To start running the experiments defined by the generated configuration files, r
 cd ..
 $ sudo -H ./run.sh start -c ./fabric/fabric_configs/config_fabric_simple.json 
 ```
+
+To visualize the logs of the scenarios and orch components, you can another terminal and enter the byobu session by:
+```bash
+$ sudo -H byobu attach-session -t umbra
+```
+
 
 To stop and clean the experiment, run:
 
