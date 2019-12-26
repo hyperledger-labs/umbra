@@ -517,6 +517,9 @@ class Topology(Graph):
                 # dump(data, f, default_flow_style=False)
         except Exception as e:
             logger.debug('exception: could not write file %s - %s', filepath, e)
+        else:
+            logger.debug('write file ok %s - \n%s', filepath, data)
+
 
     def _join_full_path(self, temp_dir, filename):
         return os.path.normpath(
@@ -1400,6 +1403,15 @@ class FabricTopology(Topology):
         logger.info("Saving Fabric SDK config file %s", filepath) 
         self.writefile_json(config, filepath)
         self._configsdk_path = filepath
+
+
+class IrohaTopology(Topology):
+    def __init__(self, name, cfgs_dir, clear_dir=True):
+        Topology.__init__(self, name)
+        self._tmp_dir = cfgs_dir
+        self.project_network = "umbra" #HARDCODED
+        self.network_mode = "umbra"
+
 
 
 class Events:

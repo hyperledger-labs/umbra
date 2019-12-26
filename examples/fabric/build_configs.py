@@ -5,10 +5,12 @@ import logging
 from umbra_cfgs.config import Profile, Topology, Scenario, Cfg
 from umbra_cfgs.config import FabricTopology
 
-from base_configtx.fabric import org1_policy, org2_policy, orderer_policy, configtx
+from base_configtx.fabric import org1_policy, org2_policy, org3_policy, org4_policy, orderer_policy, configtx
 
 
 def build_simple_fabric_cfg():
+
+    # Set abs paths for fabric configs and chaincodes
     temp_dir = "./fabric_configs"
     configs_dir = os.path.abspath(
         os.path.join(
@@ -19,6 +21,8 @@ def build_simple_fabric_cfg():
         os.path.join(
             os.path.dirname(__file__), temp_dir))
 
+
+    # Defines Fabric Topology - main class to have orgs/peers/cas/orderers added
     fab_topo = FabricTopology('fabric_simple', configs_dir, chaincode_dir)
 
     domain = "example.com"
@@ -32,6 +36,13 @@ def build_simple_fabric_cfg():
     fab_topo.add_peer("peer0", "org2", anchor=True, image_tag=image_tag)
     fab_topo.add_peer("peer1", "org2", image_tag=image_tag)
 
+    fab_topo.add_org("org3", domain, None, policies=org3_policy)
+    fab_topo.add_peer("peer0", "org3", anchor=True, image_tag=image_tag)
+    
+    fab_topo.add_org("org4", domain, None, policies=org4_policy)
+    fab_topo.add_peer("peer0", "org4", anchor=True, image_tag=image_tag)
+    
+
     ord_specs = [
         {"Hostname": "orderer"},
         {"Hostname": "orderer2"},
@@ -44,24 +55,32 @@ def build_simple_fabric_cfg():
 
     fab_topo.add_ca("ca", "org1", domain, "admin", "admin_pw", image_tag=image_tag)
     fab_topo.add_ca("ca", "org2", domain, "admin", "admin_pw", image_tag=image_tag)
+    fab_topo.add_ca("ca", "org3", domain, "admin", "admin_pw", image_tag=image_tag)
+    fab_topo.add_ca("ca", "org4", domain, "admin", "admin_pw", image_tag=image_tag)
 
+
+    # Configtx quick fixes - checks which paths from configtx needs to have full org desc
     fab_topo.configtx(configtx)
-
     p1 = "TwoOrgsOrdererGenesis.Consortiums.SampleConsortium.Organizations"
     p2 = "TwoOrgsOrdererGenesis.Orderer.Organizations"
     p3 = "TwoOrgsChannel.Application.Organizations"
-    fab_topo.set_configtx_profile(p1, ["org1", "org2"])
+    fab_topo.set_configtx_profile(p1, ["org1", "org2", "org3", "org4"])
     fab_topo.set_configtx_profile(p2, ["orderer"])
-    fab_topo.set_configtx_profile(p3, ["org1", "org2"])
+    fab_topo.set_configtx_profile(p3, ["org1", "org2", "org3", "org4"])
 
+
+    # Creates all config files - i.e., crypto-config configtx config-sdk
     fab_topo.build_configs()
 
+    # Creates the network topology - orgs/nodes and links
     fab_topo.add_network("s0")
-
     fab_topo.add_org_network_link("org1", "s0", "E-Line")
     fab_topo.add_org_network_link("org2", "s0", "E-Line")
+    fab_topo.add_org_network_link("org3", "s0", "E-Line")
+    fab_topo.add_org_network_link("org4", "s0", "E-Line")
     fab_topo.add_org_network_link("orderer", "s0", "E-Line")
 
+    # Defines resources for nodes and links
     node_resources = fab_topo.create_node_profile(cpus=1, memory=1024, disk=None)
     link_resources = fab_topo.create_link_profile(bw=1, delay='2ms', loss=None)
     
@@ -72,6 +91,8 @@ def build_simple_fabric_cfg():
     # print(topo_built)
     # fab_topo.show()
 
+
+    # Defines scenario containing topology, so events can be added
     scenario = Scenario("scenario_fabric", "Tester")
     scenario.set_topology(fab_topo)
 
@@ -101,6 +122,25 @@ def build_simple_fabric_cfg():
         "channel": "testchannel",
         "peers": ["peer0", "peer1"],
     }
+
+    ev_join_channel_org3 = {
+        "action": "join_channel",
+        "org": "org3",
+        "user": "Admin",
+        "orderer": "orderer",
+        "channel": "testchannel",
+        "peers": ["peer0"],
+    }
+
+    ev_join_channel_org4 = {
+        "action": "join_channel",
+        "org": "org4",
+        "user": "Admin",
+        "orderer": "orderer",
+        "channel": "testchannel",
+        "peers": ["peer0"],
+    }
+
 
     ev_info_channel = {
         "action": "info_channel",
@@ -207,6 +247,8 @@ def build_simple_fabric_cfg():
     scenario.add_event("1", "fabric", ev_create_channel)
     scenario.add_event("3", "fabric", ev_join_channel_org1)
     scenario.add_event("3", "fabric", ev_join_channel_org2)
+    scenario.add_event("3", "fabric", ev_join_channel_org3)
+    scenario.add_event("3", "fabric", ev_join_channel_org4)
     scenario.add_event("4", "fabric", ev_info_channel)
     scenario.add_event("5", "fabric", ev_info_channel_config)
     scenario.add_event("6", "fabric", ev_info_channels)
@@ -219,6 +261,7 @@ def build_simple_fabric_cfg():
     scenario.add_event("30", "fabric", ev_chaincode_query_org1)
     scenario.add_event("32", "fabric", ev_chaincode_query_org2)
 
+    # Save config file
     cfg = Cfg("config_fabric_simple", configs_dir)
     cfg.set_scenario(scenario)
     cfg.deploy(plugin="containernet", entrypoint="http://172.17.0.1:8988/001/")
