@@ -12,10 +12,11 @@ Welcome to umbra's documentation!
 
    intro.rst
    installing.rst
-   example.rst
    architecture.rst
    workflow.rst
+   example.rst
    internals.rst
+   extensions.rst
 
 
 Indices and tables
