@@ -5,8 +5,35 @@ Workflow
 Use Case View
 *************
 
-The tests are meant to be fully automated. However Testers might interact with the running topology during the tests too. A Tester defines the configuration file, performs the test in a target execution environment, and collects the experimental data (raw and analyzed) output of the monitoring functions. A Viewer/User just visualizes and performs analysis on the test results. Visualization of test results can be triggered during the execution of the test and after it.
+There exists two roles in the umbra use case view, the blockchain Tester and the Analyst/Viewer.
+Using the provided APIs, a Tester defines the configuration file, uses it to perform the test in a target execution environment, and collects the experimental data metrics and logs (raw and analyzed) output of the monitoring functions. An Analyst just visualizes and performs analysis on the test results. Visualization of test results can be triggered during the execution of the test and after it. So an Analyst might visualize tests metrics in runtime via plugins (e.g., grafana, kibana, 
+The examples are meant to be fully automated, but Testers might interact with the running topology during the tests too.
 
+
+Logical View
+************
+
+Using an API provided by umbra-configs, a tester codes the scenario needed for an experiment, the output of such scenario is a configuration file in a yaml format. 
+A run script starts the applications modules umbra-orch and umbra-scenarios, both detaining a REST API. 
+The yaml (config) file is sent via an http rest api to the umbra-orch component which parses it, sends the scenario topology to umbra-scenarios via an http rest api, which is deployed. Acknowledging the deployment by a message received from umbra-scenarios, umbra-orch triggers the events specified in the yaml (config) file. These events interface the management APIs of the running blockchain components via their SDK (e.g., fabric-python-sdk interacting with Fabric peers/cas/orderers).
+At the end of events, the tester can finish the execution of the scenarios and the running modules and collects the metrics measured during the experiment.
+
+As such, for each main umbra module the following logic describes the most important classes, their organization and the most important use case realizations.
+
+* umbra-configs
+
+    * Graph:
+    * Topology:
+
+* umbra-orch
+
+    * Manager:
+    * Operator:
+
+* umbra-scenarios
+    
+    * Experiment:
+    * Scenario:
 
 Flow View
 *********
@@ -32,8 +59,15 @@ How it is going to work: the configuration file is parsed and converted into an 
 Deployment View
 ***************
 
-Shows how the project components can be deployed in an execution environment. In general, the project code can be installed in one or more servers interconnected by a common network, composing a cluster. In one server, specified as the jump server, the main modules of the project load the configuration file and execute the experiments.
+In general, the project code can be installed in one or more servers interconnected by a common network, composing a cluster. In one server, specified as the jump server, the main modules of the project load the configuration file and execute the experiments.
 
 
 Directory Structure
 *******************
+
+* build: contains the installation scripts for all the umbra modules, in addition to the scripts needed to install the dependencies for the blockchain platforms be executed by umbra.
+* docs: all the documentation is stored in docs, included all the source files (.rst) needed to compile the html pages for readthedocs.
+* examples: contains a README file on how to run umbra examples, and for each example it contains a folder referencing the name of the blockchain platform containing instructions and all the scripts needed to run the example.
+* umbra-orch: contains all the module source code to install and run the orchestration logic of umbra, i.e., how to receive a scenario configuration request, deploy it and trigger the events programmed in the scenario logic. umbra-orch contains plugins, each one specified for a different blockchain platform it supports.
+* umbra-configs: contains all the module source code to install and enable APIs for the configuration logic of umbra, i.e., how to specify different topology APIs to build the configuration needed for each blockchain platform to be executed by umbra-orch. 
+* umbra-scenarios: contains all the module source code to install and run the plugin that enables containernet to deploy the topology needed to execute a blockchain platform. 

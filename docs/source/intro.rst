@@ -30,8 +30,7 @@ Umbra elaborates its architecture on top of the enhancements proposed by contain
 How it Works
 ************
 
-Umbra works with support of virtualization technologies, containers (Docker) and programmable switches (Open vSwitch). Using containernet it deployes an underlying network which serves as the virtual infrastructure for the blockchain network of choice (e.g., Iroha, Fabric, Indy, etc) to be executed as the overlay application network. Nodes and links can be configured with resource constraint rules (e.g., cpu, memory, bandwidth, latency, etc). Events...
-
+Umbra works with support of virtualization technologies, containers (Docker) and programmable switches (Open vSwitch). Using containernet it deployes an underlying network which serves as the infrastructure for the blockchain platform of choice (e.g., Iroha, Fabric, Indy, etc) to be executed as the overlay application network. Nodes and links can be configured with resource constraint rules (e.g., cpu, memory, bandwidth, latency, etc). Besides, umbra allows events (e.g., transactions, chaincode invoke, update node/link resources) to be scheduled targeting the blockchain platform using plugins. 
 
 Roadmap
 *******
@@ -39,11 +38,13 @@ Roadmap
 Umbra lives in its childhood, currently developed mostly using the Python 3 programming language.
 
 The road so far:
+
 * Umbra was developed in the Hyperledger Internship 2019 program;
 * It contains 3 main modules (umbra-scenarios, umbra-orch, umbra-configs) - see the Architecture section;
 * There is support for Fabric v1.4 blockchain project and an example with instructions.
 
 Work ahead:
+
 * Support for other blockchain projects;
 * Scale to multiple servers;
 * Implement a common dashboard with run-time status of the emulated blockchain network.
