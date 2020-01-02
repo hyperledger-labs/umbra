@@ -6,44 +6,47 @@ Use Case View
 *************
 
 There exists two roles in the umbra use case view, the blockchain Tester and the Analyst/Viewer.
-Using the provided APIs, a Tester defines the configuration file, uses it to perform the test in a target execution environment, and collects the experimental data metrics and logs (raw and analyzed) output of the monitoring functions. An Analyst just visualizes and performs analysis on the test results. Visualization of test results can be triggered during the execution of the test and after it. So an Analyst might visualize tests metrics in runtime via plugins (e.g., grafana, kibana, 
-The examples are meant to be fully automated, but Testers might interact with the running topology during the tests too.
+Using the provided APIs (by umbra-configs), a Tester defines the configuration file, uses it (with by umbra-orch) to perform the test in a target execution environment (by umbra-scenarios), and collects the experimental data metrics and logs (raw and analyzed) output of the monitoring functions. An Analyst just visualizes and performs analysis on the test results. Visualization of test results can be triggered during the execution of the test and after it. So an Analyst might visualize tests metrics in runtime via plugins (e.g., grafana, kibana, plots). 
+The experiments are meant to be fully automated, but Testers might interact with the running topology during the tests too.
 
 
 Logical View
 ************
 
 Using an API provided by umbra-configs, a tester codes the scenario needed for an experiment, the output of such scenario is a configuration file in a yaml format. 
-A run script starts the applications modules umbra-orch and umbra-scenarios, both detaining a REST API. 
-The yaml (config) file is sent via an http rest api to the umbra-orch component which parses it, sends the scenario topology to umbra-scenarios via an http rest api, which is deployed. Acknowledging the deployment by a message received from umbra-scenarios, umbra-orch triggers the events specified in the yaml (config) file. These events interface the management APIs of the running blockchain components via their SDK (e.g., fabric-python-sdk interacting with Fabric peers/cas/orderers).
+A script starts the applications modules umbra-orch and umbra-scenarios, both detaining a REST API. 
+The yaml (config) file is sent via an http rest api to the umbra-orch component which parses it, sends the scenario topology to umbra-scenarios via an http rest api, which is deployed. Acknowledging the instantiated topology by a message received from umbra-scenarios, umbra-orch triggers the events scheduled in the yaml (config) file. These events interface the management APIs of the running blockchain components via their SDK (e.g., fabric-python-sdk interacting with Fabric peers/cas/orderers).
 At the end of events, the tester can finish the execution of the scenarios and the running modules and collects the metrics measured during the experiment.
 
 As such, for each main umbra module the following logic describes the most important classes, their organization and the most important use case realizations.
 
 * umbra-configs
 
-    * Graph:
-    * Topology:
+    * Graph: defines the inner structure for Topology, a graph that can be used by different graph algorithms via the python3 networkx library.
+    * Topology: is a graph that contains nodes and links with profiles assigned. Profiles define resource constraints to nodes (i.e., cpu and memory) and links (i.e., bandwidth, delay, loss). 
+    * Events: defines a set of events, each one defined by a category, when (schedule timestamp to be triggered), and parameters. Events are intended to have other fields, specially for scheduling (e.g., duration, repeatitions, until).
+    * Scenario: joins a Topology with Events.
 
 * umbra-orch
 
-    * Manager:
-    * Operator:
+    * Manager: defines the REST interface for umbra-orch, enabling the types of messages it can handle and their callbacks, included interfaces to an instance of Operator.
+    * Operator: defines all the interfaces to call the deployment of a topology, and schedule events to be triggered after the instantiation of an experiment.
 
 * umbra-scenarios
     
-    * Experiment:
-    * Scenario:
+    * Experiment: sets the main component that interfaces Containernet APIs to instantiate containers, virtual switches, interconnect them, and assign resources to them. 
+    * Scenario: defines the REST interface for umbra-scenarios, creating Experiment(s) as requested and interfacing the infrastructure deployed according to requested events (e.g., update nodes/links resources).
+
 
 Flow View
 *********
 
-How it is going to work: the configuration file is parsed and converted into an internal data structure that is used to instantiate the specified topology. Executed the topology, the events specified in the configuration file take place. During the test, monitoring functions collect metrics to be shown in graphics online. After the test, the analysis of the whole monitored data is analyzed and a report is generated containing the test life cycle (i.e., status involving the phases of pre-deployment, execution, and post-mortem).
+How it works: the configuration file is parsed and converted into an internal data structure that is used to instantiate the specified topology. Executed the topology, the events specified in the configuration file take place. During the test, monitoring functions collect metrics to be shown in graphics online. After the test, the analysis of the whole monitored data is analyzed and a report is generated containing the test life cycle (i.e., status involving the phases of pre-deployment, execution, and post-mortem).
 
-1. The Tester defines the experiment configuration that will be executed. It contains the whole lifecycle of the structural (topology/infrastructure) and functional (events/visualization) definitions.
+1. The Tester defines the experiment configuration that will be executed. It contains the whole lifecycle of the structural (topology/infrastructure) and functional (events/visualization) definitions. This is done via APIs specified by the umbra-configs module.
 2. Given such configuration to the Manager component, it will execute the parsing of the configuration, set all the deployment configuration to be deployed.
-3. A Topology component will deploy the given configuration file, creating the Containernet network. It will send back to Manager the management information of the deployed components. Such information contains among other settings, the IP address of the management interface of the containers deployed in the network.
-4. Manager will start triggering the scheduled events (defined in the Experiment Configuration) to take place in the infrastructure and/or topology.
+3. A Topology component, in umbra-scenarios, will deploy the given configuration file, creating the Containernet network. It will send back to Manager the management information of the deployed components. Such information contains among other settings, the IP address of the management interface of the containers deployed in the network.
+4. Manager will start triggering the scheduled events (defined in the Experiment Configuration file) to take place in the infrastructure and/or topology.
 5. In addition, the Tester can utilize the Manager interface to trigger events during the execution of the experiment.
 6. The Operator component then parses such event requests and schedule their occurrence in the topology and/or infrastructure.
 7. Events take place, e.g.: containers running hyperledger project components start/stop mining, links/nodes fail/restore or have resources changed, metrics are monitored from infrastructure perspective, etc.

@@ -102,7 +102,7 @@ case "$COMMAND" in
         ACK=$(curl -s -X POST --header "Content-Type: application/json" -d @"${CONFIG_SOURCE}" \
         http://172.17.0.1:8989/)
 
-        echo_bold "Deployed config in umbra-orc: "${ACK}""       
+        echo_bold "Deployed config in umbra-orch: "${ACK}""       
         exit 0
         ;;
 
