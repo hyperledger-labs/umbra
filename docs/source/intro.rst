@@ -48,9 +48,3 @@ Work ahead:
 * Support for other blockchain projects;
 * Scale to multiple servers;
 * Implement a common dashboard with run-time status of the emulated blockchain network.
-
-
-FAQ
-***
-
-TBD.

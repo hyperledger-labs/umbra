@@ -11,7 +11,7 @@ Welcome to umbra's documentation!
    :caption: Contents:
 
    intro.rst
-   init.rst
+   starting.rst
    installing.rst
    architecture.rst
    workflow.rst
