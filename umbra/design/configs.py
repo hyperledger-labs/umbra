@@ -8,9 +8,16 @@ import ipaddress
 from networkx.readwrite import json_graph
 from yaml import load, dump
 
-from umbra_cfgs.defs import *
 
 logger = logging.getLogger(__name__)
+
+
+NODES = 10
+DEGREE = 5
+EDGES_PROB = .5
+NEIGHBOUR_EDGES = 5
+TOPOLOGIES_FOLDER = "./topos/"
+BASE_TOPOLOGIES_FOLDER = "./topos/base/"
 
 
 class Graph:
@@ -502,7 +509,7 @@ class Topology(Graph):
         data = {}
         try:
             with open(filepath, 'r') as f:
-                data = load(f, Loader=yaml.FullLoader)
+                data = load(f, Loader=yaml.SafeLoader)
         except Exception as e:
             logger.debug('exception: could not read file %s - %s', filepath, e)
         finally:
@@ -600,12 +607,11 @@ class FabricTopology(Topology):
                 "links": {},
             }
 
-    def add_org(self, name, domain, template_specs, EnableNodeOUs=True, policies=None):
+    def add_org(self, name, domain, EnableNodeOUs=True, policies=None):
         org = {
             "name": name,
             "domain": domain,
             "org_fqdn": name + "." + domain,
-            "template_specs": template_specs,
             "EnableNodeOUs": EnableNodeOUs,
             "msp_id": name + "MSP",
             "peers": {},
@@ -1413,7 +1419,6 @@ class IrohaTopology(Topology):
         self.network_mode = "umbra"
 
 
-
 class Events:
     def __init__(self):
         self._ids = 1
@@ -1438,16 +1443,12 @@ class Events:
 
 
 class Scenario:
-    def __init__(self, name, author):
-        self.name = name
-        self.author = author
-        self.topology = None
+    def __init__(self, id, entrypoint, folder):
+        self.id = id
+        self.entrypoint = entrypoint
+        self.folder = folder
+        self.topology = None       
         self.events = Events()
-        self.management = {}
-        self._folder = CFGS_FOLDER
-
-    def set_events_management(self, group, mng_info):
-        self.management[group] = mng_info
 
     def parse(self, data):
         topo = Topology(None)
@@ -1455,9 +1456,8 @@ class Scenario:
         if ack:
             self.topology = topo
             self.events.parse(data.get("events", {}))
-            self.name = data.get("name", None)
-            self.author = data.get("author", None)
-            self.management = data.get("management", {})
+            self.name = data.get("id", None)
+            self.author = data.get("entrypoint", None)
             return True
         return False
 
@@ -1474,69 +1474,33 @@ class Scenario:
         topo_built = self.topology.build()
         events_built = self.events.build()
         scenario = {
-            "name": self.name,
-            "author": self.author,
-            "management": self.management,
+            "id": self.id,
+            "entrypoint": self.entrypoint,
             "topology": topo_built,
             "events": events_built,
         }
         return scenario
 
-
-class Cfg:
-    def __init__(self, cfg_name, cfg_dir=None):
-        self.type = "config"
-        self.name = cfg_name
-        self.scenario = None
-        self.orchestration = None
-        self._folder = cfg_dir if cfg_dir else CFGS_FOLDER
-
-    def deploy(self, plugin, entrypoint):
-        self.orchestration = {
-            "entrypoint": entrypoint,
-            "plugin": plugin,
-        }
-
-    def set_scenario(self, scenario):
-        self.scenario = scenario
-
-    def dump(self):
-        sc = self.scenario.dump()
-        cfg = {
-            "name": self.name,
-            "type": self.type,
-            "orchestration": self.orchestration,
-            "scenario": sc,
-        }
-        return cfg
-
     def save(self):
         data = self.dump()
-        filename =  self.name + ".json"
+        filename =  self.id + ".json"
 
         filepath = os.path.normpath(
             os.path.join(
-                self._folder, filename))
+                self.folder, filename))
 
         with open(filepath, 'w') as outfile:
             logger.info("Saving config file %s", filepath)
             json.dump(data, outfile, indent=4, sort_keys=True)
             return True
 
-    def _config(self, data):
-        self.name = data.get("name", None)
-        self.type = data.get("type", "config")
-        self.orchestration = data.get("orchestration", {})
-        self.scenario = Scenario(None, None)
-        self.scenario.parse(data.get("scenario", {}))
-
     def load(self, cfg_name):
         filename =  cfg_name + ".json"
 
         filepath = os.path.normpath(
             os.path.join(
-                self._folder, filename))
+                self.folder, filename))
 
         with open(filepath, 'r') as infile:
             data = json.load(infile)
-            self._config(data)
+            self.parse(data)

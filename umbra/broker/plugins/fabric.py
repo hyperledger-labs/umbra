@@ -1,19 +1,18 @@
-import logging
-logger = logging.getLogger(__name__)
-
 import os
 import time
 import asyncio
-from time import sleep
+import logging
 
 from hfc.fabric import Client
 from hfc.fabric_ca.caservice import CAClient, CAService
 
 
+logger = logging.getLogger(__name__)
+
 
 class FabricEvents:
-    def __init__(self, loop):
-        self._async_loop = loop
+    def __init__(self):
+        self._async_loop = asyncio.get_event_loop()
         self._configtx_dir = None
         self._chaincode_dir = None
         self._config_sdk = None
@@ -60,7 +59,6 @@ class FabricEvents:
             if event_category == "fabric":
                 when = event.get("when")
                 logger.info("Calling at %s event %s", when, event.get("params").get("action"))
-                # logger.debug("%s", msg.get("data"))
                 self.call_at(when, event.get("params"))
     
     def sched_time(self, when):

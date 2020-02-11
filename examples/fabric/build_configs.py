@@ -2,15 +2,14 @@ import os
 import sys
 import logging
 
-from umbra_cfgs.config import Profile, Topology, Scenario, Cfg
-from umbra_cfgs.config import FabricTopology
+from umbra.design.configs import Profile, Topology, Scenario
+from umbra.design.configs import FabricTopology
 
 from base_configtx.fabric import org1_policy, org2_policy, org3_policy, org4_policy, orderer_policy, configtx
 
 
 def build_simple_fabric_cfg():
 
-    # Set abs paths for fabric configs and chaincodes
     temp_dir = "./fabric_configs"
     configs_dir = os.path.abspath(
         os.path.join(
@@ -21,27 +20,30 @@ def build_simple_fabric_cfg():
         os.path.join(
             os.path.dirname(__file__), temp_dir))
 
-
     # Defines Fabric Topology - main class to have orgs/peers/cas/orderers added
-    fab_topo = FabricTopology('fabric_simple', configs_dir, chaincode_dir)
+    fab_topo = FabricTopology('fabric_simple', configs_dir, chaincode_dir)  
+
+    # Defines scenario containing topology, so events can be added   
+    entrypoint = "172.17.0.1:8988"
+    scenario = Scenario(id="Fabric-Simple-01", entrypoint=entrypoint, folder=configs_dir)
+    scenario.set_topology(fab_topo)
 
     domain = "example.com"
     image_tag = "1.4.0.1"
 
-    fab_topo.add_org("org1", domain, None, policies=org1_policy)
+    fab_topo.add_org("org1", domain, policies=org1_policy)
     fab_topo.add_peer("peer0", "org1", anchor=True, image_tag=image_tag)
     fab_topo.add_peer("peer1", "org1", image_tag=image_tag)
 
-    fab_topo.add_org("org2", domain, None, policies=org2_policy)
+    fab_topo.add_org("org2", domain, policies=org2_policy)
     fab_topo.add_peer("peer0", "org2", anchor=True, image_tag=image_tag)
     fab_topo.add_peer("peer1", "org2", image_tag=image_tag)
 
-    fab_topo.add_org("org3", domain, None, policies=org3_policy)
+    fab_topo.add_org("org3", domain, policies=org3_policy)
     fab_topo.add_peer("peer0", "org3", anchor=True, image_tag=image_tag)
     
-    fab_topo.add_org("org4", domain, None, policies=org4_policy)
-    fab_topo.add_peer("peer0", "org4", anchor=True, image_tag=image_tag)
-    
+    fab_topo.add_org("org4", domain, policies=org4_policy)
+    fab_topo.add_peer("peer0", "org4", anchor=True, image_tag=image_tag)  
 
     ord_specs = [
         {"Hostname": "orderer"},
@@ -58,7 +60,6 @@ def build_simple_fabric_cfg():
     fab_topo.add_ca("ca", "org3", domain, "admin", "admin_pw", image_tag=image_tag)
     fab_topo.add_ca("ca", "org4", domain, "admin", "admin_pw", image_tag=image_tag)
 
-
     # Configtx quick fixes - checks which paths from configtx needs to have full org desc
     fab_topo.configtx(configtx)
     p1 = "TwoOrgsOrdererGenesis.Consortiums.SampleConsortium.Organizations"
@@ -67,7 +68,6 @@ def build_simple_fabric_cfg():
     fab_topo.set_configtx_profile(p1, ["org1", "org2", "org3", "org4"])
     fab_topo.set_configtx_profile(p2, ["orderer"])
     fab_topo.set_configtx_profile(p3, ["org1", "org2", "org3", "org4"])
-
 
     # Creates all config files - i.e., crypto-config configtx config-sdk
     fab_topo.build_configs()
@@ -87,14 +87,10 @@ def build_simple_fabric_cfg():
     fab_topo.add_node_profile(node_resources, node_type="container")
     fab_topo.add_link_profile(link_resources, link_type="E-Line")
     
-    topo_built = fab_topo.build()
+    # topo_built = fab_topo.build()
     # print(topo_built)
     # fab_topo.show()
-
-
-    # Defines scenario containing topology, so events can be added
-    scenario = Scenario("scenario_fabric", "Tester")
-    scenario.set_topology(fab_topo)
+  
 
     ev_create_channel = {
         "action": "create_channel",
@@ -242,7 +238,6 @@ def build_simple_fabric_cfg():
         "chaincode_args": ['b'],
     }
 
-
     scenario.add_event("0", "fabric", ev_info_channels)
     scenario.add_event("1", "fabric", ev_create_channel)
     scenario.add_event("3", "fabric", ev_join_channel_org1)
@@ -262,11 +257,10 @@ def build_simple_fabric_cfg():
     scenario.add_event("32", "fabric", ev_chaincode_query_org2)
 
     # Save config file
-    cfg = Cfg("config_fabric_simple", configs_dir)
-    cfg.set_scenario(scenario)
-    cfg.deploy(plugin="containernet", entrypoint="http://172.17.0.1:8988/001/")
-    cfg.save()
+    scenario.save()
 
+def builds():
+    build_simple_fabric_cfg()
 
 def setup_logging(log_level=logging.DEBUG):
     """Set up the logging."""
@@ -295,10 +289,6 @@ def setup_logging(log_level=logging.DEBUG):
 
     logger = logging.getLogger('')
     logger.setLevel(log_level) 
-
-def builds():
-    build_simple_fabric_cfg()
-
 
 if __name__ == "__main__":
     setup_logging()

@@ -14,14 +14,8 @@ FABRIC_TAG="${VERSION}"
 requirementsFabric() {
 
   echo "========================================================="
-  echo "Installind Docker and Fabric Python SDK"
+  echo "Installind Fabric Python SDK"
   echo "========================================================="
-
-  sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
-  sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
-  sudo apt -qq update
-
-  sudo apt install docker-ce git
 
   mkdir git
   git clone https://github.com/hyperledger/fabric-sdk-py git/fabric-sdk-py
@@ -140,11 +134,11 @@ echo "========================================================="
 echo "Adds configtxgen and cryptogen to PATH env"
 echo "========================================================="
 
-mkdir $HOME/hl/bin
-cp ../umbra-configs/umbra_cfgs/fabric/bin/* $HOME/hl/bin/
+mkdir -p $HOME/hl/bin
+cp ../umbra/design/fabric/bin/* $HOME/hl/bin/
 export PATH=$PATH:$HOME/hl/bin
 
 mkdir ../examples/fabric/fabric_configs
-chmod -R 777 ../examples/fabric/fabric_configs
+chmod -R 775 ../examples/fabric/fabric_configs
 
 
