@@ -583,6 +583,7 @@ class FabricTopology(Topology):
         self._ip_network_assigned = []
 
     def clear_cfgs(self, clear_dir=True):
+        self.defaults()
         if clear_dir:
             cfgs_folder = self._full_path(self._tmp_dir)       
             for root, dirs, files in os.walk(cfgs_folder, topdown=False):
@@ -849,6 +850,7 @@ class FabricTopology(Topology):
         for net_name,net in self._networks.items():
             self.add_node(net_name, "switch")
             links = net.get("links")
+
             for org_name in links:
                 link_type = links[org_name].get("link")                
                 if org_name in self.orgs:
@@ -1322,7 +1324,6 @@ class FabricTopology(Topology):
                 }
             }
             organizations.update(org_frmt)
-
 
             orderer_dir = self.get_org_dir(orderer, orderer=True)
         

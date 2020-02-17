@@ -91,7 +91,6 @@ def build_simple_fabric_cfg():
     # print(topo_built)
     # fab_topo.show()
   
-
     ev_create_channel = {
         "action": "create_channel",
         "org": "org1",

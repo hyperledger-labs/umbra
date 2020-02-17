@@ -4,9 +4,8 @@ echo "###################################"
 echo "Installing Requirements"
 echo "###################################"
 
-sudo apt update && apt install byobu python3-dev python3-pip ansible git aptitude
+sudo apt update && apt install python3-dev python3-pip ansible git aptitude
 sudo pip3 install setuptools
-
 
 echo "###################################"
 echo "Installing Umbra"
