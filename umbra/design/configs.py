@@ -583,7 +583,6 @@ class FabricTopology(Topology):
         self._ip_network_assigned = []
 
     def clear_cfgs(self, clear_dir=True):
-        self.defaults()
         if clear_dir:
             cfgs_folder = self._full_path(self._tmp_dir)       
             for root, dirs, files in os.walk(cfgs_folder, topdown=False):
