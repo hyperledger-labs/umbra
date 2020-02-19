@@ -42,8 +42,7 @@ requirementsFabric() {
   mkdir git
   git clone https://github.com/hyperledger/fabric-sdk-py git/fabric-sdk-py
   cd git/fabric-sdk-py
-  # git checkout a69ded2a9fa1f47a60caee0c27e3cd1e879cd26c #v0.8 stable tests
-  sudo python3 setup.py install
+  sudo python3.7 setup.py install
   cd - 
 }
 
