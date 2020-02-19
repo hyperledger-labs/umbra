@@ -20,6 +20,13 @@ When the build() function is called upon the FabricTopology instance (to save th
 At the end of this file, a configuration is saved based on the Scenario instance created, which has the FabricTopology instance and the events defined accordingly. This configuration file, named fabric_configs/Fabric-Simple-01.json, contains all the hooks for the crypto material, fabric-python-sdk configuration file, and other needed files such as the genesis block.  
 Executing the file as the commands below, all the requirements are satisfied to execute the Fabric blockchain in Umbra.
 
+In the examples/fabric folder, the files/folder structure is described below:
+
+* base_configtx: contains all the source material for the creation of the configtx.yaml file needed by Fabric (e.g., python SDK, configtxgen, etc).
+* chaincode: contains source code with examples of chaincode to be executed by the Fabric network on umbra.
+* fabric_configs: contains all the skeleton of configuration files to execute Fabric.
+* build_configs.py: a python script, making use of umbra/design component, to create Fabric configuration files (placed in fabric_configs) enabling Fabric to be executed by umbra.
+
 Pay attention that in the file fabric_configs/Fabric-Simple-01.json all the nodes (references to docker container templates) already have defined all the environment variables, volumes, commands, etc, that are correctly fulfilled based on all the material generated from building the FabricTopology instance (i.e., crypto keys, certificates, policies).
 
 .. code-block:: bash

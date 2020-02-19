@@ -14,6 +14,23 @@ FABRIC_TAG="${VERSION}"
 requirementsFabric() {
 
   echo "========================================================="
+  echo "Installind Go"
+  echo "========================================================="
+
+  sudo apt install -y golang-go
+
+  mkdir $HOME/go
+  mkdir $HOME/go/bin
+  mkdir $HOME/go/src
+  mkdir $HOME/go/pkg
+
+  sudo echo 'export GOPATH=$HOME/go' >> ~/.profile
+  sudo echo 'export GOBIN=$HOME/go/bin' >> ~/.profile
+  sudo echo 'export PATH=$PATH:/usr/local/go/bin:$GOBIN' >> ~/.profile
+
+  source ~/.profile
+
+  echo "========================================================="
   echo "Installind Fabric Python SDK"
   echo "========================================================="
 
@@ -129,7 +146,6 @@ requirementsFabric
 dockerImages
 upgradeDockerImages ${FABRIC_TAG}
 
-
 echo "========================================================="
 echo "Adds configtxgen and cryptogen to PATH env"
 echo "========================================================="
@@ -140,5 +156,3 @@ export PATH=$PATH:$HOME/hl/bin
 
 mkdir ../examples/fabric/fabric_configs
 chmod -R 775 ../examples/fabric/fabric_configs
-
-
