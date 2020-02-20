@@ -1,10 +1,5 @@
 #!/bin/bash 
 
-if [ "$EUID" != "0" ]; then
-    echo "Sorry dude! You must be root to run this script."
-    exit 1
-fi
-
 export VERSION=1.4.0
 # if ca version not passed in, default to latest released version
 export CA_VERSION=$VERSION
@@ -159,5 +154,5 @@ cp ../umbra/design/fabric/bin/* $HOME/hl/bin/
 sudo echo 'export PATH=$PATH:$HOME/hl/bin' >> ~/.profile
 source ~/.profile
 
-mkdir ../examples/fabric/fabric_configs
+mkdir -p ../examples/fabric/fabric_configs
 chmod -R 775 ../examples/fabric/fabric_configs
