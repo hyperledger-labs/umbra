@@ -5,7 +5,7 @@ An emulation platform for Hyperledger blockchains.
 To understand and run Umbra, please take a look at the [Umbra Docs](https://umbra-labs.readthedocs.io/en/latest/).
 
 Also, if needed download an [Umbra virtual machine](https://intrig.dca.fee.unicamp.br:8840/owncloud/index.php/s/aKYbP8TxlxymRHY). 
-To use the Umbra virtual machine, login: umbra / password: lives . 
+Use VirtualBox to import the source file umbra.ova. The recommended settings are 4 cores and 4GB of memory. To use the Umbra virtual machine, login: umbra / password: lives. The umbra source folder is located inside the home directory (/home/umbra/umbra). All the umbra components are in place and installed. Check the [documentation example](https://umbra-labs.readthedocs.io/en/latest/example.html) to give it a try.
 
 This project is the outcome of the 2019 [internship project named Hyperledger Umbra](https://wiki.hyperledger.org/display/INTERN/Hyperledger+Umbra%3A+Simulating+Hyperledger+Blockchains+using+Mininet).
 
