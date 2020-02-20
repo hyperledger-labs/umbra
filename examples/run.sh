@@ -109,6 +109,7 @@ case "$COMMAND" in
         fi
 
         echo_bold "-> Start"
+        mkdir -p logs
 
         echo_bold "-> Creating docker network: umbra"
         docker network create umbra
@@ -129,7 +130,7 @@ case "$COMMAND" in
         echo "Running config ${CONFIG_SOURCE}"
         echo "########################################"
        
-        sleep 1
+        sleep 3
         examples="/usr/bin/python3.7 ./examples.py --config ${CONFIG_SOURCE}"
         nohup ${examples} > logs/examples.log 2>&1 &
         examplesPID=$!
