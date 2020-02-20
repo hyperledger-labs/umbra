@@ -1,9 +1,0 @@
-NODES = 10
-DEGREE = 5
-EDGES_PROB = .5
-NEIGHBOUR_EDGES = 5
-
-TOPOLOGIES_FOLDER = "./topos/"
-BASE_TOPOLOGIES_FOLDER = "./topos/base/"
-
-CFGS_FOLDER = "./examples/"

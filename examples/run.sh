@@ -1,11 +1,11 @@
 #!/bin/bash
 
-if [ "$EUID" != "0" ]; then
-    echo "Sorry dude! You must be root to run this script."
-    exit 1
-fi
+# if [ "$EUID" != "0" ]; then
+#     echo "Sorry dude! You must be root to run this script."
+#     exit 1
+# fi
 
-SCRIPT_NAME='Umbra Examples Test: Scenarios + Orchestration'
+SCRIPT_NAME='Umbra Examples'
 COMMAND=$1
 
 shift
@@ -48,10 +48,35 @@ reset() {
     else
         echo_bold "-> Stopping child processes...";
         kill_process_tree 1 $$
+    fi 
+
+    echo_bold "Cleaning logs"
+    files=(./logs/*)
+    if [ ${#files[@]} -gt 0 ]; then
+        rm ./logs/*
+    fi 
+
+    scenarioPID=`ps -o pid --no-headers -C umbra-scenario`
+    brokerPID=`ps -o pid --no-headers -C umbra-broker`
+    examplesPID=`ps -o pid --no-headers -C examples.py`
+    
+    if [ -n "$brokerPID" ]
+    then
+        echo_bold "Stopping umbra-broker ${brokerPID}"
+        kill -9 $brokerPID &> /dev/null
+    fi
+    
+    if [ -n "$scenarioPID" ]
+    then
+        echo_bold "Stopping umbra-scenario ${scenarioPID}"
+        sudo kill -9 $scenarioPID &> /dev/null
     fi
 
-    byobu kill-session -t "umbra"
-
+    if [ -n "$examplesPID" ]
+    then
+        echo_bold "Stopping examples script ${examplesPID}"
+        kill -9 $examplesPID &> /dev/null
+    fi
 }
 
 function clearContainers() {
@@ -84,33 +109,42 @@ case "$COMMAND" in
         fi
 
         echo_bold "-> Start"
+        mkdir -p logs
 
         echo_bold "-> Creating docker network: umbra"
         docker network create umbra
-        
+
         echo_bold "-> Starting umbra-scenarios"
-        byobu new-session -d -s "umbra" "python2.7 -m umbra_scenarios --url http://172.17.0.1:8988  --debug"
+        scenario="sudo umbra-scenario --uuid scenario --address 172.17.0.1:8988"
+        nohup ${scenario} > logs/scenario.log 2>&1 &
+        scenariosPID=$!
+        echo_bold "Scenario PID ${scenariosPID}"
 
         echo_bold "-> Starting umbra-orch"
-        byobu new-window "python3 -m umbra_orch --host 172.17.0.1 --port 8989 --debug"
-
-        sleep 5
+        broker="umbra-broker --uuid broker --address 172.17.0.1:8989"
+        nohup ${broker} > logs/broker.log 2>&1 &
+        brokerPID=$!
+        echo_bold "Broker PID ${brokerPID}"
+        
         echo "########################################"
         echo "Running config ${CONFIG_SOURCE}"
         echo "########################################"
-
-        ACK=$(curl -s -X POST --header "Content-Type: application/json" -d @"${CONFIG_SOURCE}" \
-        http://172.17.0.1:8989/)
-
-        echo_bold "Deployed config in umbra-orc: "${ACK}""       
+       
+        sleep 3
+        examples="/usr/bin/python3.7 ./examples.py --config ${CONFIG_SOURCE}"
+        nohup ${examples} > logs/examples.log 2>&1 &
+        examplesPID=$!
+        echo_bold "Examples PID ${examplesPID}"
+        
         exit 0
         ;;
 
     stop)
         echo_bold "-> Stop"
         reset 1
+        
         echo_bold "-> Cleaning mininet"
-        mn -c
+        sudo mn -c
 
         echo_bold "-> Removing docker containers - (e.g., fabric chaincode)"
         clearContainers

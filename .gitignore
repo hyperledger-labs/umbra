@@ -5,6 +5,5 @@ latex/
 /Doxyfile.bak
 *.egg-info
 *~
-build/
 dist/
 examples/fabric/fabric_configs/

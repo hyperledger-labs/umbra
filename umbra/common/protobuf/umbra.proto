@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+package umbra;
+
+import "google/protobuf/timestamp.proto";
+
+
+service Broker {
+  rpc Run(Config) returns (Report);
+}
+
+
+service Scenario {
+  rpc Run(Deploy) returns (Built);
+}
+
+
+message Config {
+    string id = 1;
+    bytes scenario = 2;
+    google.protobuf.Timestamp timestamp = 3;
+}
+
+message Report {
+    string id = 1;
+    bytes status = 2;    
+    google.protobuf.Timestamp timestamp = 3;
+}
+
+message Deploy {
+    string id = 1;
+    string workflow = 2;
+    bytes scenario = 3;
+    google.protobuf.Timestamp timestamp = 4;
+}
+
+message Built {
+    string id = 1;
+    string ok = 2;
+    string error = 3;
+    bytes info = 4;
+    google.protobuf.Timestamp timestamp = 5;
+}
