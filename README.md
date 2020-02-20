@@ -2,7 +2,10 @@
 
 An emulation platform for Hyperledger blockchains.
 
-Please check the full [Umbra Documentation](https://umbra-labs.readthedocs.io/en/latest/).
+To understand and run Umbra, please take a look at the [Umbra Docs](https://umbra-labs.readthedocs.io/en/latest/).
+
+Also, if needed download an [Umbra virtual machine](https://intrig.dca.fee.unicamp.br:8840/owncloud/index.php/s/aKYbP8TxlxymRHY). 
+To use the Umbra virtual machine, login: umbra / password: lives . 
 
 This project is the outcome of the 2019 [internship project named Hyperledger Umbra](https://wiki.hyperledger.org/display/INTERN/Hyperledger+Umbra%3A+Simulating+Hyperledger+Blockchains+using+Mininet).
 
@@ -22,7 +25,7 @@ If you have any issues, please use GitHub's [issue system](https://github.com/hy
 
 ## Mailing-list
 
-If you have any questions, please use the hashtag #umbra in the subject of emails when writing to the hyperledger labs mailing list - labs@lists.hyperledger.org
+If you have any **questions**, please use the hashtag #umbra in the subject of emails to the hyperledger labs mailing list: labs@lists.hyperledger.org.
 
 ## Contribute
 

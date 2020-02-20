@@ -25,9 +25,11 @@ Umbra contains 3 python components (design, broker, scenario), the build script 
 
     $ sudo chmod +x build.sh
 
-    $ sudo ./build.sh
+    $ ./build.sh
 
     $ cd -
+
+Please note, the script above (build.sh) install docker-ce and adds the $USER to the docker group (no need to user sudo before the docker command). To enable this setting, logout and login again, or execute `su $USER` (to start a new session). You can test if it works simply running `docker ps -a`.
 
 
 2. Install the Fabric Requirements
@@ -41,7 +43,7 @@ As Umbra is plugin oriented (i.e., each Hyperledger project needs its own umbra-
 
     $ sudo chmod +x build_fabric.sh
 
-    $ sudo ./build_fabric.sh
+    $ ./build_fabric.sh
 
     $ cd -
 
