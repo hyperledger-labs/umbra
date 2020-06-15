@@ -14,7 +14,7 @@ class Broker(BrokerBase):
         self.info = info
         self.operator = Operator(info)
     
-    async def Run(self, stream):
+    async def Manage(self, stream):
         request = await stream.recv_message()
         reply = await self.operator.run(request)
         await stream.send_message(reply)

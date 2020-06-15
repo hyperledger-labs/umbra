@@ -4,8 +4,8 @@ import asyncio
 
 from google.protobuf import json_format
 
-# from umbra.common.protobuf.umbra_grpc import ScenarioBase
-# from umbra.common.protobuf.umbra_pb2 import Deploy, Built
+from umbra.common.protobuf.umbra_grpc import MonitorBase
+from umbra.common.protobuf.umbra_pb2 import Instruction, Evaluation
 
 from umbra.monitor.tools import Tools
 
@@ -13,7 +13,7 @@ from umbra.monitor.tools import Tools
 logger = logging.getLogger(__name__)
 
 
-class Monitor:
+class Monitor(MonitorBase):
     def __init__(self):
         self.tools = Tools()
       
@@ -35,15 +35,13 @@ class Monitor:
             
         return msg_bytes
 
-    # async def Run(self, stream):
-    #     deploy = await stream.recv_message()        
-    #     scenario = self.parse_bytes(scenario_bytes)
+    async def Listen(self, stream):
+        instruction: Instruction = await stream.recv_message()        
+        instruction_dict = json_format.MessageToDict(instruction, preserving_proto_field_name=True)
+
+        logging.debug("Instruction Handled -> Tools Workflow")
+        evaluation_dict = await self.tools.workflow(instruction_dict)
+
+        evaluation = Evaluation()
         
-    #     deploy_dict = json_format.MessageToDict(deploy, preserving_proto_field_name=True)
-
-    #     logging.debug("Instruction Handled Ok -> Tools Workflow")
-    #     reply = await self.tools.workflow(data)
-
-    #     built_info = self.serialize_bytes(msg.get("info"))
-    #     built = Built(id=id, ok=ok, error=error, info=built_info)
-    #     await stream.send_message(built)
+        await stream.send_message(evaluation)

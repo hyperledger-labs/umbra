@@ -10,7 +10,7 @@ from grpclib.exceptions import GRPCError
 from google.protobuf import json_format
 
 from umbra.common.protobuf.umbra_grpc import ScenarioStub
-from umbra.common.protobuf.umbra_pb2 import Report, Deploy
+from umbra.common.protobuf.umbra_pb2 import Report, Workflow
 
 from umbra.design.configs import Topology, Scenario
 from umbra.broker.plugins.fabric import FabricEvents
@@ -49,22 +49,22 @@ class Operator:
         logger.info(f"Deploying Scenario - {command}")
 
         scenario = self.serialize_bytes(topology)
-        deploy = Deploy(id=test, workflow=command, scenario=scenario)
+        deploy = Workflow(id=test, workflow=command, scenario=scenario)
         deploy.timestamp.FromDatetime(datetime.now())
         
         host, port = address.split(":")
         channel = Channel(host, port)
         stub = ScenarioStub(channel)
-        built = await stub.Run(deploy)
+        status = await stub.Establish(deploy)
 
-        if built.error:
+        if status.error:
             ack = False
-            logger.info(f'Scenario not deployed error: {built.error}')
+            logger.info(f'Scenario not deployed error: {status.error}')
         else:
             ack = True
-            logger.info(f'Scenario deployed: {built.ok}')
+            logger.info(f'Scenario deployed: {status.ok}')
 
-            info = self.parse_bytes(built.info)
+            info = self.parse_bytes(status.info)
 
         channel.close()
 

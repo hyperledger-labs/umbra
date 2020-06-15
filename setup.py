@@ -33,8 +33,12 @@ setup(
       'Topic :: Utilities',
       'License :: OSI Approved :: Apache Software License',
     ],
-    scripts=["umbra/broker/umbra-broker",
-              "umbra/scenario/umbra-scenario"],
+    scripts=[
+      "umbra/broker/umbra-broker",
+      "umbra/scenario/umbra-scenario",
+      "umbra/agent/umbra-agent",
+      "umbra/monitor/umbra-monitor",
+    ],
     install_requires = [
       'asyncio>=3.4.3',
       'protobuf>=3.11.0',
