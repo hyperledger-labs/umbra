@@ -14,6 +14,14 @@ service Scenario {
   rpc Run(Deploy) returns (Built);
 }
 
+service Monitor {
+  rpc Run(Instruction) returns (Snapshot);
+}
+
+service Agent {
+  rpc Run(Instruction) returns (Snapshot);
+}
+
 
 message Config {
     string id = 1;
@@ -40,4 +48,14 @@ message Built {
     string error = 3;
     bytes info = 4;
     google.protobuf.Timestamp timestamp = 5;
+}
+
+
+message Instruction {
+  
+
+}
+
+message Snapshot {
+
 }
