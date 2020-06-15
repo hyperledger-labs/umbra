@@ -9,20 +9,21 @@ import grpclib.client
 if typing.TYPE_CHECKING:
     import grpclib.server
 
+import google.protobuf.struct_pb2
 import google.protobuf.timestamp_pb2
-from umbra.common.protobuf import umbra_pb2
+import umbra_pb2
 
 
 class BrokerBase(abc.ABC):
 
     @abc.abstractmethod
-    async def Run(self, stream: 'grpclib.server.Stream[umbra_pb2.Config, umbra_pb2.Report]') -> None:
+    async def Manage(self, stream: 'grpclib.server.Stream[umbra_pb2.Config, umbra_pb2.Report]') -> None:
         pass
 
     def __mapping__(self) -> typing.Dict[str, grpclib.const.Handler]:
         return {
-            '/umbra.Broker/Run': grpclib.const.Handler(
-                self.Run,
+            '/umbra.Broker/Manage': grpclib.const.Handler(
+                self.Manage,
                 grpclib.const.Cardinality.UNARY_UNARY,
                 umbra_pb2.Config,
                 umbra_pb2.Report,
@@ -33,9 +34,9 @@ class BrokerBase(abc.ABC):
 class BrokerStub:
 
     def __init__(self, channel: grpclib.client.Channel) -> None:
-        self.Run = grpclib.client.UnaryUnaryMethod(
+        self.Manage = grpclib.client.UnaryUnaryMethod(
             channel,
-            '/umbra.Broker/Run',
+            '/umbra.Broker/Manage',
             umbra_pb2.Config,
             umbra_pb2.Report,
         )
@@ -44,16 +45,16 @@ class BrokerStub:
 class ScenarioBase(abc.ABC):
 
     @abc.abstractmethod
-    async def Run(self, stream: 'grpclib.server.Stream[umbra_pb2.Deploy, umbra_pb2.Built]') -> None:
+    async def Establish(self, stream: 'grpclib.server.Stream[umbra_pb2.Workflow, umbra_pb2.Status]') -> None:
         pass
 
     def __mapping__(self) -> typing.Dict[str, grpclib.const.Handler]:
         return {
-            '/umbra.Scenario/Run': grpclib.const.Handler(
-                self.Run,
+            '/umbra.Scenario/Establish': grpclib.const.Handler(
+                self.Establish,
                 grpclib.const.Cardinality.UNARY_UNARY,
-                umbra_pb2.Deploy,
-                umbra_pb2.Built,
+                umbra_pb2.Workflow,
+                umbra_pb2.Status,
             ),
         }
 
@@ -61,9 +62,65 @@ class ScenarioBase(abc.ABC):
 class ScenarioStub:
 
     def __init__(self, channel: grpclib.client.Channel) -> None:
-        self.Run = grpclib.client.UnaryUnaryMethod(
+        self.Establish = grpclib.client.UnaryUnaryMethod(
             channel,
-            '/umbra.Scenario/Run',
-            umbra_pb2.Deploy,
-            umbra_pb2.Built,
+            '/umbra.Scenario/Establish',
+            umbra_pb2.Workflow,
+            umbra_pb2.Status,
+        )
+
+
+class MonitorBase(abc.ABC):
+
+    @abc.abstractmethod
+    async def Listen(self, stream: 'grpclib.server.Stream[umbra_pb2.Instruction, umbra_pb2.Evaluation]') -> None:
+        pass
+
+    def __mapping__(self) -> typing.Dict[str, grpclib.const.Handler]:
+        return {
+            '/umbra.Monitor/Listen': grpclib.const.Handler(
+                self.Listen,
+                grpclib.const.Cardinality.UNARY_UNARY,
+                umbra_pb2.Instruction,
+                umbra_pb2.Evaluation,
+            ),
+        }
+
+
+class MonitorStub:
+
+    def __init__(self, channel: grpclib.client.Channel) -> None:
+        self.Listen = grpclib.client.UnaryUnaryMethod(
+            channel,
+            '/umbra.Monitor/Listen',
+            umbra_pb2.Instruction,
+            umbra_pb2.Evaluation,
+        )
+
+
+class AgentBase(abc.ABC):
+
+    @abc.abstractmethod
+    async def Probe(self, stream: 'grpclib.server.Stream[umbra_pb2.Instruction, umbra_pb2.Evaluation]') -> None:
+        pass
+
+    def __mapping__(self) -> typing.Dict[str, grpclib.const.Handler]:
+        return {
+            '/umbra.Agent/Probe': grpclib.const.Handler(
+                self.Probe,
+                grpclib.const.Cardinality.UNARY_UNARY,
+                umbra_pb2.Instruction,
+                umbra_pb2.Evaluation,
+            ),
+        }
+
+
+class AgentStub:
+
+    def __init__(self, channel: grpclib.client.Channel) -> None:
+        self.Probe = grpclib.client.UnaryUnaryMethod(
+            channel,
+            '/umbra.Agent/Probe',
+            umbra_pb2.Instruction,
+            umbra_pb2.Evaluation,
         )

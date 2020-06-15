@@ -9,7 +9,7 @@ from multiprocessing import Queue
 from google.protobuf import json_format
 
 from umbra.common.protobuf.umbra_grpc import ScenarioBase
-from umbra.common.protobuf.umbra_pb2 import Deploy, Built
+from umbra.common.protobuf.umbra_pb2 import Workflow, Status
 
 from umbra.scenario.environment import Environment
 
@@ -165,7 +165,7 @@ class Scenario(ScenarioBase):
             
         return msg_bytes
 
-    async def Run(self, stream):
+    async def Establish(self, stream):
         deploy = await stream.recv_message()        
         
         # scenario = deploy_dict.get("scenario")
@@ -182,5 +182,5 @@ class Scenario(ScenarioBase):
         error = msg.get("error")
         built_info = self.serialize_bytes(msg.get("info"))
 
-        built = Built(id=id, ok=ok, error=error, info=built_info)
+        built = Status(id=id, ok=ok, error=error, info=built_info)
         await stream.send_message(built)

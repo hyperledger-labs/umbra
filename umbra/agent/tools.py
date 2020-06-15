@@ -245,11 +245,11 @@ class Ping(Tool):
         return self.metrics
 
 
-class VideoServer(Tool):
+class Server(Tool):
     def __init__(self):
-        Tool.__init__(self, 4, "videoserver")
+        Tool.__init__(self, 4, "server")
         self.default_address = "0.0.0.0:9015"
-        self.default_folder = "/mnt/videos/"
+        self.default_folder = "/mnt/files/"
 
     def cfg(self):
         params = {
@@ -292,25 +292,16 @@ class VideoServer(Tool):
         return self.metrics
 
 
-class Dashc(Tool):
+class Client(Tool):
     def __init__(self):
-        Tool.__init__(self, 5, "dashc")
+        Tool.__init__(self, 5, "client")
 
     def cfg(self):
         params = {
-            'adapt':'-adapt',
-            'initial_buffer':'-initb',
-            'max_buffer':'-maxbuf',
-            'persist_con':'-persist',
-            'segmentlist': '-segmentlist',
-            'subfolder': '-subfolder',
-            'log_file': '-turnlogon',
-            'gensegmfile': '-gensegmfile',
-            'duration': '-duration',
-            'mpd':'play',
+            'url': 'url'            
         }
         self.parameters = params
-        self.cmd = "/dashc/dashc.exe"
+        self.cmd = "wget"
 
     def options(self, kwargs):
         cmd = [self.cmd]
@@ -319,11 +310,11 @@ class Dashc(Tool):
         stop = False
         timeout = 0
 
-        if 'play' in options:
-            opts.extend(['play', options['play']])
+        if 'url' in options:
+            opts.extend(['-o', options['url']])
 
         for k, v in options.items():
-            if k == 'play':
+            if k == 'url':
                 continue
             else:
                 opts.extend([k, v])
@@ -343,8 +334,8 @@ class Tools(Runner):
         Tcpreplay,
         Iperf3,
         Ping,
-        VideoServer,
-        Dashc,
+        Server,
+        Client,
     ]
 
     TOOL_IDS = enumerate(TOOLS,1)
