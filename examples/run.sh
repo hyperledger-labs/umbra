@@ -120,7 +120,7 @@ case "$COMMAND" in
         scenariosPID=$!
         echo_bold "Scenario PID ${scenariosPID}"
 
-        echo_bold "-> Starting umbra-orch"
+        echo_bold "-> Starting umbra-broker"
         broker="umbra-broker --uuid broker --address 172.17.0.1:8989"
         nohup ${broker} > logs/broker.log 2>&1 &
         brokerPID=$!
