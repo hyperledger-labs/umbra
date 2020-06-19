@@ -25,7 +25,7 @@ echo "###################################"
 
 sudo python3.7 -m pip install -U docker-py cffi pexpect
 
-git clone https://github.com/raphaelvrosa/containernet
+git clone https://github.com/banoris/containernet
 cd containernet/ansible
 sudo ansible-playbook -i "localhost," -c local install.yml
 cd ..
