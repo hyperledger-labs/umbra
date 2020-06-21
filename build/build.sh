@@ -20,6 +20,12 @@ sudo python3.7 setup.py develop
 cd -
 
 echo "###################################"
+echo "Installing mininet"
+echo "###################################"
+
+sudo apt install mininet
+
+echo "###################################"
 echo "Installing Containernet"
 echo "###################################"
 
