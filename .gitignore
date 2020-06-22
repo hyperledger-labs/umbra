@@ -1,3 +1,10 @@
+build/containernet/
+build/git/
+build/oflops/
+build/oftest/
+build/openflow/
+build/pox/
+examples/logs/
 .vscode/
 *.pyc
 html/
