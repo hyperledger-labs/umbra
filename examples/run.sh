@@ -21,6 +21,7 @@ function printHelp() {
     echo "      - 'start' - bring up the network specified in the <config file path>"
     echo "      - 'stop' - stop and clear the started setup"
     echo "    -c <config file path> - filepath of a config created using umbra-configs"
+    echo "    -d enable debug mode to print more logs"
     echo "  run.sh -h (print this message)"
 
 }
@@ -89,7 +90,7 @@ function clearContainers() {
 }
 
 
-while getopts ":h:c:" opt; do
+while getopts ":h:c:d" opt; do
   case "${opt}" in
     h | \?)
         printHelp
@@ -97,6 +98,9 @@ while getopts ":h:c:" opt; do
         ;;
     c)
         CONFIG_SOURCE=${OPTARG}
+        ;;
+    d)
+        DEBUG='--debug'
         ;;
   esac
 done
@@ -114,14 +118,16 @@ case "$COMMAND" in
         echo_bold "-> Creating docker network: umbra"
         docker network create umbra
 
+        scenario="sudo umbra-scenario --uuid scenario --address 172.17.0.1:8988 ${DEBUG}"
         echo_bold "-> Starting umbra-scenarios"
-        scenario="sudo umbra-scenario --uuid scenario --address 172.17.0.1:8988"
+        echo_bold "\$ ${scenario}"
         nohup ${scenario} > logs/scenario.log 2>&1 &
         scenariosPID=$!
         echo_bold "Scenario PID ${scenariosPID}"
 
+        broker="umbra-broker --uuid broker --address 172.17.0.1:8989 ${DEBUG}"
         echo_bold "-> Starting umbra-broker"
-        broker="umbra-broker --uuid broker --address 172.17.0.1:8989"
+        echo_bold "\$ ${broker}"
         nohup ${broker} > logs/broker.log 2>&1 &
         brokerPID=$!
         echo_bold "Broker PID ${brokerPID}"
