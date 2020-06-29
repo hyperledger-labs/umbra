@@ -1,19 +1,20 @@
 import os
-import logging
 import json
 import time
-from datetime import datetime
-
+import logging
 import asyncio
-import requests
 import concurrent.futures
-
 import subprocess
-
+from datetime import datetime
+from functools import partial
 import docker
 import psutil as ps
 import platform as pl
-from subprocess import CalledProcessError, check_output
+
+from subprocess import check_output, CalledProcessError
+
+
+from umbra.common.scheduler import Handler
 
 
 logger = logging.getLogger(__name__)
@@ -21,23 +22,72 @@ logger = logging.getLogger(__name__)
 
 class Tool():
     def __init__(self, id_, name):
+        self.is_process = False
         self.id = id_
         self.name = name
         self.out_queue = None
-        self.cmd = None
-        self.opts = None
         self.stimulus = None
+        self.opts = None
+        self.action = None
         self.uuid = None
-        self.ev = None
         self.parameters = {}
         self.metrics = {}
         self.cfg()
+       
+    async def process_call(self):
+        """Performs the async execution of cmd in a subprocess
+        
+        Arguments:
+            cmd {string} -- The full command to be called in a subprocess shell
+        
+        Returns:
+            dict -- The output of the cmd execution containing stdout and stderr fields
+        """
+        cmd = self.stimulus
+        logger.debug(f"Calling subprocess command: {cmd}")
+        out = {}
+        try:
+            proc = await asyncio.create_subprocess_shell(
+                cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
+            )
 
-    def call(self):
-        return self.cmd
+            stdout, stderr = await proc.communicate()
 
-    def args(self):
-        return self.opts
+            out = {
+                "stdout": stdout,
+                "stderr": stderr,
+            }
+
+        except OSError as excpt:
+            logger.debug(f"Could not call cmd {cmd} - exception {excpt}")
+
+            out = {
+                "stdout": None,
+                "stderr": proc.exception(),
+            }
+        except asyncio.CancelledError:
+            logger.debug("cancel_me(): call task cancelled")
+            raise
+
+        finally:
+            return out
+
+    async def function_call(self):
+        function_call = self.stimulus
+        loop = asyncio.get_event_loop()
+        with concurrent.futures.ProcessPoolExecutor() as pool:
+            output = await loop.run_in_executor(pool, function_call)
+
+        return output
+
+    async def call(self):
+        if self.is_process:
+            results = await self.process_call()
+        else:
+            results = await self.function_call()
+        
+        self.parser(results)
+        return self.metrics
 
     def cfg(self):
         pass
@@ -47,17 +97,12 @@ class Tool():
 
     def parser(self, results):
         pass
-
-    def outputs(self, results):
-        self.parser(results)
-        return self.metrics
-
-    def init(self, ev, uuid, stimulus):
-        self.ev = ev
-        self.uuid = uuid
-        self.stimulus = stimulus
-        specs = self.stimulus.get("parameters")
-        self.options(**specs)
+        
+    def init(self, action):
+        self.action = action
+        parameters = self.action.get("parameters")
+        options = self.serialize(**parameters)
+        self.options(**options)
 
     def serialize(self, **kwargs):
         options = {}
@@ -96,50 +141,6 @@ class Tool():
         finally:
             return response
 
-    def start_process(self, args, stop=False, timeout=60):
-        return_code = 0
-        out, err = '', None
-
-        try:
-            p = subprocess.Popen(args,
-                stdin = subprocess.PIPE,
-                stdout = subprocess.PIPE,
-                stderr = subprocess.PIPE,
-                )
-            self.process = p
-            if stop:
-                if self.stop_process(timeout):
-                    out, err = p.communicate()
-                    return_code = p.returncode
-                else:
-                    return_code = -1
-                    err = 'ERROR: Process not defined'
-            else:
-                out, err = p.communicate()
-                return_code = p.returncode
-        except Exception as e:
-            return_code = -1
-            # logger.debug('ERROR: exception %s', e)
-            err = 'ERROR: exception OSError'
-        finally:
-            # logger.debug('process stopped')
-            if return_code != 0:
-                queue_answer = err
-            else:
-                queue_answer = out
-            self.process = None
-            result = (return_code, queue_answer)
-            return result
-
-    def stop_process(self, timeout):
-        if self.process:
-            time.sleep(timeout)
-            self.process.kill()
-            logger.info('process stopped %s', self.process.pid)
-            self.process = None
-            return True
-        return False
-
 
 class MonDummy(Tool):
     def __init__(self):
@@ -155,12 +156,11 @@ class MonDummy(Tool):
 
     def monitor(self, opts):
         metrics = []
-        interval = opts.get("interval")
-        duration = opts.get("duration")
-        live = self.stimulus.get("live", False)
-        url = self.stimulus.get("url", None)
+        interval = int(opts.get("interval"))
+        duration = int(opts.get("duration"))
 
         past = datetime.now()
+        i = 9
         while True:
             current = datetime.now()
             _time = {'timestamp': current.strftime('%Y-%m-%dT%H:%M:%S.%fZ')}
@@ -168,30 +168,29 @@ class MonDummy(Tool):
             if seconds > duration:
                 break
             else:
-                # measurement = {seconds:"self.run([self.cmd])"}
-                (ack, result) = self.start_process([self.cmd])
-                measurement = {'result': result}
-                measurement.update(_time)
-                metrics.append(measurement)
+                out = i
+                measurement = {'result': str(out)}
                 
-                if live:
-                    self.flush(url, measurement)
+                metrics.append(measurement)
+                i += 1
+                
+                # if live:
+                #     self.flush(url, measurement)
 
                 time.sleep(interval)
 
-        results = {
-            "uuid": self.uuid,
-            "metrics": metrics
-        }
-        return results
+        return metrics
 
     def options(self, **kwargs):
-        options = self.serialize(**kwargs)
-        self.cmd = self.monitor
-        self.opts = options
+        self.is_process = False
+        self.stimulus = partial(self.monitor, kwargs)
 
     def parser(self, out):
-        self.metrics = out
+        output = {
+            "uuid": self.uuid,
+            "metrics": out
+        }
+        self.metrics = output
         
 
 class MonProcess(Tool):
@@ -325,9 +324,8 @@ class MonProcess(Tool):
         return resources
 
     def options(self, **kwargs):
-        options = self.serialize(**kwargs)
-        self.cmd = self.monitor
-        self.opts = options
+        self.is_process = False
+        self.stimulus = partial(self.monitor, kwargs)
 
     def get_pid(self, name):
         pidlist = []
@@ -348,15 +346,12 @@ class MonProcess(Tool):
         pid = None
 
         if 'interval' in opts:
-            interval = float(opts['interval'])
+            interval = float(opts.get('interval'))
 
         if 'duration' in opts:
             t = float(opts.get('duration'))
         else:
             return metrics
-
-        live = self.stimulus.get("live", False)
-        url = self.stimulus.get("url", None)
 
         if 'pid' in opts:
             pid = int(opts['pid'])
@@ -373,7 +368,6 @@ class MonProcess(Tool):
             return metrics
 
         self._p = ps.Process(pid)
-        stats = self._get_process_info()
         measurement = {}
         measurement["time"] = 0.0
         past = datetime.now()
@@ -387,34 +381,25 @@ class MonProcess(Tool):
                 tm = time.time()
                 measurement = self._get_process_stats(tm, measurement)
                 measurement["time"] = tm
-                # measurement.update(stats)
                 self._first = False
-
-                # _time = {'timestamp': current.strftime('%Y-%m-%dT%H:%M:%S.%fZ')}
-                # measurement.update(_time)
-        
-                if live:
-                    self.flush(url, measurement)
 
                 metrics.append(measurement)
                 time.sleep(interval)
         
-        results = {
-            "uuid": self.uuid,
-            "metrics": metrics
-        }
-        return results
+        return metrics
 
-    def parser(self, output):
+    def parser(self, out):
         metrics = []
 
-        if output:
-            out = output.get("metrics")
+        if out:
             metric_names = list(out[0].keys())
             
             for name in metric_names:
-                # metric_values = dict([ (out.index(out_value),float(out_value.get(name))) for out_value in out ])
-                metric_values = dict([ ( out.index(out_value), {"key":out.index(out_value), "value":float(out_value.get(name))} ) for out_value in out ])
+
+                metric_values = dict(
+                    [ ( out.index(out_value), {"key":out.index(out_value), "value":float(out_value.get(name))} )
+                    for out_value in out ]
+                )
 
                 m = {
                     "name": name,
@@ -425,7 +410,10 @@ class MonProcess(Tool):
 
                 metrics.append(m)
         
-        self.metrics = metrics
+        self.metrics = {
+            "uuid": self.uuid,
+            "metrics": metrics
+        }
 
 
 class MonContainer(Tool):
@@ -523,7 +511,6 @@ class MonContainer(Tool):
                             blkio_values['io_write'] = value['value']                    
         return blkio_values
 
-
     def _stats(self, name=None):
         summary_stats = {}
         
@@ -542,9 +529,8 @@ class MonContainer(Tool):
         return summary_stats
 
     def options(self, **kwargs):
-        options = self.serialize(**kwargs)
-        self.cmd = self.monitor
-        self.opts = options
+        self.is_process = False
+        self.stimulus = partial(self.monitor, kwargs)
 
     def monitor(self, opts):
         self.connect()
@@ -563,9 +549,6 @@ class MonContainer(Tool):
         else:
             return metrics
 
-        live = self.stimulus.get("live", False)
-        url = self.stimulus.get("url", None)
-
         past = datetime.now()
         while True:
             current = datetime.now()
@@ -577,32 +560,23 @@ class MonContainer(Tool):
                 measurement = self._stats(name=name)
                 if 'read' in measurement:
                     del measurement['read']
-                # measurement.update(_time)
+         
                 metrics.append(measurement)        
-
-                if live:
-                    self.flush(url, measurement)
-
                 time.sleep(interval)
 
-        results = {
-            "uuid": self.uuid,
-            "metrics": metrics
-        }
-        return results
+        return metrics
 
-    def parser(self, output):
+    def parser(self, out):
         metrics = []
 
-        if output:
-            out = output.get("metrics")
-
+        if out:
             metric_names = list(out[0].keys())
 
             for name in metric_names:
 
-                metric_values = dict([ ( out.index(out_value), {"key":out.index(out_value), "value":float(out_value.get(name))} )
-                                    for out_value in out ])
+                metric_values = dict(
+                    [( out.index(out_value), {"key":out.index(out_value), "value":float(out_value.get(name))} )
+                    for out_value in out ])
 
                 m = {
                     "name": name,
@@ -613,11 +587,10 @@ class MonContainer(Tool):
 
                 metrics.append(m)
         
-        results = {
+        self.metrics = {
             "uuid": self.uuid,
             "metrics": metrics
         }
-        self.metrics = results
         
 
 class MonHost(Tool):
@@ -759,9 +732,8 @@ class MonHost(Tool):
         return resources
 
     def options(self, **kwargs):
-        options = self.serialize(**kwargs)
-        self.cmd = self.monitor
-        self.opts = options
+        self.is_process = False
+        self.stimulus = partial(self.monitor, kwargs)
 
     def monitor(self, opts):
         metrics = []
@@ -775,11 +747,7 @@ class MonHost(Tool):
         else:
             return metrics
 
-        live = self.stimulus.get("live", False)
-        url = self.stimulus.get("url", None)
-
         past = datetime.now()
-        # node_info = self._get_node_info()
         measurement = {}
         measurement["time"] = 0.0
         while True:
@@ -791,36 +759,27 @@ class MonHost(Tool):
             else:
                 tm = time.time()
                 measurement = self._get_node_stats(tm, measurement)
-                # measurement.update(node_info)
                 measurement["time"] = tm
                 current = datetime.now()
                 self._first = False
 
-                # measurement.update(_time)
                 metrics.append(measurement)
-
-                if live:
-                    self.flush(url, measurement)
-
                 time.sleep(interval)
 
-        results = {
-            "uuid": self.uuid,
-            "metrics": metrics
-        }
-        return results
+        return metrics
 
-    def parser(self, output):
+    def parser(self, out):
         metrics = []
 
-        if output:
-            out = output.get("metrics")
+        if out:
             metric_names = list(out[0].keys())
 
             for name in metric_names:
-                # metric_values = dict([ (out.index(out_value),float(out_value.get(name))) for out_value in out ])
 
-                metric_values = dict([ ( out.index(out_value), {"key":out.index(out_value), "value":float(out_value.get(name))} ) for out_value in out ])
+                metric_values = dict(
+                    [ ( out.index(out_value), {"key":out.index(out_value), "value":float(out_value.get(name))} ) 
+                    for out_value in out ]
+                )
 
                 m = {
                     "name": name,
@@ -831,64 +790,42 @@ class MonHost(Tool):
 
                 metrics.append(m)
         
-        self.metrics = metrics
+        self.metrics = {
+            "uuid": self.uuid,
+            "metrics": metrics
+        }
+
 
 class MonTcpdump(Tool):
     def __init__(self):
         Tool.__init__(self, 4, "tcpdump")
-        self._output_folder = '/tmp/'
+        self._output_folder = '/home/'
 
     def cfg(self):
         params = {
             'interface':'-i',
-            'duration':'-G',
             'pcap':'-w'
         }
         self.parameters = params
         self.cmd = ""
 
     def options(self, **kwargs):
-        options = self.serialize(**kwargs)
-        
-        if '-w' in options:
-            pcap_value = options.get('-w')
+        if '-w' in kwargs:
+            pcap_value = kwargs.get('-w')
             pcap_path = self.filepath(pcap_value)
-            options['-w'] = pcap_path
+            kwargs['-w'] = pcap_path
 
-        self.cmd = self.monitor
-        self.opts = options
-                
-    def monitor(self, opts):
         args = ["tcpdump"]
-        results = {
-            "uuid": self.uuid,
-            "metrics": {}
-        }
 
-        for k,v in opts.items():
+        for k,v in kwargs.items():
             args.extend([k,v])
 
-        timeout = opts.get("-G", None)
-        if timeout:
-            timeout = int(timeout)
-        else:
-            return results
-
-        logger.info("MonTcpdump call %s", args)
-        output_process = self.start_process(args, stop=True, timeout=timeout)
-        logger.info("MonTcpdump output_process %s", output_process)
-
-        pcap_file = opts.get("-w")
-        metrics = self.parse_pcap(pcap_file)
-
-        results = {
-            "uuid": self.uuid,
-            "metrics": metrics
-        }
-        return results
-
-    def parse_pcap(self, pcap_file): #TODO
-        return {"ack": pcap_file}
+        self.is_process = True
+        self.stimulus = " ".join(args)
+                
+    def parse_pcap(self, pcap_file): 
+        #TODO: extract basic info about pcap (# of packets, traffic statistics, etc)
+        return {"pcap": pcap_file}
 
     def filepath(self, filename):
         _filepath = os.path.normpath(os.path.join(
@@ -896,7 +833,13 @@ class MonTcpdump(Tool):
         return _filepath
 
     def parse(self, out):
-        self.metrics = out
+        # pcap_file = opts.get("-w")
+        # metrics = self.parse_pcap(pcap_file)
+
+        self.metrics = {
+            "uuid": self.uuid, 
+            "metrics": []
+        }
 
 
 class Tools:
@@ -911,11 +854,8 @@ class Tools:
     def __init__(self):
         self.toolset = {}
         self.load_tools()
-        #ThreadPoolExecutor or ProcessPoolExecutor
-        self.executor = concurrent.futures.ThreadPoolExecutor(
-            max_workers=4,
-        )
-    
+        self.handler = Handler()
+        
     def load_tools(self):
         for tool_cls in self.TOOLS:
             tool_instance = tool_cls()
@@ -923,154 +863,45 @@ class Tools:
             self.toolset[tool_name] = tool_instance
         logger.debug("loaded toolset")
 
-    def build_stimulus(self, ev, instruction):
-        logger.debug("build stimulus from instruction")
-        logger.debug(instruction)
-        stimulus = {}
+    def build_calls(self, actions):
+        logger.info("Building actions into calls")
+        calls = {}
 
-        for _id,args in instruction.items():
-            tool_name = args.get("tool-name")
-            tool_parameters = args.get("parameters")
-            logger.debug(f"Stimulus set for tool-name {tool_name} - params {tool_parameters}")
+        for action in actions:
+            tool_name = action.get("tool")
+
             if tool_name in self.toolset:
-                tool = self.toolset[tool_name]
-                tool.init(ev, _id, args)
-                stimulus[_id] = tool
-                logger.debug("Stimulus set for tool-name %s", tool.name)
-        return stimulus
 
-    def outputs(self, results, stimulus, callback, ev):
-        metrics = {}
-        
-        for result in results:
-            _id = result.get("uuid")
-            if _id in stimulus.keys():
-                tool = stimulus.get(_id)
-                tool_out = tool.outputs(result)
-                metrics[_id] = tool_out
+                action_id = action.get("id")
+                action_sched = action.get("schedule", {})
 
+                tool = self.toolset[tool_name]               
+                tool.init(action)
+                action_call = tool.call()
+                
+                calls[action_id] = (action_call, action_sched)
+
+            else:
+                logger.info(
+                    f"Could not locate action tool name {tool_name}"
+                    f" into set of tools {self.toolset.keys()}"
+                )
+
+        return calls
+
+    def build_outputs(self, outputs):        
         data = {
-            "type": "events",
             "event": "metrics",
-            "group": "infrastructure",
-            "metrics": metrics,
-            "ev": ev,
+            "metrics": outputs,
         }
         logger.info(f"data: {data}")
         return data
 
-    async def run(self, stimulus, callback, ev):
-        logger.info('starting')
-        logger.info('creating executor tasks')
-
-        loop = asyncio.get_event_loop()
-
-        blocking_tasks = [
-            loop.run_in_executor(self.executor, tool.call(), tool.args())
-            for tool in stimulus.values()
-        ]
-
-        logger.info('waiting for executor tasks')
-        # completed, _ = await asyncio.wait(blocking_tasks)
-        # results = [t.result() for t in completed]
-        
-        tasks = await asyncio.gather(*blocking_tasks, return_exceptions=True)
-
-        results = []
-        for aw in tasks:
-            if isinstance(aw, Exception):
-                logger.debug(f"Could not run _schedule task - exception {aw}")
-            else:
-                results.append(aw)
-       
-        logger.info('results: {!r}'.format(results))
-        out = self.outputs(results, stimulus, callback, ev)
-        return out
-
-    async def workflow(self, data):
-        instructions = data.get("instructions", None)
-        callback = data.get("callback", None)
-        ev = data.get("ev", None)
-
-        tools = self.build_stimulus(ev, instructions)
-        
-        try:
-            reply_output = await self.run(tools, callback, ev)
-        except Exception as e:
-            logger.info(f"Exception while running tools {e}")
-            reply_output = {}
-        finally:
-            logger.info('Workflow exiting')
-            return reply_output
-            
-
-
-    
-if __name__ == '__main__':
-    import sys 
-
-    logging.basicConfig(
-            level=logging.DEBUG,
-            format='PID %(process)5s %(name)18s: %(message)s',
-            stream=sys.stderr,
-        )
-
-    insts = {
-        # 1: {
-        #     "live": False,
-        #     "url": "http://127.0.0.1:8989",
-        #     "tool-name": "dummy",
-        #     "parameters": {
-        #         "duration": 3,
-        #         "interval": 1,
-        #     }
-        # },
-        # 2: {
-        #     "live": False,
-        #     "url": "http://127.0.0.1:8989",
-        #     "tool-name": "process",
-        #     "parameters": {
-        #         "pid": 78083,
-        #         "duration": 3,
-        #         "interval": 1,
-        #     }
-        # },
-        # 3: {
-        #     "live": False,
-        #     "url": "http://127.0.0.1:8989",
-        #     "tool-name": "container",
-        #     "parameters": {
-        #         "target": "ivan",
-        #         "duration": 3,
-        #         "interval": 1,
-        #     }
-        # },
-        # 4: {
-        #     "live": False,
-        #     "url": "http://127.0.0.1:8989",
-        #     "tool-name": "host",
-        #     "parameters": {
-        #         "duration": 3,
-        #         "interval": 1,
-        #     }
-        # },
-        # 5: {
-        #     "live": False,
-        #     "url": "http://127.0.0.1:8989",
-        #     "tool-name": "tcpdump",
-        #     "parameters": {
-        #         "duration": "3",
-        #         "interface": "wlp2s0",
-        #         "pcap": "mon-wlp2s0.pcap"
-        #     }
-        # }
-    }
-
-    data = {
-        "callback": "http://127.0.0.1:8989",
-        "instructions": insts,
-    }
-    
-    tools = Tools()
-    output = asyncio.run(tools.workflow(data))
-    print(output)
+    async def handle(self, instruction):
+        actions = instruction.get("actions")
+        calls = self.build_calls(actions)
+        results = await self.handler.run(calls)
+        outputs = self.build_outputs(results)
+        logger.info(f"Finished handling instruction actions")
+        logger.debug(f"{outputs}")
+        return outputs

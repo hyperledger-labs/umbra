@@ -21,7 +21,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   syntax='proto3',
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_pb=b'\n\x0bumbra.proto\x12\x05umbra\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"U\n\x06\x43onfig\x12\n\n\x02id\x18\x01 \x01(\t\x12\x10\n\x08scenario\x18\x02 \x01(\x0c\x12-\n\ttimestamp\x18\x03 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\"S\n\x06Report\x12\n\n\x02id\x18\x01 \x01(\t\x12\x0e\n\x06status\x18\x02 \x01(\x0c\x12-\n\ttimestamp\x18\x03 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\"i\n\x08Workflow\x12\n\n\x02id\x18\x01 \x01(\t\x12\x10\n\x08workflow\x18\x02 \x01(\t\x12\x10\n\x08scenario\x18\x03 \x01(\x0c\x12-\n\ttimestamp\x18\x04 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\"l\n\x06Status\x12\n\n\x02id\x18\x01 \x01(\t\x12\n\n\x02ok\x18\x02 \x01(\t\x12\r\n\x05\x65rror\x18\x03 \x01(\t\x12\x0c\n\x04info\x18\x04 \x01(\x0c\x12-\n\ttimestamp\x18\x05 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\"\x86\x03\n\x0bInstruction\x12\n\n\x02id\x18\x01 \x01(\t\x12*\n\x07\x61\x63tions\x18\x02 \x03(\x0b\x32\x19.umbra.Instruction.Action\x1aX\n\x05Sched\x12\x0c\n\x04\x66rom\x18\x01 \x01(\r\x12\r\n\x05until\x18\x02 \x01(\r\x12\x10\n\x08\x64uration\x18\x03 \x01(\r\x12\x10\n\x08interval\x18\x04 \x01(\r\x12\x0e\n\x06repeat\x18\x05 \x01(\r\x1a\xe4\x01\n\x06\x41\x63tion\x12\n\n\x02id\x18\x01 \x01(\t\x12\x0c\n\x04live\x18\x02 \x01(\x08\x12\x0f\n\x07\x61\x64\x64ress\x18\x03 \x01(\t\x12\x11\n\ttool_name\x18\x04 \x01(\t\x12=\n\nparameters\x18\x05 \x03(\x0b\x32).umbra.Instruction.Action.ParametersEntry\x12*\n\x08schedule\x18\x06 \x01(\x0b\x32\x18.umbra.Instruction.Sched\x1a\x31\n\x0fParametersEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"\xef\x03\n\nEvaluation\x12\n\n\x02id\x18\x01 \x01(\t\x12(\n\x06source\x18\x02 \x01(\x0b\x32\x18.umbra.Evaluation.Source\x12/\n\x07metrics\x18\x03 \x03(\x0b\x32\x1e.umbra.Evaluation.MetricsEntry\x12.\n\ttimestamp\x18\x04 \x01(\x0b\x32\x1b.umbra.Evaluation.Timestamp\x1a$\n\x06Source\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0c\n\x04\x63\x61ll\x18\x02 \x01(\t\x1ax\n\x06Metric\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0c\n\x04type\x18\x02 \x01(\t\x12\x0c\n\x04unit\x18\x03 \x01(\t\x12\x10\n\x06scalar\x18\x04 \x01(\x01H\x00\x12)\n\x06series\x18\x05 \x01(\x0b\x32\x17.google.protobuf.StructH\x00\x42\x07\n\x05value\x1a`\n\tTimestamp\x12)\n\x05start\x18\x01 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12(\n\x04stop\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x1aH\n\x0cMetricsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\'\n\x05value\x18\x02 \x01(\x0b\x32\x18.umbra.Evaluation.Metric:\x02\x38\x01\x32\x30\n\x06\x42roker\x12&\n\x06Manage\x12\r.umbra.Config\x1a\r.umbra.Report27\n\x08Scenario\x12+\n\tEstablish\x12\x0f.umbra.Workflow\x1a\r.umbra.Status2:\n\x07Monitor\x12/\n\x06Listen\x12\x12.umbra.Instruction\x1a\x11.umbra.Evaluation27\n\x05\x41gent\x12.\n\x05Probe\x12\x12.umbra.Instruction\x1a\x11.umbra.Evaluationb\x06proto3'
+  serialized_pb=b'\n\x0bumbra.proto\x12\x05umbra\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"U\n\x06\x43onfig\x12\n\n\x02id\x18\x01 \x01(\t\x12\x10\n\x08scenario\x18\x02 \x01(\x0c\x12-\n\ttimestamp\x18\x03 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\"S\n\x06Report\x12\n\n\x02id\x18\x01 \x01(\t\x12\x0e\n\x06status\x18\x02 \x01(\x0c\x12-\n\ttimestamp\x18\x03 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\"i\n\x08Workflow\x12\n\n\x02id\x18\x01 \x01(\t\x12\x10\n\x08workflow\x18\x02 \x01(\t\x12\x10\n\x08scenario\x18\x03 \x01(\x0c\x12-\n\ttimestamp\x18\x04 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\"l\n\x06Status\x12\n\n\x02id\x18\x01 \x01(\t\x12\n\n\x02ok\x18\x02 \x01(\t\x12\r\n\x05\x65rror\x18\x03 \x01(\t\x12\x0c\n\x04info\x18\x04 \x01(\x0c\x12-\n\ttimestamp\x18\x05 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\"\xbd\x03\n\x0bInstruction\x12\n\n\x02id\x18\x01 \x01(\t\x12*\n\x07\x61\x63tions\x18\x02 \x03(\x0b\x32\x19.umbra.Instruction.Action\x1aX\n\x05Sched\x12\x0c\n\x04\x66rom\x18\x01 \x01(\r\x12\r\n\x05until\x18\x02 \x01(\r\x12\x10\n\x08\x64uration\x18\x03 \x01(\r\x12\x10\n\x08interval\x18\x04 \x01(\r\x12\x0e\n\x06repeat\x18\x05 \x01(\r\x1a\x9b\x02\n\x06\x41\x63tion\x12\n\n\x02id\x18\x01 \x01(\t\x12\x0c\n\x04tool\x18\x02 \x01(\t\x12\x30\n\x06output\x18\x03 \x01(\x0b\x32 .umbra.Instruction.Action.Output\x12=\n\nparameters\x18\x04 \x03(\x0b\x32).umbra.Instruction.Action.ParametersEntry\x12*\n\x08schedule\x18\x05 \x01(\x0b\x32\x18.umbra.Instruction.Sched\x1a\'\n\x06Output\x12\x0c\n\x04live\x18\x01 \x01(\x08\x12\x0f\n\x07\x61\x64\x64ress\x18\x02 \x01(\t\x1a\x31\n\x0fParametersEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"\xef\x03\n\nEvaluation\x12\n\n\x02id\x18\x01 \x01(\t\x12(\n\x06source\x18\x02 \x01(\x0b\x32\x18.umbra.Evaluation.Source\x12/\n\x07metrics\x18\x03 \x03(\x0b\x32\x1e.umbra.Evaluation.MetricsEntry\x12.\n\ttimestamp\x18\x04 \x01(\x0b\x32\x1b.umbra.Evaluation.Timestamp\x1a$\n\x06Source\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0c\n\x04\x63\x61ll\x18\x02 \x01(\t\x1ax\n\x06Metric\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0c\n\x04type\x18\x02 \x01(\t\x12\x0c\n\x04unit\x18\x03 \x01(\t\x12\x10\n\x06scalar\x18\x04 \x01(\x01H\x00\x12)\n\x06series\x18\x05 \x01(\x0b\x32\x17.google.protobuf.StructH\x00\x42\x07\n\x05value\x1a`\n\tTimestamp\x12)\n\x05start\x18\x01 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12(\n\x04stop\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x1aH\n\x0cMetricsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\'\n\x05value\x18\x02 \x01(\x0b\x32\x18.umbra.Evaluation.Metric:\x02\x38\x01\x32\x30\n\x06\x42roker\x12&\n\x06Manage\x12\r.umbra.Config\x1a\r.umbra.Report27\n\x08Scenario\x12+\n\tEstablish\x12\x0f.umbra.Workflow\x1a\r.umbra.Status2:\n\x07Monitor\x12/\n\x06Listen\x12\x12.umbra.Instruction\x1a\x11.umbra.Evaluation27\n\x05\x41gent\x12.\n\x05Probe\x12\x12.umbra.Instruction\x1a\x11.umbra.Evaluationb\x06proto3'
   ,
   dependencies=[google_dot_protobuf_dot_struct__pb2.DESCRIPTOR,google_dot_protobuf_dot_timestamp__pb2.DESCRIPTOR,])
 
@@ -292,6 +292,44 @@ _INSTRUCTION_SCHED = _descriptor.Descriptor(
   serialized_end=634,
 )
 
+_INSTRUCTION_ACTION_OUTPUT = _descriptor.Descriptor(
+  name='Output',
+  full_name='umbra.Instruction.Action.Output',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='live', full_name='umbra.Instruction.Action.Output.live', index=0,
+      number=1, type=8, cpp_type=7, label=1,
+      has_default_value=False, default_value=False,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='address', full_name='umbra.Instruction.Action.Output.address', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=830,
+  serialized_end=869,
+)
+
 _INSTRUCTION_ACTION_PARAMETERSENTRY = _descriptor.Descriptor(
   name='ParametersEntry',
   full_name='umbra.Instruction.Action.ParametersEntry',
@@ -326,8 +364,8 @@ _INSTRUCTION_ACTION_PARAMETERSENTRY = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=816,
-  serialized_end=865,
+  serialized_start=871,
+  serialized_end=920,
 )
 
 _INSTRUCTION_ACTION = _descriptor.Descriptor(
@@ -346,36 +384,29 @@ _INSTRUCTION_ACTION = _descriptor.Descriptor(
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='live', full_name='umbra.Instruction.Action.live', index=1,
-      number=2, type=8, cpp_type=7, label=1,
-      has_default_value=False, default_value=False,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='address', full_name='umbra.Instruction.Action.address', index=2,
-      number=3, type=9, cpp_type=9, label=1,
+      name='tool', full_name='umbra.Instruction.Action.tool', index=1,
+      number=2, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='tool_name', full_name='umbra.Instruction.Action.tool_name', index=3,
-      number=4, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=b"".decode('utf-8'),
+      name='output', full_name='umbra.Instruction.Action.output', index=2,
+      number=3, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='parameters', full_name='umbra.Instruction.Action.parameters', index=4,
-      number=5, type=11, cpp_type=10, label=3,
+      name='parameters', full_name='umbra.Instruction.Action.parameters', index=3,
+      number=4, type=11, cpp_type=10, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='schedule', full_name='umbra.Instruction.Action.schedule', index=5,
-      number=6, type=11, cpp_type=10, label=1,
+      name='schedule', full_name='umbra.Instruction.Action.schedule', index=4,
+      number=5, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
@@ -383,7 +414,7 @@ _INSTRUCTION_ACTION = _descriptor.Descriptor(
   ],
   extensions=[
   ],
-  nested_types=[_INSTRUCTION_ACTION_PARAMETERSENTRY, ],
+  nested_types=[_INSTRUCTION_ACTION_OUTPUT, _INSTRUCTION_ACTION_PARAMETERSENTRY, ],
   enum_types=[
   ],
   serialized_options=None,
@@ -393,7 +424,7 @@ _INSTRUCTION_ACTION = _descriptor.Descriptor(
   oneofs=[
   ],
   serialized_start=637,
-  serialized_end=865,
+  serialized_end=920,
 )
 
 _INSTRUCTION = _descriptor.Descriptor(
@@ -431,7 +462,7 @@ _INSTRUCTION = _descriptor.Descriptor(
   oneofs=[
   ],
   serialized_start=475,
-  serialized_end=865,
+  serialized_end=920,
 )
 
 
@@ -469,8 +500,8 @@ _EVALUATION_SOURCE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1033,
-  serialized_end=1069,
+  serialized_start=1088,
+  serialized_end=1124,
 )
 
 _EVALUATION_METRIC = _descriptor.Descriptor(
@@ -533,8 +564,8 @@ _EVALUATION_METRIC = _descriptor.Descriptor(
       create_key=_descriptor._internal_create_key,
     fields=[]),
   ],
-  serialized_start=1071,
-  serialized_end=1191,
+  serialized_start=1126,
+  serialized_end=1246,
 )
 
 _EVALUATION_TIMESTAMP = _descriptor.Descriptor(
@@ -571,8 +602,8 @@ _EVALUATION_TIMESTAMP = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1193,
-  serialized_end=1289,
+  serialized_start=1248,
+  serialized_end=1344,
 )
 
 _EVALUATION_METRICSENTRY = _descriptor.Descriptor(
@@ -609,8 +640,8 @@ _EVALUATION_METRICSENTRY = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1291,
-  serialized_end=1363,
+  serialized_start=1346,
+  serialized_end=1418,
 )
 
 _EVALUATION = _descriptor.Descriptor(
@@ -661,8 +692,8 @@ _EVALUATION = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=868,
-  serialized_end=1363,
+  serialized_start=923,
+  serialized_end=1418,
 )
 
 _CONFIG.fields_by_name['timestamp'].message_type = google_dot_protobuf_dot_timestamp__pb2._TIMESTAMP
@@ -670,7 +701,9 @@ _REPORT.fields_by_name['timestamp'].message_type = google_dot_protobuf_dot_times
 _WORKFLOW.fields_by_name['timestamp'].message_type = google_dot_protobuf_dot_timestamp__pb2._TIMESTAMP
 _STATUS.fields_by_name['timestamp'].message_type = google_dot_protobuf_dot_timestamp__pb2._TIMESTAMP
 _INSTRUCTION_SCHED.containing_type = _INSTRUCTION
+_INSTRUCTION_ACTION_OUTPUT.containing_type = _INSTRUCTION_ACTION
 _INSTRUCTION_ACTION_PARAMETERSENTRY.containing_type = _INSTRUCTION_ACTION
+_INSTRUCTION_ACTION.fields_by_name['output'].message_type = _INSTRUCTION_ACTION_OUTPUT
 _INSTRUCTION_ACTION.fields_by_name['parameters'].message_type = _INSTRUCTION_ACTION_PARAMETERSENTRY
 _INSTRUCTION_ACTION.fields_by_name['schedule'].message_type = _INSTRUCTION_SCHED
 _INSTRUCTION_ACTION.containing_type = _INSTRUCTION
@@ -739,6 +772,13 @@ Instruction = _reflection.GeneratedProtocolMessageType('Instruction', (_message.
 
   'Action' : _reflection.GeneratedProtocolMessageType('Action', (_message.Message,), {
 
+    'Output' : _reflection.GeneratedProtocolMessageType('Output', (_message.Message,), {
+      'DESCRIPTOR' : _INSTRUCTION_ACTION_OUTPUT,
+      '__module__' : 'umbra_pb2'
+      # @@protoc_insertion_point(class_scope:umbra.Instruction.Action.Output)
+      })
+    ,
+
     'ParametersEntry' : _reflection.GeneratedProtocolMessageType('ParametersEntry', (_message.Message,), {
       'DESCRIPTOR' : _INSTRUCTION_ACTION_PARAMETERSENTRY,
       '__module__' : 'umbra_pb2'
@@ -757,6 +797,7 @@ Instruction = _reflection.GeneratedProtocolMessageType('Instruction', (_message.
 _sym_db.RegisterMessage(Instruction)
 _sym_db.RegisterMessage(Instruction.Sched)
 _sym_db.RegisterMessage(Instruction.Action)
+_sym_db.RegisterMessage(Instruction.Action.Output)
 _sym_db.RegisterMessage(Instruction.Action.ParametersEntry)
 
 Evaluation = _reflection.GeneratedProtocolMessageType('Evaluation', (_message.Message,), {
@@ -809,8 +850,8 @@ _BROKER = _descriptor.ServiceDescriptor(
   index=0,
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_start=1365,
-  serialized_end=1413,
+  serialized_start=1420,
+  serialized_end=1468,
   methods=[
   _descriptor.MethodDescriptor(
     name='Manage',
@@ -835,8 +876,8 @@ _SCENARIO = _descriptor.ServiceDescriptor(
   index=1,
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_start=1415,
-  serialized_end=1470,
+  serialized_start=1470,
+  serialized_end=1525,
   methods=[
   _descriptor.MethodDescriptor(
     name='Establish',
@@ -861,8 +902,8 @@ _MONITOR = _descriptor.ServiceDescriptor(
   index=2,
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_start=1472,
-  serialized_end=1530,
+  serialized_start=1527,
+  serialized_end=1585,
   methods=[
   _descriptor.MethodDescriptor(
     name='Listen',
@@ -887,8 +928,8 @@ _AGENT = _descriptor.ServiceDescriptor(
   index=3,
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_start=1532,
-  serialized_end=1587,
+  serialized_start=1587,
+  serialized_end=1642,
   methods=[
   _descriptor.MethodDescriptor(
     name='Probe',

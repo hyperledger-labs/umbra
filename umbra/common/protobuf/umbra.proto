@@ -60,12 +60,16 @@ message Instruction {
   }
 
   message Action {
+    message Output {
+      bool live = 1;
+      string address = 2;     
+    }
+    
     string id = 1;
-    bool live = 2;
-    string address = 3;
-    string tool_name = 4;
-    map<string,string> parameters = 5;
-    Sched schedule = 6;
+    string tool = 2;
+    Output output = 3;
+    map<string,string> parameters = 4;
+    Sched schedule = 5;
   }
 
   string id = 1;

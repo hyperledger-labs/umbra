@@ -1,62 +1,176 @@
-import requests
-import json 
+import logging
+import unittest
+import asyncio
+from google.protobuf import json_format
 
-def send(url, data, **kwargs):
-    headers = {'Content-Type': 'application/json'}
-    json_data = json.dumps(data)
-    try:
-        response = requests.post(url, headers=headers, data=json_data, **kwargs)
-    except requests.RequestException as exception:
-        print('Requests fail - exception', exception)
-        response = None
-    else:
-        try:
-            response.raise_for_status()
-        except Exception:
-            response = None
-    finally:
-        return response
+from umbra.common.protobuf.umbra_pb2 import Instruction
+
+from umbra.monitor.tools import Tools
 
 
+logger = logging.getLogger(__name__)
 
-insts1 = {
-    3: {
-        "live": False,
-        "url": "http://127.0.0.1:8989",
-        "tool-name": "container",
+
+actions = [
+    {
+        "id": "2",
+        "tool": "host",
+        "output": {
+            "live": False,
+            "address": None,
+        },
         "parameters": {
-            "target": "elastic",
-            "duration": 3,
-            "interval": 1,
-        }
-    },
-}
-
-insts2 = {
-    5: {
-        "live": False,
-        "url": "http://127.0.0.1:8989",
-        "tool-name": "tcpdump",
-        "parameters": {
+            "interval": "1",
             "duration": "3",
-            "interface": "s1-eth1",
-            "pcap": "s1-eth1.pcap"
-        }
+        },
+        'schedule': {
+            "from": 0,
+            "until": 14,
+            "duration": 0,
+            "interval": 2,
+            "repeat": 2
+        },
     },
-}
+    {
+        'id': "3",
+        "tool": "container",
+        "output": {
+            "live": False,
+            "address": None,
+        },
+        'parameters': {
+            "interval": "1",
+            "duration": "3",
+            'target': 'ivan',
+        },
+        'schedule': {
+            "from": 5,
+            "until": 10,
+            "duration": 10,
+            "interval": 0,
+            "repeat": 0
+        }
+    }
+]
 
-data = {
-    "instructions": insts1,
-    "callback": "",
-}
+class TestMonitor(unittest.TestCase):
 
-ack = send("http://172.17.0.1:8990", data)
-print(ack)
+    def build_instructions(self):
+        pass
 
-data = {
-    "instructions": insts2,
-    "callback": "",
-}
+    def test_instruction(self):
+        inst_dict = {
+            "id": "100",
+            "actions": actions,
+        }
+        inst = json_format.ParseDict(inst_dict, Instruction())
 
-ack = send("http://172.17.0.1:8990", data)
-print(ack)
+
+    def test_dummy_tool(self):
+
+        actions = [
+        {
+            'id': "3",
+            "tool": "dummy",
+            "output": {
+                "live": False,
+                "address": None,
+            },
+            'parameters': {
+                "interval": "1",
+                "duration": "3",
+            },
+            'schedule': {}
+        },
+        ]
+
+        inst_dict = {
+            "id": "100",
+            "actions": actions,
+        }
+                
+        tools = Tools()
+        out = asyncio.run(tools.handle(inst_dict))
+        print(out)
+
+
+    def test_tools(self):
+        actions = [
+        # {
+        #     'id': "1",
+        #     "tool": "process",
+        #     "output": {
+        #         "live": False,
+        #         "address": None,
+        #     },
+        #     'parameters': {
+        #         "pid": "79821",
+        #         "interval": "1",
+        #         "duration": "3",
+        #     },
+        #     'schedule': {}
+        # },
+        # {
+        #     'id': "2",
+        #     "tool": "container",
+        #     "output": {
+        #         "live": False,
+        #         "address": None,
+        #     },
+        #     'parameters': {
+        #         "target": "teste",
+        #         "interval": "1",
+        #         "duration": "3",
+        #     },
+        #     'schedule': {}
+        # },
+        # {
+        #     'id': "3",
+        #     "tool": "host",
+        #     "output": {
+        #         "live": False,
+        #         "address": None,
+        #     },
+        #     'parameters': {
+        #         "interval": "1",
+        #         "duration": "3",
+        #     },
+        #     'schedule': {}
+        # },
+        {
+            'id': "4",
+            "tool": "tcpdump",
+            "output": {
+                "live": False,
+                "address": None,
+            },
+            'parameters': {
+                "interface": "wlp82s0",
+                "pcap": "wlp82s0.pcap"
+            },
+            'schedule': {
+                "duration": 3,
+            }
+        },
+        ]
+
+        inst_dict = {
+            "id": "100",
+            "actions": actions,
+        }
+                
+        tools = Tools()
+        out = asyncio.run(tools.handle(inst_dict))
+        print(out)
+
+
+def main():
+    t = TestMonitor()
+    # t.test_dummy_tool()
+    t.test_tools()
+
+
+if __name__ == "__main__":
+    # unittest.main()
+    logging.basicConfig(level=logging.DEBUG)
+    main()
