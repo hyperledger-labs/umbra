@@ -36,12 +36,9 @@ class Monitor(MonitorBase):
         return msg_bytes
 
     async def Listen(self, stream):
+        logging.debug("Instruction Received")
         instruction: Instruction = await stream.recv_message()        
         instruction_dict = json_format.MessageToDict(instruction, preserving_proto_field_name=True)
-
-        logging.debug("Instruction Handled -> Tools Workflow")
-        evaluation_dict = await self.tools.workflow(instruction_dict)
-
-        evaluation = Evaluation()
-        
+        evaluation_dict = await self.tools.handle(instruction_dict)
+        evaluation = json_format.ParseDict(evaluation_dict, Evaluation())
         await stream.send_message(evaluation)
