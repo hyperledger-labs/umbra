@@ -8,6 +8,7 @@ import "google/protobuf/timestamp.proto";
 
 service Broker {
   rpc Manage(Config) returns (Report);
+  rpc Measure(Evaluation) returns (Status);
 }
 
 service Scenario {
@@ -15,11 +16,11 @@ service Scenario {
 }
 
 service Monitor {
-  rpc Listen(Instruction) returns (Evaluation);
+  rpc Listen(Instruction) returns (Snapshot);
 }
 
 service Agent {
-  rpc Probe(Instruction) returns (Evaluation);
+  rpc Probe(Instruction) returns (Snapshot);
 }
 
 message Config {
@@ -100,6 +101,12 @@ message Evaluation {
 
   string id = 1;
   Source source = 2;
-  map<string, Metric> metrics = 3;
+  repeated Metric metrics = 3;
   Timestamp timestamp = 4;
+}
+
+
+message Snapshot {
+  string id = 1;
+  repeated Evaluation evaluations = 2;
 }

@@ -3,7 +3,7 @@ import unittest
 import asyncio
 from google.protobuf import json_format
 
-from umbra.common.protobuf.umbra_pb2 import Instruction
+from umbra.common.protobuf.umbra_pb2 import Instruction, Snapshot
 
 from umbra.monitor.tools import Tools
 
@@ -55,16 +55,6 @@ actions = [
 
 class TestMonitor(unittest.TestCase):
 
-    def build_instructions(self):
-        pass
-
-    def test_instruction(self):
-        inst_dict = {
-            "id": "100",
-            "actions": actions,
-        }
-        inst = json_format.ParseDict(inst_dict, Instruction())
-
 
     def test_dummy_tool(self):
 
@@ -96,34 +86,34 @@ class TestMonitor(unittest.TestCase):
 
     def test_tools(self):
         actions = [
-        # {
-        #     'id': "1",
-        #     "tool": "process",
-        #     "output": {
-        #         "live": False,
-        #         "address": None,
-        #     },
-        #     'parameters': {
-        #         "pid": "79821",
-        #         "interval": "1",
-        #         "duration": "3",
-        #     },
-        #     'schedule': {}
-        # },
-        # {
-        #     'id': "2",
-        #     "tool": "container",
-        #     "output": {
-        #         "live": False,
-        #         "address": None,
-        #     },
-        #     'parameters': {
-        #         "target": "teste",
-        #         "interval": "1",
-        #         "duration": "3",
-        #     },
-        #     'schedule': {}
-        # },
+        {
+            'id': "1",
+            "tool": "process",
+            "output": {
+                "live": False,
+                "address": None,
+            },
+            'parameters': {
+                "pid": "2322",
+                "interval": "1",
+                "duration": "3",
+            },
+            'schedule': {}
+        },
+        {
+            'id': "2",
+            "tool": "container",
+            "output": {
+                "live": False,
+                "address": None,
+            },
+            'parameters': {
+                "target": "teste",
+                "interval": "1",
+                "duration": "3",
+            },
+            'schedule': {}
+        },
         # {
         #     'id': "3",
         #     "tool": "host",
@@ -159,9 +149,17 @@ class TestMonitor(unittest.TestCase):
             "actions": actions,
         }
                 
+        # tools = Tools()
+        # out = asyncio.run(tools.handle(inst_dict))
+        # print(out)
+
         tools = Tools()
-        out = asyncio.run(tools.handle(inst_dict))
-        print(out)
+        instruction = json_format.ParseDict(inst_dict, Instruction())
+        instruction_dict = json_format.MessageToDict(instruction, preserving_proto_field_name=True)
+        snapshot_dict = asyncio.run(tools.handle(instruction_dict))
+        snapshot = json_format.ParseDict(snapshot_dict, Snapshot())
+        print(snapshot)
+
 
 
 def main():

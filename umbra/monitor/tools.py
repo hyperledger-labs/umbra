@@ -13,8 +13,9 @@ import platform as pl
 
 from subprocess import check_output, CalledProcessError
 
-
 from umbra.common.scheduler import Handler
+from umbra.common.protobuf.umbra_pb2 import Evaluation
+from umbra.common.protobuf.umbra_grpc import BrokerStub
 
 
 logger = logging.getLogger(__name__)
@@ -25,13 +26,15 @@ class Tool():
         self.is_process = False
         self.id = id_
         self.name = name
-        self.out_queue = None
         self.stimulus = None
         self.opts = None
         self.action = None
         self.uuid = None
         self.parameters = {}
         self.metrics = {}
+        self.output = {}
+        self._tstart = None
+        self._tstop = None
         self.cfg()
        
     async def process_call(self):
@@ -81,11 +84,15 @@ class Tool():
         return output
 
     async def call(self):
+        self._tstart = datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+
         if self.is_process:
             results = await self.process_call()
         else:
             results = await self.function_call()
-        
+
+        self._tstop = datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+
         self.parser(results)
         return self.metrics
 
@@ -100,7 +107,9 @@ class Tool():
         
     def init(self, action):
         self.action = action
-        parameters = self.action.get("parameters")
+        self.uuid = action.get('id')
+        self.output = action.get('output', {})
+        parameters = self.action.get("parameters", {})
         options = self.serialize(**parameters)
         self.options(**options)
 
@@ -113,33 +122,34 @@ class Tool():
                 logger.info("serialize option not found %s", k)
         return options
 
-    def flush(self, url, metrics):
-        data = {
-            "type": "events",
-            "event": "metrics",
-            "group": "infrastructure",
-            "live": True,
-            "metrics": metrics,
-            "ev": self.ev,
-        }       
-        ok = self.send(url, data)
-        logger.debug("Live metrics flush ack %s", ok)
+    def get_uuid(self):
+        return self.uuid
 
-    def send(self, url, data, **kwargs):
-        headers = {'Content-Type': 'application/json'}
-        json_data = json.dumps(data)
-        try:
-            response = requests.post(url, headers=headers, data=json_data, **kwargs)
-        except requests.RequestException as exception:
-            logger.info('Requests fail - exception %s', exception)
-            response = None
+    def source(self):
+        if type(self.stimulus) is str:
+            stimulus = self.stimulus
         else:
-            try:
-                response.raise_for_status()
-            except Exception:
-                response = None
-        finally:
-            return response
+            stimulus = "monitor-function-" + self.name
+        
+        source = {
+            'call': stimulus,
+            'name': self.name,
+        }
+        return source
+
+    def timestamp(self):
+        """Builds a dict indicating the
+        time when the tool started and stopped
+        its execution
+
+        Returns:
+            dict -- As below
+        """
+        ts = {
+            "start": self._tstart,
+            "stop": self._tstop,
+        }
+        return ts
 
 
 class MonDummy(Tool):
@@ -397,7 +407,7 @@ class MonProcess(Tool):
             for name in metric_names:
 
                 metric_values = dict(
-                    [ ( out.index(out_value), {"key":out.index(out_value), "value":float(out_value.get(name))} )
+                    [ ( str(out.index(out_value)), {"key":str(out.index(out_value)), "value":float(out_value.get(name))} )
                     for out_value in out ]
                 )
 
@@ -575,7 +585,7 @@ class MonContainer(Tool):
             for name in metric_names:
 
                 metric_values = dict(
-                    [( out.index(out_value), {"key":out.index(out_value), "value":float(out_value.get(name))} )
+                    [( str(out.index(out_value)), {"key": str(out.index(out_value)), "value":float(out_value.get(name))} )
                     for out_value in out ])
 
                 m = {
@@ -853,6 +863,7 @@ class Tools:
 
     def __init__(self):
         self.toolset = {}
+        self.tools_instances = {}
         self.load_tools()
         self.handler = Handler()
         
@@ -860,7 +871,7 @@ class Tools:
         for tool_cls in self.TOOLS:
             tool_instance = tool_cls()
             tool_name = tool_instance.name
-            self.toolset[tool_name] = tool_instance
+            self.toolset[tool_name] = tool_cls
         logger.debug("loaded toolset")
 
     def build_calls(self, actions):
@@ -875,11 +886,15 @@ class Tools:
                 action_id = action.get("id")
                 action_sched = action.get("schedule", {})
 
-                tool = self.toolset[tool_name]               
+                tool_cls = self.toolset[tool_name]
+                tool = tool_cls()                             
                 tool.init(action)
                 action_call = tool.call()
                 
                 calls[action_id] = (action_call, action_sched)
+
+                tool_uuid = tool.get_uuid()
+                self.tools_instances[tool_uuid] = tool
 
             else:
                 logger.info(
@@ -890,18 +905,34 @@ class Tools:
         return calls
 
     def build_outputs(self, outputs):        
-        data = {
-            "event": "metrics",
-            "metrics": outputs,
-        }
-        logger.info(f"data: {data}")
+        logger.info(f'build outputs: {outputs}')
+        data = []
+        uuid_end = []
+
+        for uuid,output in outputs.items():
+            tool = self.tools_instances.get(uuid)
+            tool_eval = {
+                'id': uuid,
+                'source': tool.source(),
+                'timestamp': tool.timestamp(),
+                'metrics': output.get('metrics', []),
+            }
+            data.append(tool_eval)
+
+        for uuid in uuid_end:
+            del self.tools_instances[uuid]
+
         return data
 
     async def handle(self, instruction):
         actions = instruction.get("actions")
         calls = self.build_calls(actions)
         results = await self.handler.run(calls)
-        outputs = self.build_outputs(results)
+        evals = self.build_outputs(results)
         logger.info(f"Finished handling instruction actions")
-        logger.debug(f"{outputs}")
-        return outputs
+        snap = {
+            "id": instruction.get('id'),
+            "evaluations": evals,
+        }
+        logger.debug(f"{snap}")
+        return snap

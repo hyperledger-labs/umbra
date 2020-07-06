@@ -11,13 +11,17 @@ if typing.TYPE_CHECKING:
 
 import google.protobuf.struct_pb2
 import google.protobuf.timestamp_pb2
-import umbra_pb2
+from umbra.common.protobuf import umbra_pb2
 
 
 class BrokerBase(abc.ABC):
 
     @abc.abstractmethod
     async def Manage(self, stream: 'grpclib.server.Stream[umbra_pb2.Config, umbra_pb2.Report]') -> None:
+        pass
+
+    @abc.abstractmethod
+    async def Measure(self, stream: 'grpclib.server.Stream[umbra_pb2.Evaluation, umbra_pb2.Status]') -> None:
         pass
 
     def __mapping__(self) -> typing.Dict[str, grpclib.const.Handler]:
@@ -27,6 +31,12 @@ class BrokerBase(abc.ABC):
                 grpclib.const.Cardinality.UNARY_UNARY,
                 umbra_pb2.Config,
                 umbra_pb2.Report,
+            ),
+            '/umbra.Broker/Measure': grpclib.const.Handler(
+                self.Measure,
+                grpclib.const.Cardinality.UNARY_UNARY,
+                umbra_pb2.Evaluation,
+                umbra_pb2.Status,
             ),
         }
 
@@ -39,6 +49,12 @@ class BrokerStub:
             '/umbra.Broker/Manage',
             umbra_pb2.Config,
             umbra_pb2.Report,
+        )
+        self.Measure = grpclib.client.UnaryUnaryMethod(
+            channel,
+            '/umbra.Broker/Measure',
+            umbra_pb2.Evaluation,
+            umbra_pb2.Status,
         )
 
 
@@ -73,7 +89,7 @@ class ScenarioStub:
 class MonitorBase(abc.ABC):
 
     @abc.abstractmethod
-    async def Listen(self, stream: 'grpclib.server.Stream[umbra_pb2.Instruction, umbra_pb2.Evaluation]') -> None:
+    async def Listen(self, stream: 'grpclib.server.Stream[umbra_pb2.Instruction, umbra_pb2.Snapshot]') -> None:
         pass
 
     def __mapping__(self) -> typing.Dict[str, grpclib.const.Handler]:
@@ -82,7 +98,7 @@ class MonitorBase(abc.ABC):
                 self.Listen,
                 grpclib.const.Cardinality.UNARY_UNARY,
                 umbra_pb2.Instruction,
-                umbra_pb2.Evaluation,
+                umbra_pb2.Snapshot,
             ),
         }
 
@@ -94,14 +110,14 @@ class MonitorStub:
             channel,
             '/umbra.Monitor/Listen',
             umbra_pb2.Instruction,
-            umbra_pb2.Evaluation,
+            umbra_pb2.Snapshot,
         )
 
 
 class AgentBase(abc.ABC):
 
     @abc.abstractmethod
-    async def Probe(self, stream: 'grpclib.server.Stream[umbra_pb2.Instruction, umbra_pb2.Evaluation]') -> None:
+    async def Probe(self, stream: 'grpclib.server.Stream[umbra_pb2.Instruction, umbra_pb2.Snapshot]') -> None:
         pass
 
     def __mapping__(self) -> typing.Dict[str, grpclib.const.Handler]:
@@ -110,7 +126,7 @@ class AgentBase(abc.ABC):
                 self.Probe,
                 grpclib.const.Cardinality.UNARY_UNARY,
                 umbra_pb2.Instruction,
-                umbra_pb2.Evaluation,
+                umbra_pb2.Snapshot,
             ),
         }
 
@@ -122,5 +138,5 @@ class AgentStub:
             channel,
             '/umbra.Agent/Probe',
             umbra_pb2.Instruction,
-            umbra_pb2.Evaluation,
+            umbra_pb2.Snapshot,
         )
