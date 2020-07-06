@@ -13,8 +13,9 @@ import platform as pl
 
 from subprocess import check_output, CalledProcessError
 
-
 from umbra.common.scheduler import Handler
+from umbra.common.protobuf.umbra_pb2 import Evaluation
+from umbra.common.protobuf.umbra_grpc import BrokerStub
 
 
 logger = logging.getLogger(__name__)
@@ -30,8 +31,11 @@ class Tool():
         self.opts = None
         self.action = None
         self.uuid = None
+        self.output = {}
         self.parameters = {}
         self.metrics = {}
+        self._tstart = None
+        self._tstop = None
         self.cfg()
        
     async def process_call(self):
@@ -81,13 +85,46 @@ class Tool():
         return output
 
     async def call(self):
+        self._tstart = datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+
         if self.is_process:
             results = await self.process_call()
         else:
             results = await self.function_call()
+
+        self._tstop = datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%fZ")
         
         self.parser(results)
         return self.metrics
+
+    def get_uuid(self):
+        return self.uuid
+
+    def source(self):
+        if type(self.stimulus) is str:
+            stimulus = self.stimulus
+        else:
+            stimulus = "agent-function-" + self.name
+        
+        source = {
+            'call': stimulus,
+            'name': self.name,
+        }
+        return source
+
+    def timestamp(self):
+        """Builds a dict indicating the
+        time when the tool started and stopped
+        its execution
+
+        Returns:
+            dict -- As below
+        """
+        ts = {
+            "start": self._tstart,
+            "stop": self._tstop,
+        }
+        return ts
 
     def cfg(self):
         pass
@@ -100,7 +137,9 @@ class Tool():
         
     def init(self, action):
         self.action = action
-        parameters = self.action.get("parameters")
+        self.uuid = action.get('id')
+        self.output = action.get('output', {})
+        parameters = self.action.get("parameters", {})
         options = self.serialize(**parameters)
         self.options(**options)
 
@@ -120,26 +159,7 @@ class Tool():
             "group": "infrastructure",
             "live": True,
             "metrics": metrics,
-            "ev": self.ev,
         }       
-        ok = self.send(url, data)
-        logger.debug("Live metrics flush ack %s", ok)
-
-    def send(self, url, data, **kwargs):
-        headers = {'Content-Type': 'application/json'}
-        json_data = json.dumps(data)
-        try:
-            response = requests.post(url, headers=headers, data=json_data, **kwargs)
-        except requests.RequestException as exception:
-            logger.info('Requests fail - exception %s', exception)
-            response = None
-        else:
-            try:
-                response.raise_for_status()
-            except Exception:
-                response = None
-        finally:
-            return response
 
 
 class Tcpreplay(Tool):
@@ -149,6 +169,7 @@ class Tcpreplay(Tool):
 
     def cfg(self):
         params = {
+            'folder': 'folder',
             'interface':'-i',
             'duration':'--duration',
             'speed':'-t',
@@ -175,12 +196,14 @@ class Tcpreplay(Tool):
             elif k == '-K':
                 opts.extend([k])
             else:
-                if k != '-f':
+                if k != '-f' and k != 'folder':
                     opts.extend([k,v])
 
         opts.append('-q')
         
         if '-f' in options:
+            if 'folder' in options:
+                self._instances_folder = options.get('folder')
             pcap_value = options.get('-f')
             pcap_path = self.filepath(pcap_value)
             opts.append(pcap_path)
@@ -193,18 +216,36 @@ class Tcpreplay(Tool):
     def parser(self, out):
         output = out.get("stdout")
 
+        _eval = []
         lines = output.split('\n')
         if len(lines) > 1:
             actual = [line for line in lines if 'Actual' in line]
             actual_info = actual.pop().split()
-            metrics = {
-                'packets': int(actual_info[1]),
-                'time': float(actual_info[-2]),
+            
+            # eval_info = {
+            #     'packets': int(actual_info[1]),
+            #     'time': float(actual_info[-2]),
+            # }
+
+            m1 = {
+                "name": "packets",
+                "type": "int",
+                "unit": "packets",
+                "scalar": int(actual_info[1]),
             }
+
+            m2 = {
+                "name": "time",
+                "type": "float",
+                "unit": "seconds",
+                "scalar": float(actual_info[-2]),
+            }
+
+            _eval = [m1, m2]
 
         self.metrics = {
             "uuid": self.uuid,
-            "metrics": metrics
+            "metrics": _eval
         }
 
 
@@ -240,55 +281,79 @@ class Ping(Tool):
         self.is_process = True
         self.stimulus = " ".join(cmd)
 
-    def parser(self, out):
-        metrics = []
+    def parser(self, output):
+        out = output.get('stdout')
 
-        logger.info(f"Ping output {out}")
-
-        output = out.get("stdout")
-
-        lines = [line for line in output.split('\n') if line.strip()]
+        _eval = {}
+        lines = [line for line in out.split('\n') if line.strip()]
+        
         if len(lines) > 1:
             rtt_indexes = [i for i, j in enumerate(lines) if 'rtt' in j]
+        
             if not rtt_indexes:
                 rtt_indexes = [i for i, j in enumerate(lines) if 'round-trip' in j]
+        
             if rtt_indexes:
                 rtt_index = rtt_indexes.pop()
                 rtt_line = lines[rtt_index].split(' ')
                 loss_line = lines[rtt_index-1].split(' ')
                 rtts = rtt_line[3].split('/')
                 rtt_units = rtt_line[4]
+        
                 if 'time' in loss_line:
                     pkt_loss = loss_line[-5][0]
                     pkt_loss_units = loss_line[-5][-1]
                 else: 
                     pkt_loss = loss_line[-3][0]
                     pkt_loss_units = loss_line[-3][-1]
-                metrics = {
-                    'latency':{
-                        'rtt_min': float(rtts[0]),
-                        'rtt_avg': float(rtts[1]),
-                        'rtt_max': float(rtts[2]),
-                        'rtt_mdev': float(rtts[3]),
-                        'units': rtt_units},
-                    'frame_loss':{
-                        'frames': float(loss_line[0]),
-                        'frame_loss': float(pkt_loss),
-                        'units': pkt_loss_units,
-                    }
+                
+                m1 = {
+                    "name": "rtt_min",
+                    "type": "float",
+                    "unit": rtt_units,
+                    "scalar": float(rtts[0].replace(",", ".")),
                 }
-            else:
-                metrics = {"error parsing ping results"}               
+                
+                m2 = {
+                    "name": "rtt_avg",
+                    "type": "float",
+                    "unit": rtt_units,
+                    "scalar": float(rtts[1].replace(",", ".")),
+                }
+
+                m3 = {
+                    "name": "rtt_max",
+                    "type": "float",
+                    "unit": rtt_units,
+                    "scalar": float(rtts[2].replace(",", ".")),
+                }
+
+                m4 = {
+                    "name": "rtt_mdev",
+                    "type": "float",
+                    "unit": rtt_units,
+                    "scalar": float(rtts[3].replace(",", ".")),
+                }
+
+                m5 = {
+                    "name": "frame_loss",
+                    "type": "float",
+                    "unit": pkt_loss_units,
+                    "scalar": float(pkt_loss),
+                }
+
+                _eval = [m1, m2, m3, m4, m5]
 
         self.metrics = {
             "uuid": self.uuid,
-            "metrics": metrics
+            "metrics": _eval
         }
 
 
 class Iperf3(Tool):
     def __init__(self):
         Tool.__init__(self, 2, "iperf3")
+        self._server = False
 
     def cfg(self):
         params = {
@@ -307,6 +372,10 @@ class Iperf3(Tool):
         opts = []
         stop = False
         timeout = 0
+        
+        info = options.get('info', None)
+        if info:
+            opts.extend(['info', info])
 
         server = options.get('-s', None)
         client = options.get('-c', False)
@@ -314,17 +383,22 @@ class Iperf3(Tool):
         if server:
             opts.extend( ['-c', server] )                
             time.sleep(1)
+
         if not client or client == 'false' or client == 'False':
             opts.extend( ['-s'] )                
             stop = True
+            self._server = True
         
         port = options.get('-p', '9030')
         opts.extend( ['-p', port] )                
         
         timeout = float(options.get('-t', 0))
         if timeout and not stop:
-            opts.extend( ['-t', str(timeout+1)] )
+            opts.extend( ['-t', str(timeout)] )
             timeout = 0
+        
+        if stop:
+            timeout += 2
 
         proto = options.get('-u', None)
         if proto == 'udp':
@@ -343,28 +417,78 @@ class Iperf3(Tool):
         self.is_process = True
         self.stimulus = " ".join(cmd)
 
-    def parser(self, out):
-        metrics = []
+    def parser(self, output):
+        out = output.get("stdout")
 
-        output = out.get("stdout")
-
+        _eval = []
         try:
-            out = json.loads(output)
+            out = json.loads(out)
         except ValueError:
             logger.debug('iperf3 json output could not be decoded')
             out = {}
         else:
             end = out.get("end", None)
+            
             if end:
                 if 'sum_sent' in end:
-                    metrics = end.get('sum_sent')
-                if 'sum' in end:
-                    metrics = end.get('sum')
-        finally:
+                    _values = end.get('sum_sent')
+                elif 'sum' in end:
+                    _values = end.get('sum')
+                else:
+                    _values = {}
 
+                if not self._server and _values:
+            
+                    m1 = {
+                        "name": "bits_per_second",
+                        "type": "float",
+                        "unit": "bits_per_second",
+                        "scalar": float(_values.get("bits_per_second")),
+                    }
+
+                    m2 = {
+                        "name": "jitter_ms",
+                        "type": "float",
+                        "unit": "ms",
+                        "scalar": float(_values.get("jitter_ms")),
+                    }
+
+                    m3 = {
+                        "name": "bytes",
+                        "type": "int",
+                        "unit": "bytes",
+                        "scalar": int(_values.get("bytes")),
+                    }
+
+
+                    m4 = {
+                        "name": "lost_packets",
+                        "type": "int",
+                        "unit": "packets",
+                        "scalar": int(_values.get("lost_packets")),
+                    }
+
+                    m5 = {
+                        "name": "lost_percent",
+                        "type": "float",
+                        "unit": "%",
+                        "scalar": float(_values.get("lost_percent")),
+                    }
+
+                    m6 = {
+                        "name": "packets",
+                        "type": "int",
+                        "unit": "packets",
+                        "scalar": int(_values.get("packets")),
+                    }
+
+
+                    _eval = [m1, m2, m3, m4, m5, m6]
+                    
+        finally:
             self.metrics = {
                 "uuid": self.uuid,
-                "metrics": metrics
+                "metrics": _eval
             }
 
 
@@ -377,6 +501,7 @@ class Tools:
 
     def __init__(self):
         self.toolset = {}
+        self.tools_instances = {}
         self.load_tools()
         self.handler = Handler()
         
@@ -384,7 +509,7 @@ class Tools:
         for tool_cls in self.TOOLS:
             tool_instance = tool_cls()
             tool_name = tool_instance.name
-            self.toolset[tool_name] = tool_instance
+            self.toolset[tool_name] = tool_cls
         logger.debug("loaded toolset")
 
     def build_calls(self, actions):
@@ -399,11 +524,15 @@ class Tools:
                 action_id = action.get("id")
                 action_sched = action.get("schedule", {})
 
-                tool = self.toolset[tool_name]               
+                tool_cls = self.toolset[tool_name]
+                tool = tool_cls()              
                 tool.init(action)
                 action_call = tool.call()
                 
                 calls[action_id] = (action_call, action_sched)
+
+                tool_uuid = tool.get_uuid()
+                self.tools_instances[tool_uuid] = tool
 
             else:
                 logger.info(
@@ -414,18 +543,34 @@ class Tools:
         return calls
 
     def build_outputs(self, outputs):        
-        data = {
-            "event": "metrics",
-            "metrics": outputs,
-        }
-        logger.info(f"data: {data}")
+        logger.info(f'build outputs: {outputs}')
+        data = []
+        uuid_end = []
+
+        for uuid,output in outputs.items():
+            tool = self.tools_instances.get(uuid)
+            tool_eval = {
+                'id': uuid,
+                'source': tool.source(),
+                'timestamp': tool.timestamp(),
+                'metrics': output.get('metrics', []),
+            }
+            data.append(tool_eval)
+
+        for uuid in uuid_end:
+            del self.tools_instances[uuid]
+
         return data
 
     async def handle(self, instruction):
         actions = instruction.get("actions")
         calls = self.build_calls(actions)
         results = await self.handler.run(calls)
-        outputs = self.build_outputs(results)
+        evals = self.build_outputs(results)
         logger.info(f"Finished handling instruction actions")
-        logger.debug(f"{outputs}")
-        return outputs
+        snap = {
+            "id": instruction.get('id'),
+            "evaluations": evals,
+        }
+        logger.debug(f"{snap}")
+        return snap
