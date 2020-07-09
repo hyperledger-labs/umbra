@@ -8,7 +8,7 @@ import subprocess
 import time
 
 from mininet.net import Containernet
-from mininet.node import Controller
+from mininet.node import Controller, OVSKernelSwitch
 from mininet.cli import CLI
 from mininet.log import setLogLevel, info
 from mininet.link import TCLink, Link
@@ -147,7 +147,7 @@ class Environment:
         return ack
 
     def _create_network(self):
-        self.net = Containernet(controller=Controller)
+        self.net = Containernet(controller=Controller, link=TCLink)
         self.net.addController('c0')
         logger.info("Created network: %r" % self.net)
 
@@ -186,7 +186,7 @@ class Environment:
             network_mode=node.get("network_mode", "none"),
         )
 
-        logger.debug("Added container: %s", node.get("id"))
+        logger.debug("Added container: %s", node.get("name"))
         return container
     
     def _add_nodes(self):
@@ -204,10 +204,12 @@ class Environment:
 
     def _add_switches(self):
         switches = self.topo.get("switches")
+        logger.info("Adding switches %s", switches)
         
         for sw_name in switches:
-            s = self.net.addSwitch(sw_name)
+            s = self.net.addSwitch(sw_name, cls=OVSKernelSwitch)
             self.switches[sw_name] = s
+            logger.info("Switch added %s", s)
 
     def _add_links(self):
         links = self.topo.get("links")

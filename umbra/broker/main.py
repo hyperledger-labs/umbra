@@ -18,3 +18,8 @@ class Broker(BrokerBase):
         request = await stream.recv_message()
         reply = await self.operator.run(request)
         await stream.send_message(reply)
+
+    async def Measure(self, stream):
+        request = await stream.recv_message()
+        reply = await self.operator.run(request)
+        await stream.send_message(reply)

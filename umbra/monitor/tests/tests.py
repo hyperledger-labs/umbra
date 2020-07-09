@@ -114,19 +114,19 @@ class TestMonitor(unittest.TestCase):
             },
             'schedule': {}
         },
-        # {
-        #     'id': "3",
-        #     "tool": "host",
-        #     "output": {
-        #         "live": False,
-        #         "address": None,
-        #     },
-        #     'parameters': {
-        #         "interval": "1",
-        #         "duration": "3",
-        #     },
-        #     'schedule': {}
-        # },
+        {
+            'id': "3",
+            "tool": "host",
+            "output": {
+                "live": False,
+                "address": None,
+            },
+            'parameters': {
+                "interval": "1",
+                "duration": "3",
+            },
+            'schedule': {}
+        },
         {
             'id': "4",
             "tool": "tcpdump",

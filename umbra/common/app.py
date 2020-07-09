@@ -1,7 +1,6 @@
 import logging
 import asyncio
-import signal 
-from urllib.parse import urlparse
+import signal
 
 from grpclib.utils import graceful_exit
 from grpclib.server import Server
