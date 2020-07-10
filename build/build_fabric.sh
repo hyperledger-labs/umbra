@@ -104,12 +104,12 @@ upgradeDockerImages() {
         echo "==> Upgrading FABRIC IMAGE: $IMAGES:$TAG"
         echo "========================================================="
         echo
-        docker run -d --name $IMAGES hyperledger/fabric-$IMAGES:$TAG
+        docker run -ti --name $IMAGES hyperledger/fabric-$IMAGES:$TAG /bin/sh -c 'apk add --no-cache iputils bash'
         # docker exec $IMAGES bash -c 'apt update && apt install -y net-tools iproute2 inetutils-ping && apt clean'  
-        docker exec fabric-orderer /bin/sh -c 'apk update && apk add iputils bash'
+        # docker exec fabric-orderer /bin/sh -c 'apk update && apk add iputils bash'
         docker commit $IMAGES hyperledger/fabric-$IMAGES:$TAG.1
         echo "-- Committed docker image: hyperledger/fabric-$IMAGES:$TAG.1 --"
-        docker stop -t0 $IMAGES
+        # docker stop -t0 $IMAGES
         docker rm $IMAGES 
       done
 
@@ -117,12 +117,12 @@ upgradeDockerImages() {
     echo "==> Upgrading FABRIC IMAGE: fabric-orderer:$TAG"
     echo "========================================================="
     echo
-    docker run -ti --name fabric-orderer hyperledger/fabric-orderer:$TAG /bin/sh -c 'apk update && apk add iputils bash'
+    docker run -ti --name fabric-orderer hyperledger/fabric-orderer:$TAG /bin/sh -c 'apk add --no-cache iputils bash'
     # docker exec fabric-orderer bash -c 'apt update && apt install -y net-tools iproute2 inetutils-ping && apt clean && rm -R /var/hyperledger/*'
     # docker exec fabric-orderer /bin/sh -c 'apk update && apk add iputils bash'
     docker commit fabric-orderer hyperledger/fabric-orderer:$TAG.1
     echo "-- Committed docker image: hyperledger/fabric-orderer:$TAG.1 --"
-    docker stop -t0 fabric-orderer
+    # docker stop -t0 fabric-orderer
     docker rm fabric-orderer
 
 
@@ -144,18 +144,18 @@ upgradeDockerImages() {
   fi
 }
 
-# requirementsFabric
-# dockerImages
+requirementsFabric
+dockerImages
 upgradeDockerImages ${FABRIC_TAG}
 
 echo "========================================================="
 echo "Adds configtxgen and cryptogen to PATH env"
 echo "========================================================="
 
-# mkdir -p $HOME/hl/bin
-# cp ../umbra/design/fabric/bin/* $HOME/hl/bin/
-# sudo echo 'export PATH=$PATH:$HOME/hl/bin' >> ~/.profile
-# source ~/.profile
+mkdir -p $HOME/hl/bin
+cp ../umbra/design/fabric/bin/* $HOME/hl/bin/
+sudo echo 'export PATH=$PATH:$HOME/hl/bin' >> ~/.profile
+source ~/.profile
 
-# mkdir -p ../examples/fabric/fabric_configs
-# chmod -R 775 ../examples/fabric/fabric_configs
+mkdir -p ../examples/fabric/fabric_configs
+chmod -R 775 ../examples/fabric/fabric_configs

@@ -29,8 +29,8 @@ def build_simple_fabric_cfg():
     scenario.set_topology(fab_topo)
 
     domain = "example.com"
-    image_tag = "latest"
-    ca_tag = "latest"
+    image_tag = "latest.1"
+    ca_tag = "latest.1"
 
     fab_topo.add_org("org1", domain, policies=org1_policy)
     fab_topo.add_peer("peer0", "org1", anchor=True, image_tag=image_tag)
