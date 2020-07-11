@@ -36,38 +36,44 @@ class TestMonitor(unittest.TestCase):
                 "interval": "1",
                 "duration": "3",
             },
-            'schedule': {}
+            'schedule': {
+                "from": 0,
+                "until": 14,
+                "duration": 0,
+                "interval": 2,
+                "repeat": 2
+            },
         },
-        {
-            'id': "2",
-            "tool": "iperf3",
-            "output": {
-                "live": False,
-                "address": None,
-            },
-            'parameters': {
-                'port': "9030",
-                'duration': "3",
-                'client': "True",
-                'server': '127.0.0.1',
-            },
-            'schedule': {}
-        },
-        {
-            'id': "3",
-            "tool": "tcpreplay",
-            "output": {
-                "live": False,
-                "address": None,
-            },
-            'parameters': {
-                'interface': 'lo',
-                'duration': "5",
-                'folder': "/tmp/",
-                'pcap': 'wlp82s0.pcap',
-            },
-            'schedule': {}
-        },
+        # {
+        #     'id': "2",
+        #     "tool": "iperf3",
+        #     "output": {
+        #         "live": False,
+        #         "address": None,
+        #     },
+        #     'parameters': {
+        #         'port': "9030",
+        #         'duration': "3",
+        #         'client': "True",
+        #         'server': '127.0.0.1',
+        #     },
+        #     'schedule': {}
+        # },
+        # {
+        #     'id': "3",
+        #     "tool": "tcpreplay",
+        #     "output": {
+        #         "live": False,
+        #         "address": None,
+        #     },
+        #     'parameters': {
+        #         'interface': 'lo',
+        #         'duration': "5",
+        #         'folder': "/tmp/",
+        #         'pcap': 'wlp82s0.pcap',
+        #     },
+        #     'schedule': {}
+        # },
         ]
 
         inst_dict = {

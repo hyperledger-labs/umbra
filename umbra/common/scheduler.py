@@ -112,7 +112,8 @@ class Handler:
             await asyncio.sleep(begin)
             begin = interval
 
-            task = loop.create_task(call)
+            aw = call()
+            task = loop.create_task(aw)
             logger.debug(f"Task {uid} created {task}")
             
             task_duration = await self._check_task(uid, task, duration)

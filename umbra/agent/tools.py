@@ -527,7 +527,7 @@ class Tools:
                 tool_cls = self.toolset[tool_name]
                 tool = tool_cls()              
                 tool.init(action)
-                action_call = tool.call()
+                action_call = tool.call
                 
                 calls[action_id] = (action_call, action_sched)
 
