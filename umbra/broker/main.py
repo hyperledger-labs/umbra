@@ -7,6 +7,7 @@ from umbra.broker.operator import Operator
 
 
 logger = logging.getLogger(__name__)
+logging.getLogger("hpack").setLevel(logging.WARNING)
 
 
 class Broker(BrokerBase):

@@ -7,7 +7,7 @@ import networkx as nx
 import ipaddress
 from networkx.readwrite import json_graph
 from yaml import load, dump
-
+from collections import defaultdict
 
 logger = logging.getLogger(__name__)
 
@@ -19,6 +19,8 @@ NEIGHBOUR_EDGES = 5
 TOPOLOGIES_FOLDER = "./topos/"
 BASE_TOPOLOGIES_FOLDER = "./topos/base/"
 
+# port that umbra-agent binds
+AGENT_PORT = 8910
 
 class Graph:
     def __init__(self):
@@ -370,13 +372,14 @@ class Topology(Graph):
         return self.profile
 
     def show(self):
-        print("nodes")
+        logger.info("*** Dumping network graph ***")
+        logger.info("nodes:")
         for n, data in self.graph.nodes(data=True):
-            print("node", n, "data", data)
+            logger.info(f"  node = {n}, data = {data}")
 
-        print("links")
+        logger.info("links:")
         for src, dst, data in self.graph.edges(data=True):
-            print("src", src, "dst", dst, "data", data)
+            logger.info(f"  src = {src}, dst = {dst}, data = {data}", data)
         
     def build(self):
         nodes = []
@@ -547,12 +550,14 @@ class FabricTopology(Topology):
         self.network_mode = "umbra"
         self.orgs = {}
         self.orderers = {}
+        self.agent = {}
         self._config_tx = {}
         self._configtx_fill = {}
         self._networks = {}
         self._ca_ports = 7054
         self._peer_ports = 7000
         self._peer_subports = 51
+        self._iperf_port = 5201
         self._ip_network = ipaddress.IPv4Network("172.31.0.0/16")
         self._ip_network_assigned = []
         self._filepath_fabricbase = None
@@ -650,6 +655,36 @@ class FabricTopology(Topology):
         else:
             logger.info("Orderer already exists %s", name)
 
+    def add_agent(self, name, domain, image="umbra-agent", **kwargs):
+        """
+        Add umbraagent to the topology
+
+        NOTE:2020-08-14: only single agent is tested thus far. So, calling
+        this API multiple times to add multiple agents likely won't work
+        """
+        agent = {
+            "name": name,
+            "domain": domain,
+            "agent_fqdn": name + "." + domain,
+            "ports":[AGENT_PORT],
+            "org": None,
+            "image": image,
+            "image_tag": "1.0",
+            "intf": 1,
+            # AGENT_ADDR is set to the container $HOSTNAME. This will resolve to eth0
+            # which is the intf that bridges to the docker0 intf from host machine
+            "env": [f"AGENT_ADDR={name}", f"AGENT_PORT={AGENT_PORT}"],
+            "ips": {},
+        }
+        agent.update(kwargs)
+
+        if name not in self.agent:
+            self.agent[name] = agent
+            logger.info("umbra-agent registered %s - %s", name, agent['agent_fqdn'])
+        else:
+            logger.info("umbra-agent already exist, name =", name)
+
+
     def add_ca(self, name, org_name, domain, ca_admin, ca_admin_pw, image_tag="1.4.0"):
         CA = {
             "name": name,
@@ -688,7 +723,7 @@ class FabricTopology(Topology):
             "org": org_name,
             "anchor": anchor,
             "port": self._peer_ports + self._peer_subports,
-            "ports": [self._peer_ports + self._peer_subports],
+            "ports": [self._peer_ports + self._peer_subports, self._iperf_port],
             "chaincode_port": self._peer_ports + self._peer_subports + 1,
             "image_tag": image_tag,
             "project_network": self.project_network,
@@ -770,6 +805,20 @@ class FabricTopology(Topology):
         for orderer in self.orderers.values():
             orderer_kwargs = self._parse_orderer_template(orderer)
             self.add_node(orderer.get("orderer_fqdn"), "container", **orderer_kwargs)
+
+    def _build_agent(self):
+        for agent in self.agent.values():
+            agent_kwargs = {
+                "image": agent.get("image") + ":" + agent.get("image_tag"),
+                "env": agent.get("env"),
+                "volumes": [],
+                "port_bindings": {},
+                "ports": agent.get("ports"),
+                "working_dir": "",
+                "network_mode": self.network_mode,
+                "command": "",
+            }
+            self.add_node(agent.get("agent_fqdn"), "container", **agent_kwargs)
 
     def _peer_format_fields_list(self, info, fields):
         fields_frmt = []
@@ -897,7 +946,22 @@ class FabricTopology(Topology):
                     
                     orderer["intf"] += 1
                     orderer["ips"][intf_name] = intf_ip.split('/')[0]
-    
+
+                if org_name in self.agent:
+                    agent = self.agent[org_name]
+                    agent_fqdn = agent.get("agent_fqdn")
+                    intf = agent.get("intf")
+                    intf_name = "eth"+str(intf)
+                    intf_ip = self.get_network_ip()
+                    self.add_link_nodes(agent_fqdn, net_name, link_type,
+                                        params_src={"id": intf_name,
+                                                    "interface": "ipv4",
+                                                    "ip": intf_ip}
+                                        )
+                    agent["intf"] += 1
+                    ip_addr = intf_ip.split('/')[0]
+                    agent["ips"][intf_name] = ip_addr
+
     def _build_network_dns(self):
         dns_names = {}
         dns_nodes = []
@@ -935,6 +999,16 @@ class FabricTopology(Topology):
                     for ip in orderer_ips.values():
                         dns_names[orderer_fqdn] = ip
 
+                if org_name in self.agent:
+                    agent = self.agent[org_name]
+                    agent_fqdn = agent.get("agent_fqdn")
+                    agent_ips = agent.get("ips")
+                    dns_nodes.append(agent_fqdn)
+
+                    for ip in agent_ips.values():
+                        dns_names[agent_fqdn] = ip
+
+
         for n, data in self.graph.nodes(data=True):
             if n in dns_nodes:
                 data['extra_hosts'] = dns_names
@@ -942,7 +1016,8 @@ class FabricTopology(Topology):
     def dump(self, topo):
         fabric_cfgs = {
             'orgs': self.orgs,
-            'orderers': self.orderers
+            'orderers': self.orderers,
+            'agents': self.agent
         }
 
         info = {
@@ -958,6 +1033,7 @@ class FabricTopology(Topology):
         self._build_peers()
         self._build_CAs()
         self._build_orderers()
+        self._build_agent()
         self._build_network()
         self._build_network_dns()
         topo_built = Topology.build(self)
@@ -1441,6 +1517,41 @@ class Events:
     def parse(self, data):
         self._events = data
 
+class EventsV2:
+    def __init__(self):
+        self._ev_id = 1;
+        self._events = defaultdict(lambda: [])
+
+    def add(self, when, category, ev_args, **kwargs):
+        """
+        Input for kwargs:
+
+        'until': time (in sec) limit to complete this event
+        'duration': expected time to complete an iteration, if 'repeat'
+            is set to run more than once
+        'interval': delay for the next iteration if 'repeat' is set
+        'repeat': repeat the cmd by 'x' iteration. Set to 0 to run
+            command only once
+
+        """
+        sched = {
+            "from": when,
+            "until": 0,
+            "duration": 0,
+            "interval": 0,
+            "repeat": 0
+        }
+        sched.update(kwargs)
+        ev_args["schedule"] = sched
+        ev_args["id"] = self._ev_id
+        self._events[category].append(ev_args)
+        self._ev_id += 1
+
+    def build(self):
+        return self._events
+
+    def parse(self, data):
+        self._events = data
 
 class Scenario:
     def __init__(self, id, entrypoint, folder):
@@ -1449,6 +1560,7 @@ class Scenario:
         self.folder = folder
         self.topology = None       
         self.events = Events()
+        self.eventsv2 = EventsV2()
 
     def parse(self, data):
         topo = Topology(None)
@@ -1456,14 +1568,21 @@ class Scenario:
         if ack:
             self.topology = topo
             self.events.parse(data.get("events", {}))
+            self.eventsv2.parse(data.get("eventsv2", {}))
             self.name = data.get("id", None)
-            self.author = data.get("entrypoint", None)
+            self.entrypoint = data.get("entrypoint", None)
             return True
         return False
 
     def add_event(self, when, category, params):
         self.events.add(when, category, params)
-                    
+
+    def add_event_v2(self, when, category, ev_args):
+        """
+        category: fabric | environment | agent | monitor
+        """
+        self.eventsv2.add(when, category, ev_args)
+
     def set_topology(self, topology):
         self.topology = topology
 
@@ -1473,11 +1592,13 @@ class Scenario:
     def dump(self):
         topo_built = self.topology.build()
         events_built = self.events.build()
+        eventsv2_built = self.eventsv2.build()
         scenario = {
             "id": self.id,
             "entrypoint": self.entrypoint,
             "topology": topo_built,
             "events": events_built,
+            "eventsv2": eventsv2_built
         }
         return scenario
 

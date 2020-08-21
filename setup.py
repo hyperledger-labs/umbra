@@ -41,12 +41,13 @@ setup(
     ],
     install_requires = [
       'asyncio>=3.4.3',
-      'protobuf>=3.11.0',
+      'protobuf>=3.5.0.post1,<4.0dev',
       'grpclib>=0.3.1',
       'grpcio-tools>=1.26.0',
       'PyYAML>=5.1.2',
       'networkx>=2.4',
       'psutil>=5.6.7',
+      'docker<=4.1.0', # based on containernet docker version
     ],
     python_requires=">=3.7",
     setup_requires=["setuptools>=41.1.0"],

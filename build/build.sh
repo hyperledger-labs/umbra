@@ -29,7 +29,7 @@ echo "###################################"
 echo "Installing Containernet"
 echo "###################################"
 
-sudo python3.7 -m pip install -U docker-py cffi pexpect
+sudo python3.7 -m pip install -U cffi pexpect
 
 git clone https://github.com/banoris/containernet
 cd containernet/ansible

@@ -11,10 +11,11 @@ from umbra.agent.tools import Tools
 
 
 logger = logging.getLogger(__name__)
+logging.getLogger("hpack").setLevel(logging.WARNING)
 
 
 class Agent(AgentBase):
-    def __init__(self):
+    def __init__(self, info):
         self.tools = Tools()
       
     async def Probe(self, stream):

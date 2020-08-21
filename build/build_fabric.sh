@@ -105,7 +105,7 @@ upgradeDockerImages() {
         echo "========================================================="
         echo
         docker run -d --name $IMAGES hyperledger/fabric-$IMAGES:$TAG
-        docker exec $IMAGES bash -c 'apt update && apt install -y net-tools iproute2 inetutils-ping && apt clean'  
+        docker exec $IMAGES bash -c 'apt update && apt install -y net-tools iproute2 inetutils-ping iperf3 && apt clean'  
         docker commit $IMAGES hyperledger/fabric-$IMAGES:$TAG.1
         echo "-- Committed docker image: hyperledger/fabric-$IMAGES:$TAG.1 --"
         docker stop -t0 $IMAGES
@@ -117,7 +117,7 @@ upgradeDockerImages() {
     echo "========================================================="
     echo
     docker run -d --name fabric-orderer hyperledger/fabric-orderer:$TAG
-    docker exec fabric-orderer bash -c 'apt update && apt install -y net-tools iproute2 inetutils-ping && apt clean && rm -R /var/hyperledger/*'
+    docker exec fabric-orderer bash -c 'apt update && apt install -y net-tools iproute2 inetutils-ping iperf3 && apt clean && rm -R /var/hyperledger/*'
     docker commit fabric-orderer hyperledger/fabric-orderer:$TAG.1
     echo "-- Committed docker image: hyperledger/fabric-orderer:$TAG.1 --"
     docker stop -t0 fabric-orderer
@@ -129,7 +129,7 @@ upgradeDockerImages() {
     echo "========================================================="
     echo
     docker run -d --name fabric-ca hyperledger/fabric-ca:$TAG
-    docker exec fabric-ca bash -c 'apt update && apt install -y net-tools iproute2 inetutils-ping && apt clean'
+    docker exec fabric-ca bash -c 'apt update && apt install -y net-tools iproute2 inetutils-ping iperf3 && apt clean'
     docker commit fabric-ca hyperledger/fabric-ca:$TAG.1
     echo "-- Committed docker image: hyperledger/fabric-ca:$TAG.1 --"
     docker stop -t0 fabric-ca
@@ -142,9 +142,23 @@ upgradeDockerImages() {
   fi
 }
 
+configure_umbra_agent_image() {
+  echo "========================================================="
+  echo "Setting up umbra-agent Docker image"
+  echo "========================================================="
+
+  cd ..
+  docker build -t umbra-agent:1.0 -f Dockerfile-umbra-agent  .
+
+  echo "========================================================="
+  echo "Completed umbra-agent Docker build"
+  echo "========================================================="
+}
+
 requirementsFabric
 dockerImages
 upgradeDockerImages ${FABRIC_TAG}
+configure_umbra_agent_image
 
 echo "========================================================="
 echo "Adds configtxgen and cryptogen to PATH env"

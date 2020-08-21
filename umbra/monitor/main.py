@@ -9,12 +9,12 @@ from umbra.common.protobuf.umbra_pb2 import Instruction, Snapshot
 
 from umbra.monitor.tools import Tools
 
-
 logger = logging.getLogger(__name__)
+logging.getLogger("hpack").setLevel(logging.WARNING)
 
 
 class Monitor(MonitorBase):
-    def __init__(self):
+    def __init__(self, info):
         self.tools = Tools()
 
     async def Listen(self, stream):

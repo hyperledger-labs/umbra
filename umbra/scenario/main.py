@@ -15,6 +15,7 @@ from umbra.scenario.environment import Environment
 
 
 logger = logging.getLogger(__name__)
+logging.getLogger("hpack").setLevel(logging.WARNING)
 
 
 class Playground:
@@ -44,6 +45,21 @@ class Playground:
                     reply = self.start(scenario)
                 elif cmd == "stop":
                     reply = self.stop()
+                elif cmd == "environment_event":
+                    node_name = scenario.get('node_name', None)
+                    action = scenario.get('action', None)
+                    action_args = scenario.get('action_args', None)
+
+                    if action == "kill_container":
+                        reply = self.kill_container(node_name)
+                    elif action == "update_cpu_limit":
+                        reply= self.update_cpu_limit(node_name, action_args)
+                    elif action == "update_memory_limit":
+                        reply= self.update_memory_limit(node_name, action_args)
+                    elif action == "update_link":
+                        reply= self.update_link(action_args)
+                    else:
+                        reply = {}
                 else:
                     reply = {}
 
@@ -54,10 +70,9 @@ class Playground:
 
     def start(self, scenario):
         self.clear()
-        self.exp_topo = Environment(scenario)       
-        ok, info = self.exp_topo.start()       
+        self.exp_topo = Environment(scenario)
+        ok, info = self.exp_topo.start()
         logger.info("hosts info %s", info)
-        
 
         msg = {
             "info": info,
@@ -84,6 +99,74 @@ class Playground:
             'ok': str(ack),
             'msg': msg, 
         }
+        return ack
+
+    def kill_container(self, node_name):
+        ok, err_msg = self.exp_topo.kill_container(node_name)
+        logger.info("Terminating container name: %s", node_name)
+
+        ack = {
+            'ok': str(ok),
+            'msg': {
+                'info': {},
+                'error': err_msg,
+            }
+        }
+
+        return ack
+
+    def update_cpu_limit(self, node_name, params):
+        cpu_quota = params.get('cpu_quota', -1)
+        cpu_period = params.get('cpu_period', -1)
+        cpu_shares = params.get('cpu_shares', -1)
+        cores = params.get('cores', None)
+
+        ok, err_msg = self.exp_topo.update_cpu_limit(node_name,
+            cpu_quota, cpu_period,cpu_shares, cores)
+        logger.info("Updating cpu limit of %s with %s", node_name, params)
+
+        ack = {
+            'ok': str(ok),
+            'msg': {
+                'info': {},
+                'error': err_msg,
+            }
+        }
+
+        return ack
+
+    def update_memory_limit(self, node_name, params):
+        mem_limit = params.get('mem_limit', -1)
+        memswap_limit = params.get('memswap_limit', -1)
+
+        ok, err_msg = self.exp_topo.update_memory_limit(node_name,
+            mem_limit, memswap_limit)
+        logger.info("Updating mem limit of %s with %s", node_name, params)
+
+        ack = {
+            'ok': str(ok),
+            'msg': {
+                'info': {},
+                'error': err_msg
+            }
+        }
+
+        return ack
+
+    def update_link(self, params):
+
+        events = params.get('events', [])
+        ok, err_msg = self.exp_topo.update(events)
+        logger.info("Updating link with events=%s", events)
+
+        ack = {
+            'ok': str(ok),
+            'msg': {
+                'info': {},
+                'error': err_msg
+            }
+        }
+
         return ack
 
     def clear(self):
@@ -139,6 +222,8 @@ class Scenario(ScenarioBase):
         elif command == "stop":
             reply = await self.call(command, scenario)
             self.stop()
+        elif command == "environment_event":
+            reply = await self.call(command, scenario)
         else:
             logger.debug(f"Unkown playground command {command}")
             return False, {}

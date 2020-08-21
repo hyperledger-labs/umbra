@@ -49,7 +49,7 @@ reset() {
     else
         echo_bold "-> Stopping child processes...";
         kill_process_tree 1 $$
-    fi 
+    fi
 
     echo_bold "Cleaning logs"
     files=(./logs/*)
@@ -59,18 +59,25 @@ reset() {
 
     scenarioPID=`ps -o pid --no-headers -C umbra-scenario`
     brokerPID=`ps -o pid --no-headers -C umbra-broker`
+    monitorPID=`ps -o pid --no-headers -C umbra-monitor`
     examplesPID=`ps -o pid --no-headers -C examples.py`
-    
+
     if [ -n "$brokerPID" ]
     then
         echo_bold "Stopping umbra-broker ${brokerPID}"
         kill -9 $brokerPID &> /dev/null
     fi
-    
+
     if [ -n "$scenarioPID" ]
     then
         echo_bold "Stopping umbra-scenario ${scenarioPID}"
         sudo kill -9 $scenarioPID &> /dev/null
+    fi
+
+    if [ -n "$scenarioPID" ]
+    then
+        echo_bold "Stopping umbra-monitor ${monitorPID}"
+        sudo kill -9 ${monitorPID} &> /dev/null
     fi
 
     if [ -n "$examplesPID" ]
@@ -107,6 +114,14 @@ done
 
 case "$COMMAND" in
     start)
+        if [ -f "./.run.sh.lock" ]; then
+            echo_bold ".run.sh.lock file exist. Did you forget to stop?"
+            echo_bold "$ sudo -H ./run.sh stop"
+            exit 1
+        fi
+
+        echo $(date) > ./.run.sh.lock
+
         if [ -z "${CONFIG_SOURCE}" ]; then
             echo_bold "Please, specify a config source path"
             exit 1
@@ -131,7 +146,15 @@ case "$COMMAND" in
         nohup ${broker} > logs/broker.log 2>&1 &
         brokerPID=$!
         echo_bold "Broker PID ${brokerPID}"
-        
+
+        # sudo needed to run tools like tcpdump
+        monitor="sudo umbra-monitor --uuid monitor --address 172.17.0.1:8990"
+        echo_bold "-> Starting umbra-monitor"
+        echo_bold "\$ ${monitor}"
+        nohup ${monitor} > logs/monitor.log 2>&1 &
+        monitorPID=$!
+        echo_bold "monitor PID ${monitorPID}"
+
         echo "########################################"
         echo "Running config ${CONFIG_SOURCE}"
         echo "########################################"
@@ -141,14 +164,14 @@ case "$COMMAND" in
         nohup ${examples} > logs/examples.log 2>&1 &
         examplesPID=$!
         echo_bold "Examples PID ${examplesPID}"
-        
+
         exit 0
         ;;
 
     stop)
         echo_bold "-> Stop"
         reset 1
-        
+
         echo_bold "-> Cleaning mininet"
         sudo mn -c
 
@@ -160,7 +183,8 @@ case "$COMMAND" in
 
         echo_bold "-> Removing docker network: umbra"
         docker network rm umbra
-        
+
+        rm ./.run.sh.lock
         exit 0
         ;;
     *)
