@@ -173,7 +173,7 @@ class Handler:
             uid = calls_ids[counter]
 
             if isinstance(aw, Exception):
-                logger.debug(f"Could not run _schedule {calls[uid]} - exception {aw}")
+                logger.error(f"Could not run _schedule {calls[uid]} - exception {aw}")
             else:
                 if aw:
                     results[uid] = aw.pop()

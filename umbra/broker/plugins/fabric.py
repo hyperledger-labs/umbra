@@ -46,11 +46,11 @@ class FabricEvents:
         os.environ["PATH"] += os.pathsep + os.pathsep.join(pathlist)
 
         self._cli = Client(net_profile=self._config_sdk)
-        logger.debug("Fabric Orgs %s", self._cli.organizations)
-        logger.debug("Fabric Peers %s", self._cli.peers)  
-        logger.debug("Fabric Orderers %s", self._cli.orderers)  
-        logger.debug("Fabric CAs %s", self._cli.CAs) 
-        logger.info("Fabric Client SDK CLI Started") 
+        logger.debug("FABRIC_CONFIG: Fabric Orgs %s", self._cli.organizations.keys())
+        logger.debug("FABRIC_CONFIG: Fabric Peers %s", self._cli.peers.keys())
+        logger.debug("FABRIC_CONFIG: Fabric Orderers %s", self._cli.orderers.keys())
+        logger.debug("FABRIC_CONFIG: Fabric CAs %s", self._cli.CAs.keys())
+        logger.info("Fabric Client SDK CLI Started")
 
     def schedule(self, events):
         for _id,event in events.items():
@@ -144,7 +144,7 @@ class FabricEvents:
                 config_yaml=self._configtx_dir,
                 channel_profile=profile
             )
-            logger.info("Create channel response %s", response)
+            logger.info("FABRIC_EV:create_channel: Create channel response %s", response)
             return response
         
         logger.info("unknown orderer %s and org %s", orderer_name, org_name)
@@ -175,7 +175,7 @@ class FabricEvents:
                 peers=peers_fqdn,
                 orderer=orderer_fqdn
             )
-            logger.info("Join channel response %s", response)
+            logger.info("FABRIC_EV:join_channel: Join channel response %s", response)
             return response
         
         logger.info("unknown orderer %s and org %s", orderer_name, org_name)
@@ -202,7 +202,7 @@ class FabricEvents:
                 peers=peers_fqdn,
                 decode=True
             )
-            logger.info("Info channel response %s", response)
+            logger.info("FABRIC_EV:info_channel: Info channel response %s", response)
             return response
         
         logger.info("unknown org %s and/org peers %s", org_name, peers_names)
@@ -227,7 +227,7 @@ class FabricEvents:
                 peers=peers_fqdn,
                 decode=True
             )
-            logger.info("Info channels response %s", response)
+            logger.info("FABRIC_EV:info_channels: Info channels response %s", response)
             return response
         
         logger.info("unknown org %s and/org peers %s", org_name, peers_names)
@@ -254,7 +254,7 @@ class FabricEvents:
                 peers=peers_fqdn,
                 decode=True
             )
-            logger.info("Info channel config response %s", response)
+            logger.info("FABRIC_EV:info_channel_config: Info channel config response %s", response)
             return response
         
         logger.info("unknown org %s and/org peers %s", org_name, peers_names)
@@ -279,7 +279,7 @@ class FabricEvents:
                 peers=peers_fqdn,
                 decode=True
             )
-            logger.info("Info channel chaincodes response %s", response)
+            logger.info("FABRIC_EV:info_channel_chaincodes: Info channel chaincodes response %s", response)
             return response
         
         logger.info("unknown org %s and/org peers %s", org_name, peers_names)
@@ -296,7 +296,7 @@ class FabricEvents:
                 orderer_fqdn,
                 'mspid'
             )
-            logger.info("Info network response %s", response)
+            logger.info("FABRIC_EV:info_network: Info network response %s", response)
             return response
         
         logger.info("unknown orderer %s", orderer_name)
@@ -326,7 +326,7 @@ class FabricEvents:
                 cc_name=chaincode_name,
                 cc_version=chaincode_version
             )
-            logger.info("Chaincode install response %s", response)
+            logger.info("FABRIC_EV:chaincode_install: Chaincode install response %s", response)
             return response
         
         logger.info("unknown org %s and/or peers %s", org_name, peers_names)
@@ -358,7 +358,7 @@ class FabricEvents:
                 cc_name=chaincode_name,
                 cc_version=chaincode_version
             )
-            logger.info("Chaincode instantiate response %s", response)
+            logger.info("FABRIC_EV:chaincode_instantiate: Chaincode instantiate response %s", response)
             return response
         
         logger.info("unknown org %s and/or peers %s", org_name, peers_names)
@@ -388,7 +388,7 @@ class FabricEvents:
                 args=chaincode_args,
                 cc_name=chaincode_name
             )
-            logger.info("Chaincode invoke response %s", response)
+            logger.info("FABRIC_EV:chaincode_invoke: Chaincode invoke response %s", response)
             return response
         
         logger.info("unknown org %s and/or peers %s", org_name, peers_names)
@@ -419,7 +419,7 @@ class FabricEvents:
                 args=chaincode_args,
                 cc_name=chaincode_name
             )
-            logger.info("Chaincode query response %s", response)
+            logger.info("FABRIC_EV:chaincode_query: Chaincode query response %s", response)
             return response
         
         logger.info("unknown org %s and/or peers %s", org_name, peers_names)

@@ -7,9 +7,12 @@ echo "###################################"
 sudo apt update &&
     sudo apt install -y software-properties-common &&
     sudo add-apt-repository -y ppa:deadsnakes/ppa &&
-    sudo apt install -y python3.7 python3.7-dev python3-dev python3-pip ansible git aptitude
+    sudo apt install -y python3.7 python3.7-dev python3-dev python3-pip ansible git aptitude cpanminus
 
 sudo pip3 install setuptools
+
+# used by report generator to parse DOT file to ascii
+sudo cpanm Graph::Easy
 
 echo "###################################"
 echo "Installing Umbra"

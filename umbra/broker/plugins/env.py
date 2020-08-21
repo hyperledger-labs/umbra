@@ -10,6 +10,12 @@ from umbra.common.scheduler import Handler
 logger = logging.getLogger(__name__)
 
 class EnvEventHandler():
+    """
+    Responsible for handling environment related events.
+    It will construct EnvEvent class based on user-defined events
+    and schedule it to run using umbra/common/scheduler component
+    """
+
     def __init__(self):
         self.handler = Handler()
         # url:port address for umbra-scenario
@@ -23,24 +29,24 @@ class EnvEventHandler():
     def build_calls(self, events):
         calls = {}
 
-        for event_id, event_args in events.items():
-            params = event_args.get('params', {})
-            env_event = EnvEvent(self.address, self.wflow_id, params['command'], params['args'])
+        for event in events:
+            ev_id = event.get("id")
+            env_event = EnvEvent(self.address, self.wflow_id, event)
             action_call = env_event.call_scenario
-            action_sched = params.get('schedule', {})
-            calls[event_id] = (action_call, action_sched)
+            calls[ev_id] = (action_call, event.get("schedule"))
 
         return calls
 
     async def handle(self, events):
         calls = self.build_calls(events)
         results = await self.handler.run(calls)
+        return results
 
 class EnvEvent():
-    def __init__(self, address, wflow_id, command, wflow_scenario):
+    def __init__(self, address, wflow_id, wflow_scenario):
         self.address = address
+        self.wflow_cmd = wflow_scenario.get("command", "")
         self.wflow_id = wflow_id
-        self.command = command
         self.wflow_scenario = wflow_scenario
 
     def parse_bytes(self, msg):
@@ -63,9 +69,9 @@ class EnvEvent():
 
     async def call_scenario(self):
         logger.debug(f"START call_scenario: {self.wflow_scenario}")
-
         self.wflow_scenario = self.serialize_bytes(self.wflow_scenario)
-        deploy = Workflow(id=self.wflow_id, workflow=self.command, scenario=self.wflow_scenario)
+        deploy = Workflow(id=self.wflow_id, command=self.wflow_cmd,
+                            scenario=self.wflow_scenario)
         deploy.timestamp.FromDatetime(datetime.now())
 
         host, port = self.address.split(":")
