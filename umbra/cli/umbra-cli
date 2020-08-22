@@ -1,0 +1,42 @@
+#!/usr/bin/env python3.8
+# coding=utf-8
+import logging
+
+from prompt_toolkit import PromptSession
+from prompt_toolkit.completion import WordCompleter
+from prompt_toolkit.styles import Style
+from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
+
+from umbra.cli.main import CLI
+
+
+umbra_completer = WordCompleter(["load", "start", "stop"], ignore_case=True)
+umbra_style = Style.from_dict(
+    {
+        "completion-menu.completion": "bg:#008888 #ffffff",
+        "completion-menu.completion.current": "bg:#00aaaa #000000",
+        "scrollbar.background": "bg:#88aaaa",
+        "scrollbar.button": "bg:#222222",
+    }
+)
+
+logger = logging.getLogger(__name__)
+
+
+class UmbraCLI:
+    def __init__(self):
+        self.cli = CLI()
+
+    def run(self):
+        session = PromptSession(
+            completer=umbra_completer,
+            style=umbra_style,
+            auto_suggest=AutoSuggestFromHistory(),
+        )
+
+        self.cli.init(session)
+
+
+if __name__ == "__main__":
+    cli = UmbraCLI()
+    cli.run()
