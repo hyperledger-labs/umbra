@@ -1,3 +1,4 @@
+.mypy*
 .vscode/
 *.pyc
 html/
@@ -6,4 +7,4 @@ latex/
 *.egg-info
 *~
 dist/
-examples/fabric/fabric_configs/
+build/

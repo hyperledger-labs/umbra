@@ -111,8 +111,8 @@ case "$COMMAND" in
         echo_bold "-> Start"
         mkdir -p logs
 
-        echo_bold "-> Creating docker network: umbra"
-        docker network create umbra
+        # echo_bold "-> Creating docker network: umbra"
+        # docker network create umbra
 
         echo_bold "-> Starting umbra-scenarios"
         scenario="sudo umbra-scenario --uuid scenario --address 172.17.0.1:8988 --debug"
@@ -152,8 +152,8 @@ case "$COMMAND" in
         echo_bold "-> Prunning docker volumes"
         docker volume prune -f
 
-        echo_bold "-> Removing docker network: umbra"
-        docker network rm umbra
+        # echo_bold "-> Removing docker network: umbra"
+        # docker network rm umbra
         
         exit 0
         ;;
