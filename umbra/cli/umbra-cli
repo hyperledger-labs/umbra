@@ -8,6 +8,7 @@ from prompt_toolkit.styles import Style
 from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
 
 from umbra.cli.main import CLI
+from umbra.common.logs import Logs
 
 
 umbra_completer = WordCompleter(["load", "start", "stop"], ignore_case=True)
@@ -25,6 +26,7 @@ logger = logging.getLogger(__name__)
 
 class UmbraCLI:
     def __init__(self):
+        logger.info("UmbraCLI init")
         self.cli = CLI()
 
     def run(self):
@@ -33,10 +35,11 @@ class UmbraCLI:
             style=umbra_style,
             auto_suggest=AutoSuggestFromHistory(),
         )
-
+        logger.info("UmbraCLI run - cli session created")
         self.cli.init(session)
 
 
 if __name__ == "__main__":
+    Logs("/tmp/umbra/logs/umbra-cli.log", screen=False, debug=True)
     cli = UmbraCLI()
     cli.run()

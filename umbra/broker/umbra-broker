@@ -10,17 +10,17 @@ from umbra.broker.main import Broker
 class UmbraBroker(App):
     def __init__(self):
         App.__init__(self)
-    
+
     def run(self, argv):
         ack = self.cfg.parse(argv)
         if ack:
             app_cls = Broker
             self.init(app_cls)
         else:
-            print(f'Could not start {self.__class__.__name__}')
+            print(f"Could not start {self.__class__.__name__}")
             return -1
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     app = UmbraBroker()
     app.run(sys.argv[1:])

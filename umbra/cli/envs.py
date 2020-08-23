@@ -91,6 +91,7 @@ class RemotePlugin:
 
     def copy_files(self, local_filepath, remote_filepath):
         """This method uploads a local file to a remote server"""
+        logger.info(f"Remote-Copying files from {local_filepath} to {remote_filepath}")
 
         result_flag = True
         if self._connect():
@@ -103,6 +104,7 @@ class RemotePlugin:
                 )
 
                 self._client.close()
+                logger.info("Files successfully copied to remote host")
 
             except Exception as e:
                 logger.info(
@@ -145,14 +147,14 @@ class LocalPlugin:
                 ack = True
                 msg = stdout.decode("utf-8")
                 logger.debug(
-                    "Command Done: %s, pid=%s, result: %s"
+                    "Command execution completed successfully: %s, pid=%s, output: %s"
                     % (cmd, proc.pid, stdout.decode().strip())
                 )
             else:
                 ack = False
                 msg = stderr.decode("utf-8")
                 logger.debug(
-                    "Command Failed: %s, pid=%s, result: %s"
+                    "Problem occurred while running command: %s, pid=%s, error: %s"
                     % (cmd, proc.pid, stderr.decode().strip())
                 )
 
@@ -176,14 +178,16 @@ class LocalPlugin:
             return out
 
     def execute_command(self, command):
-        task = asyncio.create_task(self.process_call(command))
-        loop = asyncio.get_event_loop()
-        results = loop.run_until_complete(task)
+        # task = asyncio.create_task(self.process_call(command))
+        # loop = asyncio.get_event_loop()
+        # results = loop.run_until_complete(task)
+        results = asyncio.run(self.process_call(command))
         ack = results.get("ack", False)
         msg = results.get("msg", None)
         return ack, msg
 
     def copy_files(self, source, destination):
+        logger.info(f"Local-Copying files from {source} to {destination}")
         return True
 
 
@@ -198,6 +202,7 @@ class Proxy:
         self.settings = {}
 
     def load(self, env_cfg):
+        logger.info(f"Loading environment config")
         self.remote = env_cfg.get("remote", False)
 
         if self.remote:
@@ -211,7 +216,14 @@ class Proxy:
         self.settings = env_cfg.get("settings")
         self.model = env_cfg.get("model")
 
+        logger.info(
+            f"Environment: id {env_cfg.get('id')}, model {env_cfg.get('model')}, remote {env_cfg.get('remote')}"
+        )
+        logger.info(f"Components: {env_cfg.get('components')}")
+
     def _workflow_start(self, name, info):
+        logger.info(f"Workflow start: component {name}")
+
         cmd = "sudo umbra-{name} --uuid {uuid} --address {address} --debug &".format(
             name=name, uuid=info.get("uuid"), address=info.get("address")
         )
@@ -221,9 +233,12 @@ class Proxy:
             "ack": ack,
             "msg": msg,
         }
+        logger.info(f"Stats: {ack} - msg: {msg}")
         return output
 
     def _workflow_stop(self, name, info):
+        logger.info(f"Workflow stop: component {name}")
+
         cmd = "sudo pkill -9 umbra-{name}".format(name=name)
         ack, msg = self._plugin.execute_command(cmd)
 
@@ -231,32 +246,52 @@ class Proxy:
             "ack": ack,
             "msg": msg,
         }
+        logger.info(f"Stats: {ack} - msg: {msg}")
         return output
 
-    def _workflow_install_model(self):
-        install_cmd = f"cd /tmp/umbra/source && sudo make install-{self.model}"
-        ack_install, msg_install = self._plugin.execute_command(install_cmd)
-        return ack_install, msg_install
+    def _workflow_model(self, action):
+        logger.info(f"Workflow model {self.model} - action {action}")
+        action_cmd = f"cd /tmp/umbra/source && sudo make {action}-{self.model}"
+        ack_action, msg_action = self._plugin.execute_command(action_cmd)
+        logger.info(f"Stats: {ack_action} - msg: {msg_action}")
+        return ack_action, msg_action
 
-    def _workflow_install(self, name, info):
-        source = self.settings.get("source")
-        destination = self.settings.get("destination")
+    def _workflow_source_files(self, action):
+        logger.info(f"Workflow source files - action {action}")
 
-        ack = self._plugin.copy_files(source, destination)
-
-        if ack:
+        if action == "install":
             clone_cmd = (
                 "git clone https://github.com/raphaelvrosa/umbra /tmp/umbra/source"
             )
-            ack_clone, msg_clone = self._plugin.execute_command(clone_cmd)
+            ack_source_files, msg_source_files = self._plugin.execute_command(clone_cmd)
 
+        if action == "uninstall":
+            rm_cmd = "sudo rm -R /tmp/umbra/source"
+            ack_source_files, msg_source_files = self._plugin.execute_command(rm_cmd)
+
+        return ack_source_files, msg_source_files
+
+    def _workflow_install(self, name, info):
+        logger.info(f"Workflow install")
+
+        source = self.settings.get("source")
+        destination = self.settings.get("destination")
+        ack = self._plugin.copy_files(source, destination)
+
+        if ack:
+            ack_clone, msg_clone = self._workflow_source_files("install")
+            logger.info("Executing command - install requirements, deps, umbra install")
             install_cmd = "cd /tmp/umbra/source && sudo apt install -y make && sudo make requirements install-deps install"
             ack_install, msg_install = self._plugin.execute_command(install_cmd)
 
-            ack_install_model, msg_install_model = self._workflow_install_model()
+            ack_install_model, msg_install_model = self._workflow_model("install")
 
             ack = ack_clone and ack_install and ack_install_model
-            msg = {**msg_clone, **msg_install, **msg_install_model}
+            msg = {
+                "clone": msg_clone,
+                "install": msg_install,
+                "install-model": msg_install_model,
+            }
             output = {
                 "ack": ack,
                 "msg": msg,
@@ -270,21 +305,29 @@ class Proxy:
         return output
 
     def _workflow_uninstall(self, name, info):
-        uninstall_cmd = "cd /tmp/umbra/source && sudo pip uninstall -y umbra"
+        logger.info(f"Workflow uninstall")
+
+        ack_uninstall_model, msg_uninstall_model = self._workflow_model("uninstall")
+
+        logger.info(f"Executing command - uninstall umbra")
+        uninstall_cmd = "cd /tmp/umbra/source  && sudo make uninstall uninstall-deps"
         ack_uninstall, msg_uninstall = self._plugin.execute_command(uninstall_cmd)
 
-        rm_cmd = "sudo rm -R /tmp/umbra/source"
-        ack_rm, msg_rm = self._plugin.execute_command(rm_cmd)
+        ack_rm, msg_rm = self._workflow_source_files("uninstall")
 
-        ack = ack_rm and ack_uninstall
-        msg = {**msg_rm, **msg_uninstall}
+        ack = ack_rm and ack_uninstall and ack_uninstall_model
+        msg = {
+            "remove": msg_rm,
+            "uninstall": msg_uninstall,
+            "uninstall-model": msg_uninstall_model,
+        }
         output = {
             "ack": ack,
             "msg": msg,
         }
         return output
 
-    async def implement(self, actions):
+    def implement(self, actions):
         """Realizes the instantiation of the environment configuration
 
         Args:
@@ -316,6 +359,7 @@ class Proxy:
         Returns:
             bool: If the transaction was successful (True) or not (False)
         """
+        logger.info(f"Implementing actions")
 
         action_outputs = {}
 
@@ -355,6 +399,7 @@ class Environments:
         self.env_stats = {}
 
     def generate_env_cfgs(self, topology):
+        logger.info("Generating environments configuration")
         envs = topology.get_environments()
         setts = topology.get_settings()
         model = topology.get_model()
@@ -394,10 +439,12 @@ class Environments:
         return actions
 
     def implement_env_cfgs(self, action):
+        logger.info("Implementing environments configuration")
         env_stats = {}
         all_env_acks = {}
 
         actions = self.augment_action(action)
+        logger.info(f"Implementing environments actions {actions}")
 
         for envid, env_cfg in self.env_cfgs.items():
             self._proxy.load(env_cfg)

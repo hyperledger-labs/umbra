@@ -271,35 +271,19 @@ class Topology(Graph):
         self._default_environments()
 
     def _default_environments(self):
-        env_broker = {
-            "id": "default-broker",
+        env_default = {
+            "id": "umbra-default",
             "remote": False,
             "components": {
-                "broker": {"uuid": "default-broker", "address": "127.0.0.1:8956",}
+                "scenario": {"uuid": "default-scenario", "address": "127.0.0.1:8957"},
+                "monitor": {"uuid": "default-monitor", "address": "127.0.0.1:8958"},
+                "broker": {"uuid": "default-broker", "address": "127.0.0.1:8956"},
             },
         }
-        env_scenario = {
-            "id": "default-scenario",
-            "remote": False,
-            "components": {
-                "scenario": {"uuid": "default-scenario", "address": "127.0.0.1:8957",}
-            },
-        }
-
-        env_monitor = {
-            "id": "default-monitor",
-            "remote": False,
-            "components": {
-                "monitor": {"uuid": "default-monitor", "address": "127.0.0.1:8958",}
-            },
-        }
-
-        self._environments["default-broker"] = env_broker
-        self._environments["default-scenario"] = env_scenario
-        self._environments["default-monitor"] = env_monitor
+        self._environments["umbra-default"] = env_default
 
     def _get_default_env_scenario(self):
-        return self._environments["default-scenario"]
+        return self._environments["umbra-default"]
 
     def get_model(self):
         return self.model
@@ -747,32 +731,38 @@ class FabricTopology(Topology):
     def add_networks_link(self, src, dst):
 
         if src in self._networks and dst in self._networks:
-            net = self._networks[src]
-            src_net_env_name = net.get("env")
+            src_net = self._networks[src]
+            src_net_env_name = src_net.get("env")
 
             dst_net = self._networks[dst]
             dst_net_env_name = dst_net.get("env")
 
+            print("add network link orgs net envs", src_net_env_name, dst_net_env_name)
+
             if src_net_env_name == dst_net_env_name:
                 link_type = "internal"
+                src_net["links"][dst] = {
+                    "profile": {},
+                    "type": link_type,
+                }
+
             else:
                 link_type = "external"
+                dst_net_env = self._environments.get(dst_net_env_name)
+                dst_net_env_address = dst_net_env.get("address")
+                dst_net_env_address_ip = dst_net_env_address.split(":")[0]
 
-            dst_net_env = self._environments.get(dst_net_env_name)
-            dst_net_env_address = dst_net_env.get("address")
-            dst_net_env_address_ip = dst_net_env_address.split(":")[0]
+                net_tun_id = src_net.get("tun_ids")
+                tun_id = "tun" + str(net_tun_id)
+                tun_remote_ip = dst_net_env_address_ip
 
-            net_tun_id = net.get("tun_ids")
-            tun_id = "tun" + str(net_tun_id)
-            tun_remote_ip = dst_net_env_address_ip
+                src_net["links"][dst] = {
+                    "type": link_type,
+                    "tun_id": tun_id,
+                    "tun_remote_ip": tun_remote_ip,
+                }
 
-            net["links"][dst] = {
-                "type": link_type,
-                "tun_id": tun_id,
-                "tun_remote_ip": tun_remote_ip,
-            }
-
-            net["tun_ids"] = net_tun_id + 1
+                src_net["tun_ids"] = net_tun_id + 1
 
     def add_network(self, net, envid=None):
         if not envid:
@@ -838,7 +828,7 @@ class FabricTopology(Topology):
         }
         if name not in self.orderers:
             orderer["orderer_path"] = self.get_node_dir(orderer, orderer=True)
-            orderer["root_config"] = self._full_path(self._tmp_dir)
+            orderer["root_config"] = self._full_path(self.get_settings())
 
             self.orderers[name] = orderer
             logger.info("Orderer registered %s - %s", name, domain)
@@ -917,7 +907,7 @@ class FabricTopology(Topology):
             peer["org_fqdn"] = org_fqdn
             peer["peer_fqdn"] = peer_fqdn
             peer["peer_path"] = self.get_node_dir(peer)
-            peer["root_config"] = self._full_path(self._tmp_dir)
+            peer["root_config"] = self._full_path(self.get_settings())
 
             if name not in org_peers:
                 self._peer_ports += 1000  # Updates port for next peer
@@ -1256,7 +1246,7 @@ class FabricTopology(Topology):
         for org in self.orgs.values():
             org_CAs = org.get("CAs")
             if org_CAs:
-                root_path = self._full_path(self._tmp_dir)
+                root_path = self._full_path(self.get_settings())
                 org_fqdn = org.get("org_fqdn")
                 org_ca_dir = os.path.join(
                     root_path, "peerOrganizations", org_fqdn, "ca"
@@ -1271,7 +1261,7 @@ class FabricTopology(Topology):
                 org_CA["org_path"] = org_path
 
     def _make_configs_dirs(self):
-        cfgs_folder = self._full_path(self._tmp_dir)
+        cfgs_folder = self._full_path(self.get_settings())
         try:
             os.makedirs(cfgs_folder)
             logger.info(f"Configs dir created: {cfgs_folder}")
@@ -1345,8 +1335,8 @@ class FabricTopology(Topology):
             crypto_config["OrdererOrgs"].append(ord_frmt)
 
         filename = "crypto-config.yaml"
-        filepath = self._join_full_path(self._tmp_dir, filename)
-        output_path = self._full_path(self._tmp_dir)
+        filepath = self._join_full_path(self.get_settings(), filename)
+        output_path = self._full_path(self.get_settings())
 
         logger.info("Saving Fabric crypto config file %s", filepath)
         self.write_file(crypto_config, filepath)
@@ -1361,7 +1351,8 @@ class FabricTopology(Topology):
         self._call(cmd)
 
     def get_node_dir(self, node, orderer=False):
-        root_path = self._full_path(self._tmp_dir)
+        _tmp_dir = self.get_settings()
+        root_path = self._full_path(_tmp_dir)
 
         if orderer:
             org_type = "ordererOrganizations"
@@ -1378,7 +1369,7 @@ class FabricTopology(Topology):
         return node_dir
 
     def get_msp_dir(self, org, orderer=False):
-        root_path = self._full_path(self._tmp_dir)
+        root_path = self._full_path(self.get_settings())
         if orderer:
             org_type = "ordererOrganizations"
             org_fqdn = org.get("domain")
@@ -1389,7 +1380,7 @@ class FabricTopology(Topology):
         return org_msp_dir
 
     def get_org_dir(self, org, orderer=False):
-        root_path = self._full_path(self._tmp_dir)
+        root_path = self._full_path(self.get_settings())
         if orderer:
             org_type = "ordererOrganizations"
             org_fqdn = org.get("domain")
@@ -1460,8 +1451,8 @@ class FabricTopology(Topology):
         self._frmt_configtx_profiles(orgs_frmt)
 
         filename = "configtx.yaml"
-        filepath = self._join_full_path(self._tmp_dir, filename)
-        output_path = self._full_path(self._tmp_dir)
+        filepath = self._join_full_path(self.get_settings(), filename)
+        output_path = self._full_path(self.get_settings())
 
         logger.info("Saving Fabric configtx file %s", filepath)
         self.write_file(self._config_tx, filepath)
@@ -1688,7 +1679,7 @@ class FabricTopology(Topology):
         config["peers"] = peers
 
         filename = "fabric_sdk_config.json"
-        filepath = self._join_full_path(self._tmp_dir, filename)
+        filepath = self._join_full_path(self.get_settings(), filename)
         logger.info("Saving Fabric SDK config file %s", filepath)
         self.writefile_json(config, filepath)
         self._configsdk_path = filepath
@@ -1696,8 +1687,7 @@ class FabricTopology(Topology):
 
 class IrohaTopology(Topology):
     def __init__(self, name, cfgs_dir, clear_dir=True):
-        Topology.__init__(self, name)
-        self._tmp_dir = cfgs_dir
+        Topology.__init__(self, name, model="iroha")
         self.project_network = "umbra"  # HARDCODED
         self.network_mode = "umbra"
 
@@ -1733,7 +1723,7 @@ class Scenario:
         self.events = Events()
 
     def parse(self, data):
-        topo = Topology(None)
+        topo = Topology(None, None)
         ack = topo.parse(data.get("topology", {}))
         if ack:
             self.topology = topo

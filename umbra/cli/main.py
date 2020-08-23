@@ -28,6 +28,7 @@ class CLIRunner:
             "start": False,
             "stop": False,
         }
+        logger.info("CLIRunner init")
 
     def get_cmds(self):
         return list(self.cmds.keys())
@@ -38,39 +39,54 @@ class CLIRunner:
 
     def load_file(self, filename):
         filepath = self.filepath(filename)
-        with open(filepath, "+r") as fp:
-            data = json.load(fp)
+        data = {}
+        try:
+            with open(filepath, "+r") as fp:
+                data = json.load(fp)
+        except Exception as e:
+            logger.debug(f"Load file error: {e}")
+        else:
+            logger.debug(f"Load file ok")
+        finally:
             return data
-        return {}
 
     def load(self, filename):
+        logger.info(f"Load triggered - filename {filename}")
         ack = True
 
         scenario_config = self.load_file(filename)
-        self.scenario = Scenario("")
-        self.scenario.parse(scenario_config)
-        self.topology = self.scenario.get_topology()
-        self.environments.generate_env_cfgs(self.topology)
-        self._status["load"] = ack
+        if scenario_config:
+            self.scenario = Scenario("")
+            self.scenario.parse(scenario_config)
+            self.topology = self.scenario.get_topology()
+            self.environments.generate_env_cfgs(self.topology)
+        else:
+            ack = False
 
         if ack:
             msg = "Config loaded"
         else:
             msg = "Config not loaded"
 
+        self._status["load"] = ack
+        logger.info(f"{msg}")
         return msg
 
     def start(self):
+        logger.info(f"Start triggered")
         ack = self.environments.implement_env_cfgs("start")
         self._status["start"] = ack
+
         if ack:
             msg = "Topology started"
         else:
             msg = "Topology not started"
 
+        logger.info(f"{msg}")
         return msg
 
     def stop(self):
+        logger.info(f"Stop triggered")
         ack = self.environments.implement_env_cfgs("stop")
         self._status["start"] = not ack
         self._status["stop"] = ack
@@ -80,6 +96,7 @@ class CLIRunner:
         else:
             msg = "Topology not stopped"
 
+        logger.info(f"{msg}")
         return msg
 
     def status(self, command):
@@ -149,6 +166,7 @@ class CLI:
         return []
 
     def init(self, session):
+        logger.info("CLI init")
         while True:
             try:
                 text = session.prompt("umbra> ")
