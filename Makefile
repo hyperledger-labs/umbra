@@ -12,7 +12,10 @@ uninstall-fabric:
 	sh -c "cd $(DEPS_FOLDER) && ./$(DEPS_FABRIC) uninstall && cd - "
 
 requirements:
-	apt update && apt install -y python3.8 python3-setuptools python3-pip
+	sudo apt update && sudo apt install -y python3.8 python3-setuptools python3-pip
+	mkdir -p /tmp/umbra
+	mkdir -p /tmp/umbra/logs
+	mkdir -p /tmp/umbra/source
 
 install-deps:
 	sh -c "cd $(DEPS_FOLDER) && ./$(DEPS) install && cd - "
@@ -21,11 +24,11 @@ uninstall-deps:
 	sh -c "cd $(DEPS_FOLDER) && ./$(DEPS) uninstall && cd - "
     
 install: requirements
-	/usr/bin/python3.8 setup.py develop
+	sudo /usr/bin/python3.8 setup.py develop
 	# /usr/bin/python3.8 -m pip install .
 
 uninstall:
-	/usr/bin/python3.8 -m pip uninstall -y umbra
+	sudo /usr/bin/python3.8 -m pip uninstall -y umbra
     
 clean-pyc:
 	sudo sh -c "find . -name '*.pyc' -exec rm --force {} + "
@@ -38,7 +41,8 @@ clean-build:
 	sudo sh -c "rm --force --recursive *.egg-info"
 
 clean: clean-build clean-pyc
-
+	sudo rm -R /tmp/umbra
+	
 isort:
 	sh -c "isort --skip-glob=.tox --recursive . "
 
