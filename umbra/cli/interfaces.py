@@ -24,39 +24,25 @@ class BrokerInterface(UmbraInterface):
     def __init__(self):
         UmbraInterface.__init__(self)
 
-    def load(self, filename):
-        with open(filename, "+r") as fp:
-            data = json.load(fp)
-            return data
+    async def call_config(self, stub, topology_cfg):
+        topology_cfg_id = topology_cfg.get("id")
+        config_str = json.dumps(topology_cfg)
+        config_bytes = config_str.encode("utf32")
 
-    async def call_config(self, filepath, stub):
+        config_msg = Config(id=topology_cfg_id, scenario=config_bytes)
+        config_msg.timestamp.FromDatetime(datetime.now())
 
-        config_dict = self.load(filepath)
+        reply = await stub.Manage(config_msg)
+        reply_dict = json_format.MessageToDict(reply)
+        logger.info(f"Received Report {reply_dict}")
 
-        if config_dict:
+        return reply_dict
 
-            logger.info(f"Calling config {filepath}")
-
-            config_str = json.dumps(config_dict)
-            config_bytes = config_str.encode("utf32")
-            # ts = datetime.now()
-            # logger.debug(f"Message encoded: {config_bytes}")
-            # config = {
-            #     "id": filename,
-            #     "scenario": config_bytes,
-            #     "timestamp": ts.strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
-            # }
-            # config_msg = json_format.ParseDict(config, Config())
-
-            config_msg = Config(id=filepath, scenario=config_bytes)
-            config_msg.timestamp.FromDatetime(datetime.now())
-
-            reply = await stub.Manage(config_msg)
-            logger.info(f"Received Report {reply}")
-
-    async def calls(self, filepath):
-        logger.info(f"Calling: Broker Config")
-        channel = Channel("172.17.0.1", 8989)
+    async def calls(self, address, topology_cfg, action):
+        logger.info(f"Calling Broker")
+        ip, port = address.split(":")
+        channel = Channel(ip, port)
         stub = BrokerStub(channel)
-        await self.call_config(filepath, stub)
+        reply_dict = await self.call_config(stub, topology_cfg)
         channel.close()
+        return reply_dict

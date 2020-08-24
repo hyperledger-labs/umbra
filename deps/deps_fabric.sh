@@ -45,7 +45,7 @@ installRequirementsFabric() {
   echo "Installind Fabric Python SDK"
   echo "========================================================="
 
-  sudo apt install python3-dev libssl-dev
+  sudo apt install -y python3-dev libssl-dev
 
   mkdir git
   git clone https://github.com/hyperledger/fabric-sdk-py git/fabric-sdk-py
@@ -187,10 +187,10 @@ function uninstall() {
   echo "Uninstalling Fabric Python SDK"
   echo "========================================================="
 
-  sudo apt install python3-dev libssl-dev
+  # sudo apt remove python3-dev libssl-dev
 
   cd git/fabric-sdk-py
-  sudo python3.8 -m pip uninstall .
+  sudo python3.8 -m pip uninstall -y .
   cd - 
   sudo rm git/fabric-sdk-py
 
@@ -198,10 +198,8 @@ function uninstall() {
   echo "Uninstalling Go - Removing Go Dirs (bin, src, pkg)"
   echo "========================================================="
 
-  sudo apt remove -y golang-go
-
-  sudo rm -R $HOME/go
-
+  # sudo apt remove -y golang-go
+  # sudo rm -R $HOME/go
   # TODO: use sed to remove lines from ~/.profile
   # sudo sed '/export GOPATH=$HOME/go' >> ~/.profile
   # sudo sed '/export GOBIN=$HOME/go/bin' >> ~/.profile
@@ -233,8 +231,7 @@ function install() {
   sudo echo 'export PATH=$PATH:$HOME/hl/bin' >> ~/.profile
   source ~/.profile
 
-  mkdir -p /tmp/umbra/fabric/
-  
+   
 }
 
 case "$COMMAND" in

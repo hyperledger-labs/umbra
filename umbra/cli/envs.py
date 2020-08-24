@@ -4,6 +4,7 @@ import logging
 import paramiko
 import traceback
 import asyncio
+import subprocess
 from scp import SCPClient, SCPException
 
 
@@ -24,7 +25,7 @@ class RemotePlugin:
         try:
             self._client = paramiko.SSHClient()
             # self._client.load_system_host_keys()
-            self._client.set_missing_host_key_policy(paramiko.WarningPolicy())
+            self._client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
             self._client.connect(
                 hostname=self._cfg.get("address"),
@@ -60,7 +61,7 @@ class RemotePlugin:
         try:
             if self._connect():
                 logger.info("Executing command --> {}".format(command))
-                _, stdout, stderr = self._client.exec_command(command, timeout=60)
+                _, stdout, stderr = self._client.exec_command(command, timeout=None)
                 self.ssh_output = stdout.read()
                 self.ssh_error = stderr.read()
 
@@ -122,69 +123,53 @@ class RemotePlugin:
 
 
 class LocalPlugin:
-    def __init__(self):
-        pass
+    def start_process(self, args):
+        """Run a process using the provided args
+        if stop is true it waits the timeout specified
+        before stopping the process, otherwise waits till
+        the process stops
 
-    async def process_call(self, cmd):
-        """Performs the async execution of cmd in a subprocess
-        
         Arguments:
-            cmd {string} -- The full command to be called in a subprocess shell
-        
+            args {list} -- A process command to be called
+
+        Keyword Arguments:
+            stop {boll} -- If the process needs to be stopped (true)
+            or will stop by itself (false) (default: {False})
+            timeout {int} -- The time in seconds to wait before
+            stopping the process, in case stop is true (default: {60})
+
         Returns:
-            dict -- The output of the cmd execution containing stdout and stderr fields
+            tuple -- (int, string, string) The return code of the 
+            process, its stdout and its stderr (both formated in json)
         """
-        logger.debug(f"Calling subprocess command: {cmd}")
-        out = {}
+        code, out, err = 0, {}, {}
+
         try:
-            proc = await asyncio.create_subprocess_shell(
-                cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
+            logger.info(f"RUnning process {args}")
+            result = subprocess.run(
+                args,
+                check=True,
+                shell=True,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
             )
+            logger.info(f"Process Status {result}")
+            result.check_returncode()
 
-            stdout, stderr = await proc.communicate()
-
-            if proc.returncode == 0:
-                ack = True
-                msg = stdout.decode("utf-8")
-                logger.debug(
-                    "Command execution completed successfully: %s, pid=%s, output: %s"
-                    % (cmd, proc.pid, stdout.decode().strip())
-                )
-            else:
-                ack = False
-                msg = stderr.decode("utf-8")
-                logger.debug(
-                    "Problem occurred while running command: %s, pid=%s, error: %s"
-                    % (cmd, proc.pid, stderr.decode().strip())
-                )
-
-            out = {
-                "ack": ack,
-                "msg": msg,
-            }
-
-        except OSError as excpt:
-            logger.debug(f"Could not call cmd {cmd} - exception {excpt}")
-
-            out = {
-                "ack": False,
-                "msg": proc.exception(),
-            }
-        except asyncio.CancelledError:
-            logger.debug("cancel_me(): call task cancelled")
-            raise
-
+        except Exception as e:
+            logger.info(f"Process exception {e}")
+            code = -1
+            err = e
         finally:
-            return out
+
+            return code, out, err
 
     def execute_command(self, command):
-        # task = asyncio.create_task(self.process_call(command))
-        # loop = asyncio.get_event_loop()
-        # results = loop.run_until_complete(task)
-        results = asyncio.run(self.process_call(command))
-        ack = results.get("ack", False)
-        msg = results.get("msg", None)
-        return ack, msg
+        code, out, err = self.start_process(command)
+        if code == 0:
+            return True, out
+        else:
+            return False, err
 
     def copy_files(self, source, destination):
         logger.info(f"Local-Copying files from {source} to {destination}")
@@ -239,7 +224,7 @@ class Proxy:
     def _workflow_stop(self, name, info):
         logger.info(f"Workflow stop: component {name}")
 
-        cmd = "sudo pkill -9 umbra-{name}".format(name=name)
+        cmd = "sudo pkill -9 'umbra-{name}'".format(name=name)
         ack, msg = self._plugin.execute_command(cmd)
 
         output = {
@@ -260,6 +245,7 @@ class Proxy:
         logger.info(f"Workflow source files - action {action}")
 
         if action == "install":
+            self._workflow_source_files("uninstall")
             clone_cmd = (
                 "git clone https://github.com/raphaelvrosa/umbra /tmp/umbra/source"
             )
@@ -271,11 +257,21 @@ class Proxy:
 
         return ack_source_files, msg_source_files
 
-    def _workflow_install(self, name, info):
+    def _workflow_install(self):
         logger.info(f"Workflow install")
 
         source = self.settings.get("source")
         destination = self.settings.get("destination")
+
+        if self.remote:
+            create_dir_cmd = f"mkdir -p {destination}"
+            ack_create_dir_cmd, msg_create_dir_cmd = self._plugin.execute_command(
+                create_dir_cmd
+            )
+            logger.info(
+                f"Creating remote dir - {ack_create_dir_cmd} - {msg_create_dir_cmd}"
+            )
+
         ack = self._plugin.copy_files(source, destination)
 
         if ack:
@@ -304,7 +300,7 @@ class Proxy:
             }
         return output
 
-    def _workflow_uninstall(self, name, info):
+    def _workflow_uninstall(self):
         logger.info(f"Workflow uninstall")
 
         ack_uninstall_model, msg_uninstall_model = self._workflow_model("uninstall")
@@ -364,23 +360,24 @@ class Proxy:
         action_outputs = {}
 
         for action in actions:
-            for name, info in self.components.items():
-                action_output = {}
+            action_output = {}
 
-                if action in ["start"]:
+            if action in ["install"]:
+                action_output = self._workflow_install()
+
+            if action in ["uninstall"]:
+                action_output = self._workflow_uninstall()
+
+            if action in ["start"]:
+                for name, info in self.components.items():
                     action_output = self._workflow_start(name, info)
 
-                if action in ["stop"]:
+            if action in ["stop"]:
+                for name, info in self.components.items():
                     action_output = self._workflow_stop(name, info)
 
-                if action in ["install"]:
-                    action_output = self._workflow_install(name, info)
-
-                if action in ["uninstall"]:
-                    action_output = self._workflow_uninstall(name, info)
-
-                if action_output:
-                    action_outputs[action] = action_output
+            if action_output:
+                action_outputs[action] = action_output
 
         all_acks = all(
             [

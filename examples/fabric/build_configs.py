@@ -57,20 +57,17 @@ def build_simple_fabric_cfg():
         "remote": True,
         "host": {
             "user": "umbra",
-            "address": "192.168.122.156",
+            "address": "192.168.122.44",
             "port": "22",
             "password": "L1v3s.",
         },
-        "components": {"scenario": {"uuid": "y", "address": "192.168.122.156:8988",}},
+        "components": {"scenario": {"uuid": "y", "address": "192.168.122.44:8957",}},
     }
 
-    # env0_id = "0"
-    # env0_addr = "172.17.0.1:8988"
+    fab_topo.add_environment(env=env0_info)
 
-    # fab_topo.add_environment(env=env0_info)
-
-    # fab_topo.add_network("s1", envid=env0_id)
-    # fab_topo.add_network("s2", envid=env0_id)
+    fab_topo.add_network("s1", envid=env0_id)
+    fab_topo.add_network("s2", envid=env0_id)
 
     fab_topo.add_network("s1")
     fab_topo.add_network("s2")

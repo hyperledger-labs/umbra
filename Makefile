@@ -25,7 +25,7 @@ install: requirements
 	# /usr/bin/python3.8 -m pip install .
 
 uninstall:
-	/usr/bin/python3.8 -m pip uninstall umbra
+	/usr/bin/python3.8 -m pip uninstall -y umbra
     
 clean-pyc:
 	sudo sh -c "find . -name '*.pyc' -exec rm --force {} + "
@@ -75,7 +75,7 @@ help:
 	@echo "     install-fabric"
 	@echo "         Install fabric dependencies (images, python SDK, golang)."
 	@echo "     uninstall-fabric"
-	@echo "         Remove fabric dependencies (images, python SDK, golang)."
+	@echo "         Remove fabric dependencies (images, python SDK, ...)."
 	@echo "     install-deps"
 	@echo "         Install umbra-scenario dependencies (i.e., containernet)."
 	@echo "     uninstall-deps"

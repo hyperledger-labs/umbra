@@ -20,7 +20,7 @@ function install() {
     echo "###################################"
 
     sudo apt update && sudo apt install -y curl wget ansible git aptitude
-    sudo python3.8 -m pip install -U docker cffi pexpect
+    sudo python3.8 -m pip install -U "docker<=4.1.0" cffi pexpect
 
     git clone https://github.com/raphaelvrosa/containernet git/containernet
     cd git/containernet/ansible
@@ -29,8 +29,7 @@ function install() {
     sudo python3.8 -m pip install .
     cd ..
 
-    sudo usermod -aG docker $USER
-
+    # sudo usermod -aG docker $USER
 }
 
 function uninstall() {
@@ -42,11 +41,11 @@ function uninstall() {
     cd containernet/ansible
     sudo ansible-playbook -i "localhost," -c local install.yml
     cd ..
-    sudo python3.8 -m pip uninstall .
+    sudo python3.8 -m pip uninstall -y .
     cd ..
 
-    sudo apt update && sudo apt remove -y curl wget ansible git aptitude
-    sudo python3.8 -m pip uninstall docker cffi pexpect
+    # sudo apt update && sudo apt remove -y curl wget ansible git aptitude
+    # sudo python3.8 -m pip uninstall "docker<=4.1.0" cffi pexpect
 
 }
 

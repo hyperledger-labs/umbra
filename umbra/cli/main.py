@@ -17,6 +17,7 @@ class CLIRunner:
         self.topology = None
         self.scenario_config = {}
         self.environments = Environments()
+        self.broker_interface = BrokerInterface()
         self.cmds = {
             "load": self.load,
             "start": self.start,
