@@ -20,12 +20,18 @@ sudo python3.7 setup.py develop
 cd -
 
 echo "###################################"
+echo "Installing mininet"
+echo "###################################"
+
+sudo apt install mininet
+
+echo "###################################"
 echo "Installing Containernet"
 echo "###################################"
 
-sudo python3.7 -m pip install -U docker-py cffi pexpect
+sudo python3.7 -m pip install -U cffi pexpect
 
-git clone https://github.com/raphaelvrosa/containernet
+git clone https://github.com/banoris/containernet
 cd containernet/ansible
 sudo ansible-playbook -i "localhost," -c local install.yml
 cd ..

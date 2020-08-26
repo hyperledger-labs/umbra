@@ -25,7 +25,7 @@ class Logs:
                     'default': {
                         'level':op_mode,
                         'class':'logging.StreamHandler',
-                        "formatter": "standard",
+                        "formatter": "strict",
                     },
                     "info_file_handler": {
                         "class": "logging.handlers.RotatingFileHandler",

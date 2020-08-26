@@ -79,7 +79,7 @@ class Examples:
             config_msg = Config(id=filename, scenario=config_bytes)
             config_msg.timestamp.FromDatetime(datetime.now())
 
-            reply = await stub.Run(config_msg)
+            reply = await stub.Manage(config_msg)
             logger.info(f"Received Report {reply}")
       
     async def calls(self):

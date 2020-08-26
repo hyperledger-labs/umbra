@@ -2,42 +2,111 @@ syntax = "proto3";
 
 package umbra;
 
+import "google/protobuf/struct.proto";
 import "google/protobuf/timestamp.proto";
 
 
 service Broker {
-  rpc Run(Config) returns (Report);
+  rpc Manage(Config) returns (Report);
+  rpc Measure(Evaluation) returns (Status);
 }
-
 
 service Scenario {
-  rpc Run(Deploy) returns (Built);
+  rpc Establish(Workflow) returns (Status);
 }
 
+service Monitor {
+  rpc Listen(Instruction) returns (Snapshot);
+}
+
+service Agent {
+  rpc Probe(Instruction) returns (Snapshot);
+}
 
 message Config {
-    string id = 1;
-    bytes scenario = 2;
-    google.protobuf.Timestamp timestamp = 3;
+  string id = 1;
+  bytes scenario = 2;
+  google.protobuf.Timestamp timestamp = 3;
 }
 
 message Report {
-    string id = 1;
-    bytes status = 2;    
-    google.protobuf.Timestamp timestamp = 3;
+  string id = 1;
+  bytes status = 2;    
+  google.protobuf.Timestamp timestamp = 3;
 }
 
-message Deploy {
-    string id = 1;
-    string workflow = 2;
-    bytes scenario = 3;
-    google.protobuf.Timestamp timestamp = 4;
+message Workflow {
+  string id = 1;
+  string workflow = 2;
+  bytes scenario = 3;
+  google.protobuf.Timestamp timestamp = 4;
 }
 
-message Built {
+message Status {
+  string id = 1;
+  string ok = 2;
+  string error = 3;
+  bytes info = 4;
+  google.protobuf.Timestamp timestamp = 5;
+}
+
+message Instruction {
+
+  message Sched {
+    uint32 from = 1;
+    uint32 until = 2;
+    uint32 duration = 3;
+    uint32 interval = 4;
+    uint32 repeat = 5;
+  }
+
+  message Action {
+    message Output {
+      bool live = 1;
+      string address = 2;     
+    }
+    
     string id = 1;
-    string ok = 2;
-    string error = 3;
-    bytes info = 4;
-    google.protobuf.Timestamp timestamp = 5;
+    string tool = 2;
+    Output output = 3;
+    map<string,string> parameters = 4;
+    Sched schedule = 5;
+  }
+
+  string id = 1;
+  repeated Action actions = 2;
+}
+
+message Evaluation {
+
+  message Source {
+    string name = 1;
+    string call = 2;
+  }
+
+  message Metric {
+    string name = 1;
+    string type = 2;
+    string unit = 3;
+    oneof value {
+      double scalar = 4;
+      google.protobuf.Struct series = 5;
+    }                   
+  }
+
+  message Timestamp {
+    google.protobuf.Timestamp start = 1;
+    google.protobuf.Timestamp stop = 2;
+  }
+
+  string id = 1;
+  Source source = 2;
+  repeated Metric metrics = 3;
+  Timestamp timestamp = 4;
+}
+
+
+message Snapshot {
+  string id = 1;
+  repeated Evaluation evaluations = 2;
 }

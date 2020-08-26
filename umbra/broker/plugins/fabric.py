@@ -42,7 +42,7 @@ class FabricEvents:
         os.environ['GOPATH'] = os.path.abspath(gopath)
 
     def build_cli(self):
-        pathlist = ["$HOME/hl/bin",] # TODO set dynamic config path for configtxgen bin
+        pathlist = [os.environ["HOME"] + "/hl/bin",] # TODO set dynamic config path for configtxgen bin
         os.environ["PATH"] += os.pathsep + os.pathsep.join(pathlist)
 
         self._cli = Client(net_profile=self._config_sdk)
