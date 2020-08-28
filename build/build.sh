@@ -11,7 +11,7 @@ sudo apt update &&
 
 sudo pip3 install setuptools
 
-# used by report generator to parse DOT file to ascii
+# used by report generator to parse DOT file to ascii art
 sudo cpanm Graph::Easy
 
 echo "###################################"
@@ -40,5 +40,11 @@ sudo ansible-playbook -i "localhost," -c local install.yml
 cd ..
 sudo python3.7 setup.py install
 cd ..
+
+echo "##################################################"
+echo "Setup dockprom v3.17.1 for UI monitoring dashboard"
+echo "##################################################"
+
+git clone -b v3.17.1 https://github.com/stefanprodan/dockprom.git
 
 sudo usermod -aG docker $USER
