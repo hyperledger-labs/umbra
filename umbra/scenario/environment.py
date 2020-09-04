@@ -6,18 +6,18 @@ import logging
 import psutil
 import subprocess
 import time
-import docker
 
 from mininet.net import Containernet
-from mininet.node import Controller
+from mininet.node import Controller, OVSKernelSwitch
 from mininet.cli import CLI
 from mininet.log import setLogLevel, info
 from mininet.link import TCLink, Link
 from mininet import clean
 
+import docker
+
 
 logger = logging.getLogger(__name__)
-
 
 setLogLevel("info")
 logging.getLogger("requests").setLevel(logging.WARNING)
@@ -44,7 +44,7 @@ class EnvironmentParser:
         self.deploy["switches"] = []
 
         nodes = self.topology.get("nodes")
-        for node in nodes.values():
+        for _node_id, node in nodes.items():
             node_type = node.get("type")
             node_id = node.get("name")
 
@@ -58,13 +58,13 @@ class EnvironmentParser:
         self.deploy["links"] = {}
 
         links = self.topology.get("links")
-        for link in links.values():
+        for _link_id, link in links.items():
             link_type = link.get("type")
 
             link_src = link.get("src")
             link_dst = link.get("dst")
 
-            if link_type == "E-Line":
+            if link_type == "internal":
                 link_id = link_src + "-" + link_dst
 
                 params_dst = link.get("params_dst")
@@ -104,7 +104,7 @@ class Environment:
         self._docker_client = None
         self._connected_to_docker = False
         logger.debug("Environment Instance Created")
-        # logger.debug(f"{json.dumps(self.topo, indent=4)}")
+        logger.debug(f"{json.dumps(self.topo, indent=4)}")
 
     def connect_docker(self):
         try:
@@ -118,7 +118,7 @@ class Environment:
         else:
             self._connected_to_docker = True
 
-    def _create_docker_network(self, network_name="umbra"):
+    def create_docker_network(self, network_name="umbra"):
         self.connect_docker()
 
         if self._connected_to_docker:
@@ -136,7 +136,7 @@ class Environment:
             logger.debug(f"Could not create docker network")
             return False
 
-    def _remove_docker_network(self, network_name="umbra"):
+    def remove_docker_network(self, network_name="umbra"):
         self.connect_docker()
 
         if self._connected_to_docker:
@@ -195,7 +195,7 @@ class Environment:
             logger.debug(f"Could not remove docker container")
             return False
 
-    def _remove_docker_container_chaincodes(self):
+    def remove_docker_container_chaincodes(self):
         self.connect_docker()
         chaincodes_removed = {}
 
@@ -248,7 +248,6 @@ class Environment:
 
     def update(self, events):
         ack = False
-        err_msg = None
 
         if self.net:
             logger.info("Updating network: %r" % self.net)
@@ -266,10 +265,10 @@ class Environment:
                         resources = ev_specs.get("resources", None)
                         (src, dst) = ev.get("targets")
                         ack = self.update_link(src, dst, online, resources)
-        return ack, err_msg
+        return ack
 
     def _create_network(self):
-        self.net = Containernet(controller=Controller)
+        self.net = Containernet(controller=Controller, link=TCLink)
         self.net.addController("c0")
         logger.info("Created network: %r" % self.net)
 
@@ -318,7 +317,6 @@ class Environment:
 
             if node_type == "container":
                 added_node = self._add_container(node)
-                # added_node.cmd("iperf3 -s &")
                 self.nodes[node_id] = added_node
 
             else:
@@ -326,10 +324,12 @@ class Environment:
 
     def _add_switches(self):
         switches = self.topo.get("switches")
+        logger.info("Adding switches %s", switches)
 
         for sw_name in switches:
-            s = self.net.addSwitch(sw_name)
+            s = self.net.addSwitch(sw_name, cls=OVSKernelSwitch)
             self.switches[sw_name] = s
+            logger.info("Switch added %s", s)
 
     def _add_links(self):
         links = self.topo.get("links")
@@ -337,7 +337,7 @@ class Environment:
         for link_id, link in links.items():
             link_type = link.get("type")
 
-            if link_type == "E-Line":
+            if link_type == "internal":
                 src = link.get("src")
                 dst = link.get("dst")
 
@@ -401,6 +401,35 @@ class Environment:
             else:
                 logger.info("Link %s not added, unknown type %s", link_id, link_type)
 
+    def _add_tun_links(self):
+        # https://costiser.ro/2016/07/07/overlay-tunneling-with-openvswitch-gre-vxlan-geneve-greoipsec/
+        # https://blog.scottlowe.org/2013/05/15/examining-open-vswitch-traffic-patterns/#scenario-3-the-isolated-bridge
+        # https://blog.scottlowe.org/2013/05/07/using-gre-tunnels-with-open-vswitch/
+
+        links = self.topo.get("links")
+
+        for link_id, link in links.items():
+            link_type = link.get("type")
+
+            if link_type == "external":
+                src = link.get("src")
+                # dst = link.get("dst")
+
+                params_s = link.get("params_src", {})
+                intf_tun_name = params_s.get("tun_id")
+                tun_remote_ip = params_s.get("tun_remote_ip")
+
+                src_node = self.nodes.get(src)
+
+                cmd = f" add-port {src_node.deployed_name} "
+                f"{intf_tun_name} -- set Interface {intf_tun_name} type=gre "
+                f"options:remote_ip={tun_remote_ip}"
+
+                ack = src_node.vsctl(cmd)
+
+                logger.info(f"Link {link_type} {link_id} added")
+                logger.info(f"Link vsctl out: {ack}")
+
     def _start_network(self):
         if self.net:
             self.net.start()
@@ -440,7 +469,6 @@ class Environment:
                     "intfs": dict(
                         [(intf.name, port) for (intf, port) in host.ports.items()]
                     ),
-                    "host_ip": self.get_host_ips(self.nodes[host.name]).get("ip", None),
                 }
                 full_info["hosts"][host.name] = info
 
@@ -481,12 +509,13 @@ class Environment:
 
     def start(self):
         self.topo = self.parser.build(self.topo)
-        self._create_docker_network()
+        self.create_docker_network()
         self._create_network()
         self._add_nodes()
         self._add_switches()
         self._add_links()
         self._start_network()
+        self._add_tun_links()
         logger.info("Experiment running")
 
         info = {
@@ -500,69 +529,14 @@ class Environment:
             self.net.stop()
             logger.info("Stopped network: %r" % self.net)
 
-    def kill_container(self, node_name):
-        err_msg = None
-        ok = True
-
-        if node_name not in self.nodes:
-            err_msg = f"Container {node_name} does not exist"
-            ok = False
-            return ok, err_msg
-
-        try:
-            self.nodes[node_name].terminate()
-        except:
-            ok = False
-            err_msg = f"Failed to kill {node_name}"
-
-        return ok, err_msg
-
-    def update_cpu_limit(
-        self, node_name, cpu_quota=-1, cpu_period=-1, cpu_shares=-1, cores=None
-    ):
-        err_msg = None
-        ok = True
-
-        if node_name not in self.nodes:
-            err_msg = f"Container {node_name} does not exist"
-            ok = False
-            return ok, err_msg
-
-        try:
-            self.nodes[node_name].updateCpuLimit(
-                cpu_quota, cpu_period, cpu_shares, cores
-            )
-        except:
-            ok = False
-            err_msg = f"Failed to updateCpuLimit {node_name}"
-
-        return ok, err_msg
-
-    def update_memory_limit(self, node_name, mem_limit=-1, memswap_limit=-1):
-        err_msg = None
-        ok = True
-
-        if node_name not in self.nodes:
-            err_msg = f"Container {node_name} does not exist"
-            ok = False
-            return ok, err_msg
-
-        try:
-            self.nodes[node_name].updateMemoryLimit(mem_limit, memswap_limit)
-        except:
-            ok = False
-            err_msg = f"Failed to updateMemoryLimit {node_name}"
-
-        return ok, err_msg
-
     def mn_cleanup(self):
         clean.cleanup()
 
     def stop(self):
         self._stop_network()
         self.mn_cleanup()
-        self._remove_docker_network()
-        self._remove_docker_container_chaincodes()
+        self.remove_docker_container_chaincodes()
+        self.remove_docker_network()
         self.nodes = {}
         self.switches = {}
         self.nodes_info = {}
