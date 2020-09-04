@@ -38,134 +38,8 @@
             "links": {},
             "nodes": {}
         },
-        "links": [
-            {
-                "dst": "s1",
-                "endpoints": [
-                    "peer0.org1.example.com",
-                    "s1"
-                ],
-                "params_dst": null,
-                "params_src": {
-                    "id": "eth1",
-                    "interface": "ipv4",
-                    "ip": "172.31.0.1/16"
-                },
-                "profile": "links",
-                "resources": {
-                    "bw": 1,
-                    "delay": "2ms",
-                    "loss": null
-                },
-                "src": "peer0.org1.example.com",
-                "type": "internal"
-            },
-            {
-                "dst": "s1",
-                "endpoints": [
-                    "peer1.org1.example.com",
-                    "s1"
-                ],
-                "params_dst": null,
-                "params_src": {
-                    "id": "eth1",
-                    "interface": "ipv4",
-                    "ip": "172.31.0.2/16"
-                },
-                "profile": "links",
-                "resources": {
-                    "bw": 1,
-                    "delay": "2ms",
-                    "loss": null
-                },
-                "src": "peer1.org1.example.com",
-                "type": "internal"
-            },
-            {
-                "dst": "s2",
-                "endpoints": [
-                    "peer0.org2.example.com",
-                    "s2"
-                ],
-                "params_dst": null,
-                "params_src": {
-                    "id": "eth1",
-                    "interface": "ipv4",
-                    "ip": "172.31.0.7/16"
-                },
-                "profile": "links",
-                "resources": {
-                    "bw": 1,
-                    "delay": "2ms",
-                    "loss": null
-                },
-                "src": "peer0.org2.example.com",
-                "type": "internal"
-            },
-            {
-                "dst": "s2",
-                "endpoints": [
-                    "peer1.org2.example.com",
-                    "s2"
-                ],
-                "params_dst": null,
-                "params_src": {
-                    "id": "eth1",
-                    "interface": "ipv4",
-                    "ip": "172.31.0.8/16"
-                },
-                "profile": "links",
-                "resources": {
-                    "bw": 1,
-                    "delay": "2ms",
-                    "loss": null
-                },
-                "src": "peer1.org2.example.com",
-                "type": "internal"
-            },
-            {
-                "dst": "s1",
-                "endpoints": [
-                    "peer0.org3.example.com",
-                    "s1"
-                ],
-                "params_dst": null,
-                "params_src": {
-                    "id": "eth1",
-                    "interface": "ipv4",
-                    "ip": "172.31.0.4/16"
-                },
-                "profile": "links",
-                "resources": {
-                    "bw": 1,
-                    "delay": "2ms",
-                    "loss": null
-                },
-                "src": "peer0.org3.example.com",
-                "type": "internal"
-            },
-            {
-                "dst": "s2",
-                "endpoints": [
-                    "peer0.org4.example.com",
-                    "s2"
-                ],
-                "params_dst": null,
-                "params_src": {
-                    "id": "eth1",
-                    "interface": "ipv4",
-                    "ip": "172.31.0.10/16"
-                },
-                "profile": "links",
-                "resources": {
-                    "bw": 1,
-                    "delay": "2ms",
-                    "loss": null
-                },
-                "src": "peer0.org4.example.com",
-                "type": "internal"
-            },
-            {
+        "links": {
+            "ca.org1.example.com-s1": {
                 "dst": "s1",
                 "endpoints": [
                     "ca.org1.example.com",
@@ -186,7 +60,7 @@
                 "src": "ca.org1.example.com",
                 "type": "internal"
             },
-            {
+            "ca.org2.example.com-s2": {
                 "dst": "s2",
                 "endpoints": [
                     "ca.org2.example.com",
@@ -207,7 +81,7 @@
                 "src": "ca.org2.example.com",
                 "type": "internal"
             },
-            {
+            "ca.org3.example.com-s1": {
                 "dst": "s1",
                 "endpoints": [
                     "ca.org3.example.com",
@@ -228,7 +102,7 @@
                 "src": "ca.org3.example.com",
                 "type": "internal"
             },
-            {
+            "ca.org4.example.com-s2": {
                 "dst": "s2",
                 "endpoints": [
                     "ca.org4.example.com",
@@ -249,7 +123,7 @@
                 "src": "ca.org4.example.com",
                 "type": "internal"
             },
-            {
+            "orderer.example.com-s1": {
                 "dst": "s1",
                 "endpoints": [
                     "orderer.example.com",
@@ -269,360 +143,138 @@
                 },
                 "src": "orderer.example.com",
                 "type": "internal"
+            },
+            "peer0.org1.example.com-s1": {
+                "dst": "s1",
+                "endpoints": [
+                    "peer0.org1.example.com",
+                    "s1"
+                ],
+                "params_dst": null,
+                "params_src": {
+                    "id": "eth1",
+                    "interface": "ipv4",
+                    "ip": "172.31.0.1/16"
+                },
+                "profile": "links",
+                "resources": {
+                    "bw": 1,
+                    "delay": "2ms",
+                    "loss": null
+                },
+                "src": "peer0.org1.example.com",
+                "type": "internal"
+            },
+            "peer0.org2.example.com-s2": {
+                "dst": "s2",
+                "endpoints": [
+                    "peer0.org2.example.com",
+                    "s2"
+                ],
+                "params_dst": null,
+                "params_src": {
+                    "id": "eth1",
+                    "interface": "ipv4",
+                    "ip": "172.31.0.7/16"
+                },
+                "profile": "links",
+                "resources": {
+                    "bw": 1,
+                    "delay": "2ms",
+                    "loss": null
+                },
+                "src": "peer0.org2.example.com",
+                "type": "internal"
+            },
+            "peer0.org3.example.com-s1": {
+                "dst": "s1",
+                "endpoints": [
+                    "peer0.org3.example.com",
+                    "s1"
+                ],
+                "params_dst": null,
+                "params_src": {
+                    "id": "eth1",
+                    "interface": "ipv4",
+                    "ip": "172.31.0.4/16"
+                },
+                "profile": "links",
+                "resources": {
+                    "bw": 1,
+                    "delay": "2ms",
+                    "loss": null
+                },
+                "src": "peer0.org3.example.com",
+                "type": "internal"
+            },
+            "peer0.org4.example.com-s2": {
+                "dst": "s2",
+                "endpoints": [
+                    "peer0.org4.example.com",
+                    "s2"
+                ],
+                "params_dst": null,
+                "params_src": {
+                    "id": "eth1",
+                    "interface": "ipv4",
+                    "ip": "172.31.0.10/16"
+                },
+                "profile": "links",
+                "resources": {
+                    "bw": 1,
+                    "delay": "2ms",
+                    "loss": null
+                },
+                "src": "peer0.org4.example.com",
+                "type": "internal"
+            },
+            "peer1.org1.example.com-s1": {
+                "dst": "s1",
+                "endpoints": [
+                    "peer1.org1.example.com",
+                    "s1"
+                ],
+                "params_dst": null,
+                "params_src": {
+                    "id": "eth1",
+                    "interface": "ipv4",
+                    "ip": "172.31.0.2/16"
+                },
+                "profile": "links",
+                "resources": {
+                    "bw": 1,
+                    "delay": "2ms",
+                    "loss": null
+                },
+                "src": "peer1.org1.example.com",
+                "type": "internal"
+            },
+            "peer1.org2.example.com-s2": {
+                "dst": "s2",
+                "endpoints": [
+                    "peer1.org2.example.com",
+                    "s2"
+                ],
+                "params_dst": null,
+                "params_src": {
+                    "id": "eth1",
+                    "interface": "ipv4",
+                    "ip": "172.31.0.8/16"
+                },
+                "profile": "links",
+                "resources": {
+                    "bw": 1,
+                    "delay": "2ms",
+                    "loss": null
+                },
+                "src": "peer1.org2.example.com",
+                "type": "internal"
             }
-        ],
+        },
         "model": "fabric",
         "name": "fabric_simple",
-        "nodes": [
-            {
-                "command": "peer node start",
-                "env": [
-                    "CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock",
-                    "FABRIC_LOGGING_SPEC=INFO",
-                    "CORE_PEER_TLS_ENABLED=true",
-                    "CORE_PEER_PROFILE_ENABLED=true",
-                    "CORE_PEER_TLS_CERT_FILE=/etc/hyperledger/fabric/tls/server.crt",
-                    "CORE_PEER_TLS_KEY_FILE=/etc/hyperledger/fabric/tls/server.key",
-                    "CORE_PEER_TLS_ROOTCERT_FILE=/etc/hyperledger/fabric/tls/ca.crt",
-                    "CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=umbra",
-                    "CORE_PEER_ID=peer0.org1.example.com",
-                    "CORE_PEER_ADDRESS=peer0.org1.example.com:7051",
-                    "CORE_PEER_LISTENADDRESS=0.0.0.0:7051",
-                    "CORE_PEER_CHAINCODEADDRESS=peer0.org1.example.com:7052",
-                    "CORE_PEER_CHAINCODELISTENADDRESS=0.0.0.0:7052",
-                    "CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.org1.example.com:7051",
-                    "CORE_PEER_GOSSIP_BOOTSTRAP=peer0.org1.example.com:7051",
-                    "CORE_PEER_LOCALMSPID=org1MSP"
-                ],
-                "extra_hosts": {
-                    "ca.org1.example.com": "172.31.0.3",
-                    "ca.org2.example.com": "172.31.0.9",
-                    "ca.org3.example.com": "172.31.0.5",
-                    "ca.org4.example.com": "172.31.0.11",
-                    "orderer.example.com": "172.31.0.6",
-                    "peer0.org1.example.com": "172.31.0.1",
-                    "peer0.org2.example.com": "172.31.0.7",
-                    "peer0.org3.example.com": "172.31.0.4",
-                    "peer0.org4.example.com": "172.31.0.10",
-                    "peer1.org1.example.com": "172.31.0.2",
-                    "peer1.org2.example.com": "172.31.0.8"
-                },
-                "image": "hyperledger/fabric-peer:2.2.1",
-                "lifecycle": null,
-                "name": "peer0.org1.example.com",
-                "network_mode": "umbra",
-                "port_bindings": {
-                    "7051": 7051
-                },
-                "ports": [
-                    7051
-                ],
-                "profile": "nodes",
-                "resources": {
-                    "cpus": 1,
-                    "disk": null,
-                    "memory": 1024
-                },
-                "type": "container",
-                "volumes": [
-                    "/var/run/:/host/var/run/:rw",
-                    "/tmp/umbra/fabric/fabric_simple/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/msp:/etc/hyperledger/fabric/msp:rw",
-                    "/tmp/umbra/fabric/fabric_simple/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls:/etc/hyperledger/fabric/tls:rw",
-                    "peer0.org1.example.com:/var/hyperledger/production:rw"
-                ],
-                "working_dir": "/opt/gopath/src/github.com/hyperledger/fabric/peer"
-            },
-            {
-                "command": "peer node start",
-                "env": [
-                    "CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock",
-                    "FABRIC_LOGGING_SPEC=INFO",
-                    "CORE_PEER_TLS_ENABLED=true",
-                    "CORE_PEER_PROFILE_ENABLED=true",
-                    "CORE_PEER_TLS_CERT_FILE=/etc/hyperledger/fabric/tls/server.crt",
-                    "CORE_PEER_TLS_KEY_FILE=/etc/hyperledger/fabric/tls/server.key",
-                    "CORE_PEER_TLS_ROOTCERT_FILE=/etc/hyperledger/fabric/tls/ca.crt",
-                    "CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=umbra",
-                    "CORE_PEER_ID=peer1.org1.example.com",
-                    "CORE_PEER_ADDRESS=peer1.org1.example.com:8051",
-                    "CORE_PEER_LISTENADDRESS=0.0.0.0:8051",
-                    "CORE_PEER_CHAINCODEADDRESS=peer1.org1.example.com:8052",
-                    "CORE_PEER_CHAINCODELISTENADDRESS=0.0.0.0:8052",
-                    "CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer1.org1.example.com:8051",
-                    "CORE_PEER_GOSSIP_BOOTSTRAP=peer0.org1.example.com:7051",
-                    "CORE_PEER_LOCALMSPID=org1MSP"
-                ],
-                "extra_hosts": {
-                    "ca.org1.example.com": "172.31.0.3",
-                    "ca.org2.example.com": "172.31.0.9",
-                    "ca.org3.example.com": "172.31.0.5",
-                    "ca.org4.example.com": "172.31.0.11",
-                    "orderer.example.com": "172.31.0.6",
-                    "peer0.org1.example.com": "172.31.0.1",
-                    "peer0.org2.example.com": "172.31.0.7",
-                    "peer0.org3.example.com": "172.31.0.4",
-                    "peer0.org4.example.com": "172.31.0.10",
-                    "peer1.org1.example.com": "172.31.0.2",
-                    "peer1.org2.example.com": "172.31.0.8"
-                },
-                "image": "hyperledger/fabric-peer:2.2.1",
-                "lifecycle": null,
-                "name": "peer1.org1.example.com",
-                "network_mode": "umbra",
-                "port_bindings": {
-                    "8051": 8051
-                },
-                "ports": [
-                    8051
-                ],
-                "profile": "nodes",
-                "resources": {
-                    "cpus": 1,
-                    "disk": null,
-                    "memory": 1024
-                },
-                "type": "container",
-                "volumes": [
-                    "/var/run/:/host/var/run/:rw",
-                    "/tmp/umbra/fabric/fabric_simple/peerOrganizations/org1.example.com/peers/peer1.org1.example.com/msp:/etc/hyperledger/fabric/msp:rw",
-                    "/tmp/umbra/fabric/fabric_simple/peerOrganizations/org1.example.com/peers/peer1.org1.example.com/tls:/etc/hyperledger/fabric/tls:rw",
-                    "peer1.org1.example.com:/var/hyperledger/production:rw"
-                ],
-                "working_dir": "/opt/gopath/src/github.com/hyperledger/fabric/peer"
-            },
-            {
-                "command": "peer node start",
-                "env": [
-                    "CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock",
-                    "FABRIC_LOGGING_SPEC=INFO",
-                    "CORE_PEER_TLS_ENABLED=true",
-                    "CORE_PEER_PROFILE_ENABLED=true",
-                    "CORE_PEER_TLS_CERT_FILE=/etc/hyperledger/fabric/tls/server.crt",
-                    "CORE_PEER_TLS_KEY_FILE=/etc/hyperledger/fabric/tls/server.key",
-                    "CORE_PEER_TLS_ROOTCERT_FILE=/etc/hyperledger/fabric/tls/ca.crt",
-                    "CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=umbra",
-                    "CORE_PEER_ID=peer0.org2.example.com",
-                    "CORE_PEER_ADDRESS=peer0.org2.example.com:9051",
-                    "CORE_PEER_LISTENADDRESS=0.0.0.0:9051",
-                    "CORE_PEER_CHAINCODEADDRESS=peer0.org2.example.com:9052",
-                    "CORE_PEER_CHAINCODELISTENADDRESS=0.0.0.0:9052",
-                    "CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.org2.example.com:9051",
-                    "CORE_PEER_GOSSIP_BOOTSTRAP=peer0.org2.example.com:9051",
-                    "CORE_PEER_LOCALMSPID=org2MSP"
-                ],
-                "extra_hosts": {
-                    "ca.org1.example.com": "172.31.0.3",
-                    "ca.org2.example.com": "172.31.0.9",
-                    "ca.org3.example.com": "172.31.0.5",
-                    "ca.org4.example.com": "172.31.0.11",
-                    "orderer.example.com": "172.31.0.6",
-                    "peer0.org1.example.com": "172.31.0.1",
-                    "peer0.org2.example.com": "172.31.0.7",
-                    "peer0.org3.example.com": "172.31.0.4",
-                    "peer0.org4.example.com": "172.31.0.10",
-                    "peer1.org1.example.com": "172.31.0.2",
-                    "peer1.org2.example.com": "172.31.0.8"
-                },
-                "image": "hyperledger/fabric-peer:2.2.1",
-                "lifecycle": null,
-                "name": "peer0.org2.example.com",
-                "network_mode": "umbra",
-                "port_bindings": {
-                    "9051": 9051
-                },
-                "ports": [
-                    9051
-                ],
-                "profile": "nodes",
-                "resources": {
-                    "cpus": 1,
-                    "disk": null,
-                    "memory": 1024
-                },
-                "type": "container",
-                "volumes": [
-                    "/var/run/:/host/var/run/:rw",
-                    "/tmp/umbra/fabric/fabric_simple/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/msp:/etc/hyperledger/fabric/msp:rw",
-                    "/tmp/umbra/fabric/fabric_simple/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls:/etc/hyperledger/fabric/tls:rw",
-                    "peer0.org2.example.com:/var/hyperledger/production:rw"
-                ],
-                "working_dir": "/opt/gopath/src/github.com/hyperledger/fabric/peer"
-            },
-            {
-                "command": "peer node start",
-                "env": [
-                    "CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock",
-                    "FABRIC_LOGGING_SPEC=INFO",
-                    "CORE_PEER_TLS_ENABLED=true",
-                    "CORE_PEER_PROFILE_ENABLED=true",
-                    "CORE_PEER_TLS_CERT_FILE=/etc/hyperledger/fabric/tls/server.crt",
-                    "CORE_PEER_TLS_KEY_FILE=/etc/hyperledger/fabric/tls/server.key",
-                    "CORE_PEER_TLS_ROOTCERT_FILE=/etc/hyperledger/fabric/tls/ca.crt",
-                    "CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=umbra",
-                    "CORE_PEER_ID=peer1.org2.example.com",
-                    "CORE_PEER_ADDRESS=peer1.org2.example.com:10051",
-                    "CORE_PEER_LISTENADDRESS=0.0.0.0:10051",
-                    "CORE_PEER_CHAINCODEADDRESS=peer1.org2.example.com:10052",
-                    "CORE_PEER_CHAINCODELISTENADDRESS=0.0.0.0:10052",
-                    "CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer1.org2.example.com:10051",
-                    "CORE_PEER_GOSSIP_BOOTSTRAP=peer0.org2.example.com:9051",
-                    "CORE_PEER_LOCALMSPID=org2MSP"
-                ],
-                "extra_hosts": {
-                    "ca.org1.example.com": "172.31.0.3",
-                    "ca.org2.example.com": "172.31.0.9",
-                    "ca.org3.example.com": "172.31.0.5",
-                    "ca.org4.example.com": "172.31.0.11",
-                    "orderer.example.com": "172.31.0.6",
-                    "peer0.org1.example.com": "172.31.0.1",
-                    "peer0.org2.example.com": "172.31.0.7",
-                    "peer0.org3.example.com": "172.31.0.4",
-                    "peer0.org4.example.com": "172.31.0.10",
-                    "peer1.org1.example.com": "172.31.0.2",
-                    "peer1.org2.example.com": "172.31.0.8"
-                },
-                "image": "hyperledger/fabric-peer:2.2.1",
-                "lifecycle": null,
-                "name": "peer1.org2.example.com",
-                "network_mode": "umbra",
-                "port_bindings": {
-                    "10051": 10051
-                },
-                "ports": [
-                    10051
-                ],
-                "profile": "nodes",
-                "resources": {
-                    "cpus": 1,
-                    "disk": null,
-                    "memory": 1024
-                },
-                "type": "container",
-                "volumes": [
-                    "/var/run/:/host/var/run/:rw",
-                    "/tmp/umbra/fabric/fabric_simple/peerOrganizations/org2.example.com/peers/peer1.org2.example.com/msp:/etc/hyperledger/fabric/msp:rw",
-                    "/tmp/umbra/fabric/fabric_simple/peerOrganizations/org2.example.com/peers/peer1.org2.example.com/tls:/etc/hyperledger/fabric/tls:rw",
-                    "peer1.org2.example.com:/var/hyperledger/production:rw"
-                ],
-                "working_dir": "/opt/gopath/src/github.com/hyperledger/fabric/peer"
-            },
-            {
-                "command": "peer node start",
-                "env": [
-                    "CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock",
-                    "FABRIC_LOGGING_SPEC=INFO",
-                    "CORE_PEER_TLS_ENABLED=true",
-                    "CORE_PEER_PROFILE_ENABLED=true",
-                    "CORE_PEER_TLS_CERT_FILE=/etc/hyperledger/fabric/tls/server.crt",
-                    "CORE_PEER_TLS_KEY_FILE=/etc/hyperledger/fabric/tls/server.key",
-                    "CORE_PEER_TLS_ROOTCERT_FILE=/etc/hyperledger/fabric/tls/ca.crt",
-                    "CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=umbra",
-                    "CORE_PEER_ID=peer0.org3.example.com",
-                    "CORE_PEER_ADDRESS=peer0.org3.example.com:11051",
-                    "CORE_PEER_LISTENADDRESS=0.0.0.0:11051",
-                    "CORE_PEER_CHAINCODEADDRESS=peer0.org3.example.com:11052",
-                    "CORE_PEER_CHAINCODELISTENADDRESS=0.0.0.0:11052",
-                    "CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.org3.example.com:11051",
-                    "CORE_PEER_GOSSIP_BOOTSTRAP=peer0.org3.example.com:11051",
-                    "CORE_PEER_LOCALMSPID=org3MSP"
-                ],
-                "extra_hosts": {
-                    "ca.org1.example.com": "172.31.0.3",
-                    "ca.org2.example.com": "172.31.0.9",
-                    "ca.org3.example.com": "172.31.0.5",
-                    "ca.org4.example.com": "172.31.0.11",
-                    "orderer.example.com": "172.31.0.6",
-                    "peer0.org1.example.com": "172.31.0.1",
-                    "peer0.org2.example.com": "172.31.0.7",
-                    "peer0.org3.example.com": "172.31.0.4",
-                    "peer0.org4.example.com": "172.31.0.10",
-                    "peer1.org1.example.com": "172.31.0.2",
-                    "peer1.org2.example.com": "172.31.0.8"
-                },
-                "image": "hyperledger/fabric-peer:2.2.1",
-                "lifecycle": null,
-                "name": "peer0.org3.example.com",
-                "network_mode": "umbra",
-                "port_bindings": {
-                    "11051": 11051
-                },
-                "ports": [
-                    11051
-                ],
-                "profile": "nodes",
-                "resources": {
-                    "cpus": 1,
-                    "disk": null,
-                    "memory": 1024
-                },
-                "type": "container",
-                "volumes": [
-                    "/var/run/:/host/var/run/:rw",
-                    "/tmp/umbra/fabric/fabric_simple/peerOrganizations/org3.example.com/peers/peer0.org3.example.com/msp:/etc/hyperledger/fabric/msp:rw",
-                    "/tmp/umbra/fabric/fabric_simple/peerOrganizations/org3.example.com/peers/peer0.org3.example.com/tls:/etc/hyperledger/fabric/tls:rw",
-                    "peer0.org3.example.com:/var/hyperledger/production:rw"
-                ],
-                "working_dir": "/opt/gopath/src/github.com/hyperledger/fabric/peer"
-            },
-            {
-                "command": "peer node start",
-                "env": [
-                    "CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock",
-                    "FABRIC_LOGGING_SPEC=INFO",
-                    "CORE_PEER_TLS_ENABLED=true",
-                    "CORE_PEER_PROFILE_ENABLED=true",
-                    "CORE_PEER_TLS_CERT_FILE=/etc/hyperledger/fabric/tls/server.crt",
-                    "CORE_PEER_TLS_KEY_FILE=/etc/hyperledger/fabric/tls/server.key",
-                    "CORE_PEER_TLS_ROOTCERT_FILE=/etc/hyperledger/fabric/tls/ca.crt",
-                    "CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=umbra",
-                    "CORE_PEER_ID=peer0.org4.example.com",
-                    "CORE_PEER_ADDRESS=peer0.org4.example.com:12051",
-                    "CORE_PEER_LISTENADDRESS=0.0.0.0:12051",
-                    "CORE_PEER_CHAINCODEADDRESS=peer0.org4.example.com:12052",
-                    "CORE_PEER_CHAINCODELISTENADDRESS=0.0.0.0:12052",
-                    "CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.org4.example.com:12051",
-                    "CORE_PEER_GOSSIP_BOOTSTRAP=peer0.org4.example.com:12051",
-                    "CORE_PEER_LOCALMSPID=org4MSP"
-                ],
-                "extra_hosts": {
-                    "ca.org1.example.com": "172.31.0.3",
-                    "ca.org2.example.com": "172.31.0.9",
-                    "ca.org3.example.com": "172.31.0.5",
-                    "ca.org4.example.com": "172.31.0.11",
-                    "orderer.example.com": "172.31.0.6",
-                    "peer0.org1.example.com": "172.31.0.1",
-                    "peer0.org2.example.com": "172.31.0.7",
-                    "peer0.org3.example.com": "172.31.0.4",
-                    "peer0.org4.example.com": "172.31.0.10",
-                    "peer1.org1.example.com": "172.31.0.2",
-                    "peer1.org2.example.com": "172.31.0.8"
-                },
-                "image": "hyperledger/fabric-peer:2.2.1",
-                "lifecycle": null,
-                "name": "peer0.org4.example.com",
-                "network_mode": "umbra",
-                "port_bindings": {
-                    "12051": 12051
-                },
-                "ports": [
-                    12051
-                ],
-                "profile": "nodes",
-                "resources": {
-                    "cpus": 1,
-                    "disk": null,
-                    "memory": 1024
-                },
-                "type": "container",
-                "volumes": [
-                    "/var/run/:/host/var/run/:rw",
-                    "/tmp/umbra/fabric/fabric_simple/peerOrganizations/org4.example.com/peers/peer0.org4.example.com/msp:/etc/hyperledger/fabric/msp:rw",
-                    "/tmp/umbra/fabric/fabric_simple/peerOrganizations/org4.example.com/peers/peer0.org4.example.com/tls:/etc/hyperledger/fabric/tls:rw",
-                    "peer0.org4.example.com:/var/hyperledger/production:rw"
-                ],
-                "working_dir": "/opt/gopath/src/github.com/hyperledger/fabric/peer"
-            },
-            {
+        "nodes": {
+            "ca.org1.example.com": {
                 "command": "sh -c 'fabric-ca-server start --ca.certfile /etc/hyperledger/fabric-ca-server-config/ca.org1.example.com-cert.pem --ca.keyfile /etc/hyperledger/fabric-ca-server-config/priv_sk -b admin:admin_pw -d'",
                 "env": [
                     "FABRIC_CA_HOME=/etc/hyperledger/fabric-ca-server",
@@ -667,7 +319,7 @@
                 ],
                 "working_dir": null
             },
-            {
+            "ca.org2.example.com": {
                 "command": "sh -c 'fabric-ca-server start --ca.certfile /etc/hyperledger/fabric-ca-server-config/ca.org2.example.com-cert.pem --ca.keyfile /etc/hyperledger/fabric-ca-server-config/priv_sk -b admin:admin_pw -d'",
                 "env": [
                     "FABRIC_CA_HOME=/etc/hyperledger/fabric-ca-server",
@@ -712,7 +364,7 @@
                 ],
                 "working_dir": null
             },
-            {
+            "ca.org3.example.com": {
                 "command": "sh -c 'fabric-ca-server start --ca.certfile /etc/hyperledger/fabric-ca-server-config/ca.org3.example.com-cert.pem --ca.keyfile /etc/hyperledger/fabric-ca-server-config/priv_sk -b admin:admin_pw -d'",
                 "env": [
                     "FABRIC_CA_HOME=/etc/hyperledger/fabric-ca-server",
@@ -757,7 +409,7 @@
                 ],
                 "working_dir": null
             },
-            {
+            "ca.org4.example.com": {
                 "command": "sh -c 'fabric-ca-server start --ca.certfile /etc/hyperledger/fabric-ca-server-config/ca.org4.example.com-cert.pem --ca.keyfile /etc/hyperledger/fabric-ca-server-config/priv_sk -b admin:admin_pw -d'",
                 "env": [
                     "FABRIC_CA_HOME=/etc/hyperledger/fabric-ca-server",
@@ -802,7 +454,7 @@
                 ],
                 "working_dir": null
             },
-            {
+            "orderer.example.com": {
                 "command": "orderer",
                 "env": [
                     "FABRIC_LOGGING_SPEC=INFO",
@@ -860,7 +512,355 @@
                 ],
                 "working_dir": "/opt/gopath/src/github.com/hyperledger/fabric"
             },
-            {
+            "peer0.org1.example.com": {
+                "command": "peer node start",
+                "env": [
+                    "CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock",
+                    "FABRIC_LOGGING_SPEC=INFO",
+                    "CORE_PEER_TLS_ENABLED=true",
+                    "CORE_PEER_PROFILE_ENABLED=true",
+                    "CORE_PEER_TLS_CERT_FILE=/etc/hyperledger/fabric/tls/server.crt",
+                    "CORE_PEER_TLS_KEY_FILE=/etc/hyperledger/fabric/tls/server.key",
+                    "CORE_PEER_TLS_ROOTCERT_FILE=/etc/hyperledger/fabric/tls/ca.crt",
+                    "CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=umbra",
+                    "CORE_PEER_ID=peer0.org1.example.com",
+                    "CORE_PEER_ADDRESS=peer0.org1.example.com:7051",
+                    "CORE_PEER_LISTENADDRESS=0.0.0.0:7051",
+                    "CORE_PEER_CHAINCODEADDRESS=peer0.org1.example.com:7052",
+                    "CORE_PEER_CHAINCODELISTENADDRESS=0.0.0.0:7052",
+                    "CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.org1.example.com:7051",
+                    "CORE_PEER_GOSSIP_BOOTSTRAP=peer0.org1.example.com:7051",
+                    "CORE_PEER_LOCALMSPID=org1MSP"
+                ],
+                "extra_hosts": {
+                    "ca.org1.example.com": "172.31.0.3",
+                    "ca.org2.example.com": "172.31.0.9",
+                    "ca.org3.example.com": "172.31.0.5",
+                    "ca.org4.example.com": "172.31.0.11",
+                    "orderer.example.com": "172.31.0.6",
+                    "peer0.org1.example.com": "172.31.0.1",
+                    "peer0.org2.example.com": "172.31.0.7",
+                    "peer0.org3.example.com": "172.31.0.4",
+                    "peer0.org4.example.com": "172.31.0.10",
+                    "peer1.org1.example.com": "172.31.0.2",
+                    "peer1.org2.example.com": "172.31.0.8"
+                },
+                "image": "hyperledger/fabric-peer:2.2.1",
+                "lifecycle": null,
+                "name": "peer0.org1.example.com",
+                "network_mode": "umbra",
+                "port_bindings": {
+                    "7051": 7051
+                },
+                "ports": [
+                    7051
+                ],
+                "profile": "nodes",
+                "resources": {
+                    "cpus": 1,
+                    "disk": null,
+                    "memory": 1024
+                },
+                "type": "container",
+                "volumes": [
+                    "/var/run/:/host/var/run/:rw",
+                    "/tmp/umbra/fabric/fabric_simple/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/msp:/etc/hyperledger/fabric/msp:rw",
+                    "/tmp/umbra/fabric/fabric_simple/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls:/etc/hyperledger/fabric/tls:rw",
+                    "peer0.org1.example.com:/var/hyperledger/production:rw"
+                ],
+                "working_dir": "/opt/gopath/src/github.com/hyperledger/fabric/peer"
+            },
+            "peer0.org2.example.com": {
+                "command": "peer node start",
+                "env": [
+                    "CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock",
+                    "FABRIC_LOGGING_SPEC=INFO",
+                    "CORE_PEER_TLS_ENABLED=true",
+                    "CORE_PEER_PROFILE_ENABLED=true",
+                    "CORE_PEER_TLS_CERT_FILE=/etc/hyperledger/fabric/tls/server.crt",
+                    "CORE_PEER_TLS_KEY_FILE=/etc/hyperledger/fabric/tls/server.key",
+                    "CORE_PEER_TLS_ROOTCERT_FILE=/etc/hyperledger/fabric/tls/ca.crt",
+                    "CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=umbra",
+                    "CORE_PEER_ID=peer0.org2.example.com",
+                    "CORE_PEER_ADDRESS=peer0.org2.example.com:9051",
+                    "CORE_PEER_LISTENADDRESS=0.0.0.0:9051",
+                    "CORE_PEER_CHAINCODEADDRESS=peer0.org2.example.com:9052",
+                    "CORE_PEER_CHAINCODELISTENADDRESS=0.0.0.0:9052",
+                    "CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.org2.example.com:9051",
+                    "CORE_PEER_GOSSIP_BOOTSTRAP=peer0.org2.example.com:9051",
+                    "CORE_PEER_LOCALMSPID=org2MSP"
+                ],
+                "extra_hosts": {
+                    "ca.org1.example.com": "172.31.0.3",
+                    "ca.org2.example.com": "172.31.0.9",
+                    "ca.org3.example.com": "172.31.0.5",
+                    "ca.org4.example.com": "172.31.0.11",
+                    "orderer.example.com": "172.31.0.6",
+                    "peer0.org1.example.com": "172.31.0.1",
+                    "peer0.org2.example.com": "172.31.0.7",
+                    "peer0.org3.example.com": "172.31.0.4",
+                    "peer0.org4.example.com": "172.31.0.10",
+                    "peer1.org1.example.com": "172.31.0.2",
+                    "peer1.org2.example.com": "172.31.0.8"
+                },
+                "image": "hyperledger/fabric-peer:2.2.1",
+                "lifecycle": null,
+                "name": "peer0.org2.example.com",
+                "network_mode": "umbra",
+                "port_bindings": {
+                    "9051": 9051
+                },
+                "ports": [
+                    9051
+                ],
+                "profile": "nodes",
+                "resources": {
+                    "cpus": 1,
+                    "disk": null,
+                    "memory": 1024
+                },
+                "type": "container",
+                "volumes": [
+                    "/var/run/:/host/var/run/:rw",
+                    "/tmp/umbra/fabric/fabric_simple/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/msp:/etc/hyperledger/fabric/msp:rw",
+                    "/tmp/umbra/fabric/fabric_simple/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls:/etc/hyperledger/fabric/tls:rw",
+                    "peer0.org2.example.com:/var/hyperledger/production:rw"
+                ],
+                "working_dir": "/opt/gopath/src/github.com/hyperledger/fabric/peer"
+            },
+            "peer0.org3.example.com": {
+                "command": "peer node start",
+                "env": [
+                    "CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock",
+                    "FABRIC_LOGGING_SPEC=INFO",
+                    "CORE_PEER_TLS_ENABLED=true",
+                    "CORE_PEER_PROFILE_ENABLED=true",
+                    "CORE_PEER_TLS_CERT_FILE=/etc/hyperledger/fabric/tls/server.crt",
+                    "CORE_PEER_TLS_KEY_FILE=/etc/hyperledger/fabric/tls/server.key",
+                    "CORE_PEER_TLS_ROOTCERT_FILE=/etc/hyperledger/fabric/tls/ca.crt",
+                    "CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=umbra",
+                    "CORE_PEER_ID=peer0.org3.example.com",
+                    "CORE_PEER_ADDRESS=peer0.org3.example.com:11051",
+                    "CORE_PEER_LISTENADDRESS=0.0.0.0:11051",
+                    "CORE_PEER_CHAINCODEADDRESS=peer0.org3.example.com:11052",
+                    "CORE_PEER_CHAINCODELISTENADDRESS=0.0.0.0:11052",
+                    "CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.org3.example.com:11051",
+                    "CORE_PEER_GOSSIP_BOOTSTRAP=peer0.org3.example.com:11051",
+                    "CORE_PEER_LOCALMSPID=org3MSP"
+                ],
+                "extra_hosts": {
+                    "ca.org1.example.com": "172.31.0.3",
+                    "ca.org2.example.com": "172.31.0.9",
+                    "ca.org3.example.com": "172.31.0.5",
+                    "ca.org4.example.com": "172.31.0.11",
+                    "orderer.example.com": "172.31.0.6",
+                    "peer0.org1.example.com": "172.31.0.1",
+                    "peer0.org2.example.com": "172.31.0.7",
+                    "peer0.org3.example.com": "172.31.0.4",
+                    "peer0.org4.example.com": "172.31.0.10",
+                    "peer1.org1.example.com": "172.31.0.2",
+                    "peer1.org2.example.com": "172.31.0.8"
+                },
+                "image": "hyperledger/fabric-peer:2.2.1",
+                "lifecycle": null,
+                "name": "peer0.org3.example.com",
+                "network_mode": "umbra",
+                "port_bindings": {
+                    "11051": 11051
+                },
+                "ports": [
+                    11051
+                ],
+                "profile": "nodes",
+                "resources": {
+                    "cpus": 1,
+                    "disk": null,
+                    "memory": 1024
+                },
+                "type": "container",
+                "volumes": [
+                    "/var/run/:/host/var/run/:rw",
+                    "/tmp/umbra/fabric/fabric_simple/peerOrganizations/org3.example.com/peers/peer0.org3.example.com/msp:/etc/hyperledger/fabric/msp:rw",
+                    "/tmp/umbra/fabric/fabric_simple/peerOrganizations/org3.example.com/peers/peer0.org3.example.com/tls:/etc/hyperledger/fabric/tls:rw",
+                    "peer0.org3.example.com:/var/hyperledger/production:rw"
+                ],
+                "working_dir": "/opt/gopath/src/github.com/hyperledger/fabric/peer"
+            },
+            "peer0.org4.example.com": {
+                "command": "peer node start",
+                "env": [
+                    "CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock",
+                    "FABRIC_LOGGING_SPEC=INFO",
+                    "CORE_PEER_TLS_ENABLED=true",
+                    "CORE_PEER_PROFILE_ENABLED=true",
+                    "CORE_PEER_TLS_CERT_FILE=/etc/hyperledger/fabric/tls/server.crt",
+                    "CORE_PEER_TLS_KEY_FILE=/etc/hyperledger/fabric/tls/server.key",
+                    "CORE_PEER_TLS_ROOTCERT_FILE=/etc/hyperledger/fabric/tls/ca.crt",
+                    "CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=umbra",
+                    "CORE_PEER_ID=peer0.org4.example.com",
+                    "CORE_PEER_ADDRESS=peer0.org4.example.com:12051",
+                    "CORE_PEER_LISTENADDRESS=0.0.0.0:12051",
+                    "CORE_PEER_CHAINCODEADDRESS=peer0.org4.example.com:12052",
+                    "CORE_PEER_CHAINCODELISTENADDRESS=0.0.0.0:12052",
+                    "CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.org4.example.com:12051",
+                    "CORE_PEER_GOSSIP_BOOTSTRAP=peer0.org4.example.com:12051",
+                    "CORE_PEER_LOCALMSPID=org4MSP"
+                ],
+                "extra_hosts": {
+                    "ca.org1.example.com": "172.31.0.3",
+                    "ca.org2.example.com": "172.31.0.9",
+                    "ca.org3.example.com": "172.31.0.5",
+                    "ca.org4.example.com": "172.31.0.11",
+                    "orderer.example.com": "172.31.0.6",
+                    "peer0.org1.example.com": "172.31.0.1",
+                    "peer0.org2.example.com": "172.31.0.7",
+                    "peer0.org3.example.com": "172.31.0.4",
+                    "peer0.org4.example.com": "172.31.0.10",
+                    "peer1.org1.example.com": "172.31.0.2",
+                    "peer1.org2.example.com": "172.31.0.8"
+                },
+                "image": "hyperledger/fabric-peer:2.2.1",
+                "lifecycle": null,
+                "name": "peer0.org4.example.com",
+                "network_mode": "umbra",
+                "port_bindings": {
+                    "12051": 12051
+                },
+                "ports": [
+                    12051
+                ],
+                "profile": "nodes",
+                "resources": {
+                    "cpus": 1,
+                    "disk": null,
+                    "memory": 1024
+                },
+                "type": "container",
+                "volumes": [
+                    "/var/run/:/host/var/run/:rw",
+                    "/tmp/umbra/fabric/fabric_simple/peerOrganizations/org4.example.com/peers/peer0.org4.example.com/msp:/etc/hyperledger/fabric/msp:rw",
+                    "/tmp/umbra/fabric/fabric_simple/peerOrganizations/org4.example.com/peers/peer0.org4.example.com/tls:/etc/hyperledger/fabric/tls:rw",
+                    "peer0.org4.example.com:/var/hyperledger/production:rw"
+                ],
+                "working_dir": "/opt/gopath/src/github.com/hyperledger/fabric/peer"
+            },
+            "peer1.org1.example.com": {
+                "command": "peer node start",
+                "env": [
+                    "CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock",
+                    "FABRIC_LOGGING_SPEC=INFO",
+                    "CORE_PEER_TLS_ENABLED=true",
+                    "CORE_PEER_PROFILE_ENABLED=true",
+                    "CORE_PEER_TLS_CERT_FILE=/etc/hyperledger/fabric/tls/server.crt",
+                    "CORE_PEER_TLS_KEY_FILE=/etc/hyperledger/fabric/tls/server.key",
+                    "CORE_PEER_TLS_ROOTCERT_FILE=/etc/hyperledger/fabric/tls/ca.crt",
+                    "CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=umbra",
+                    "CORE_PEER_ID=peer1.org1.example.com",
+                    "CORE_PEER_ADDRESS=peer1.org1.example.com:8051",
+                    "CORE_PEER_LISTENADDRESS=0.0.0.0:8051",
+                    "CORE_PEER_CHAINCODEADDRESS=peer1.org1.example.com:8052",
+                    "CORE_PEER_CHAINCODELISTENADDRESS=0.0.0.0:8052",
+                    "CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer1.org1.example.com:8051",
+                    "CORE_PEER_GOSSIP_BOOTSTRAP=peer0.org1.example.com:7051",
+                    "CORE_PEER_LOCALMSPID=org1MSP"
+                ],
+                "extra_hosts": {
+                    "ca.org1.example.com": "172.31.0.3",
+                    "ca.org2.example.com": "172.31.0.9",
+                    "ca.org3.example.com": "172.31.0.5",
+                    "ca.org4.example.com": "172.31.0.11",
+                    "orderer.example.com": "172.31.0.6",
+                    "peer0.org1.example.com": "172.31.0.1",
+                    "peer0.org2.example.com": "172.31.0.7",
+                    "peer0.org3.example.com": "172.31.0.4",
+                    "peer0.org4.example.com": "172.31.0.10",
+                    "peer1.org1.example.com": "172.31.0.2",
+                    "peer1.org2.example.com": "172.31.0.8"
+                },
+                "image": "hyperledger/fabric-peer:2.2.1",
+                "lifecycle": null,
+                "name": "peer1.org1.example.com",
+                "network_mode": "umbra",
+                "port_bindings": {
+                    "8051": 8051
+                },
+                "ports": [
+                    8051
+                ],
+                "profile": "nodes",
+                "resources": {
+                    "cpus": 1,
+                    "disk": null,
+                    "memory": 1024
+                },
+                "type": "container",
+                "volumes": [
+                    "/var/run/:/host/var/run/:rw",
+                    "/tmp/umbra/fabric/fabric_simple/peerOrganizations/org1.example.com/peers/peer1.org1.example.com/msp:/etc/hyperledger/fabric/msp:rw",
+                    "/tmp/umbra/fabric/fabric_simple/peerOrganizations/org1.example.com/peers/peer1.org1.example.com/tls:/etc/hyperledger/fabric/tls:rw",
+                    "peer1.org1.example.com:/var/hyperledger/production:rw"
+                ],
+                "working_dir": "/opt/gopath/src/github.com/hyperledger/fabric/peer"
+            },
+            "peer1.org2.example.com": {
+                "command": "peer node start",
+                "env": [
+                    "CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock",
+                    "FABRIC_LOGGING_SPEC=INFO",
+                    "CORE_PEER_TLS_ENABLED=true",
+                    "CORE_PEER_PROFILE_ENABLED=true",
+                    "CORE_PEER_TLS_CERT_FILE=/etc/hyperledger/fabric/tls/server.crt",
+                    "CORE_PEER_TLS_KEY_FILE=/etc/hyperledger/fabric/tls/server.key",
+                    "CORE_PEER_TLS_ROOTCERT_FILE=/etc/hyperledger/fabric/tls/ca.crt",
+                    "CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=umbra",
+                    "CORE_PEER_ID=peer1.org2.example.com",
+                    "CORE_PEER_ADDRESS=peer1.org2.example.com:10051",
+                    "CORE_PEER_LISTENADDRESS=0.0.0.0:10051",
+                    "CORE_PEER_CHAINCODEADDRESS=peer1.org2.example.com:10052",
+                    "CORE_PEER_CHAINCODELISTENADDRESS=0.0.0.0:10052",
+                    "CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer1.org2.example.com:10051",
+                    "CORE_PEER_GOSSIP_BOOTSTRAP=peer0.org2.example.com:9051",
+                    "CORE_PEER_LOCALMSPID=org2MSP"
+                ],
+                "extra_hosts": {
+                    "ca.org1.example.com": "172.31.0.3",
+                    "ca.org2.example.com": "172.31.0.9",
+                    "ca.org3.example.com": "172.31.0.5",
+                    "ca.org4.example.com": "172.31.0.11",
+                    "orderer.example.com": "172.31.0.6",
+                    "peer0.org1.example.com": "172.31.0.1",
+                    "peer0.org2.example.com": "172.31.0.7",
+                    "peer0.org3.example.com": "172.31.0.4",
+                    "peer0.org4.example.com": "172.31.0.10",
+                    "peer1.org1.example.com": "172.31.0.2",
+                    "peer1.org2.example.com": "172.31.0.8"
+                },
+                "image": "hyperledger/fabric-peer:2.2.1",
+                "lifecycle": null,
+                "name": "peer1.org2.example.com",
+                "network_mode": "umbra",
+                "port_bindings": {
+                    "10051": 10051
+                },
+                "ports": [
+                    10051
+                ],
+                "profile": "nodes",
+                "resources": {
+                    "cpus": 1,
+                    "disk": null,
+                    "memory": 1024
+                },
+                "type": "container",
+                "volumes": [
+                    "/var/run/:/host/var/run/:rw",
+                    "/tmp/umbra/fabric/fabric_simple/peerOrganizations/org2.example.com/peers/peer1.org2.example.com/msp:/etc/hyperledger/fabric/msp:rw",
+                    "/tmp/umbra/fabric/fabric_simple/peerOrganizations/org2.example.com/peers/peer1.org2.example.com/tls:/etc/hyperledger/fabric/tls:rw",
+                    "peer1.org2.example.com:/var/hyperledger/production:rw"
+                ],
+                "working_dir": "/opt/gopath/src/github.com/hyperledger/fabric/peer"
+            },
+            "s1": {
                 "env": "x",
                 "lifecycle": null,
                 "links": {
@@ -887,7 +887,7 @@
                 "tun_ids": 1,
                 "type": "switch"
             },
-            {
+            "s2": {
                 "env": "x",
                 "lifecycle": null,
                 "links": {
@@ -906,7 +906,7 @@
                 "tun_ids": 1,
                 "type": "switch"
             }
-        ],
+        },
         "profile": {
             "links": {
                 "5000": {

@@ -91,12 +91,12 @@ class Graph:
         nodes = data.get("nodes", {})
         links = data.get("links", {})
 
-        for node in nodes:
+        for node in nodes.values():
             node_name = node.get("name")
             if node_name:
                 self.graph.add_node(node_name, **node)
 
-        for link in links:
+        for link in links.values():
             src, dst = link.get("src", None), link.get("dst", None)
             if src and dst:
                 self.graph.add_edge(src, dst, **link)
@@ -320,7 +320,6 @@ class Topology(Graph):
         default_env = self._environments.get("umbra-default")
         return default_env
 
-
     def get(self):
         return self.topo
 
@@ -492,15 +491,17 @@ class Topology(Graph):
         return envs
 
     def build(self):
-        nodes = []
-        links = []
+        nodes = {}
+        links = {}
+
         for n, data in self.graph.nodes(data=True):
             node = data
             resources = self.profile.get_node(node)
             lifecycle = self.lifecycle.get_node(node)
             node.update(resources)
             node.update(lifecycle)
-            nodes.append(node)
+            node_id = node.get("name")
+            nodes[node_id] = node
 
         for src, dst, data in self.graph.edges(data=True):
             link = data
@@ -508,7 +509,9 @@ class Topology(Graph):
             resources = self.profile.get_link(link)
             if resources:
                 link.update(resources)
-            links.append(link)
+
+            link_id = src + "-" + dst
+            links[link_id] = link
 
         topo = {
             "nodes": nodes,

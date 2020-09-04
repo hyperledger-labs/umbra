@@ -44,7 +44,7 @@ class EnvironmentParser:
         self.deploy["switches"] = []
 
         nodes = self.topology.get("nodes")
-        for node in nodes:
+        for node in nodes.values():
             node_type = node.get("type")
             node_id = node.get("name")
 
@@ -58,7 +58,7 @@ class EnvironmentParser:
         self.deploy["links"] = {}
 
         links = self.topology.get("links")
-        for link in links:
+        for link in links.values():
             link_type = link.get("type")
 
             link_src = link.get("src")
