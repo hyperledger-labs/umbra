@@ -20,37 +20,38 @@ logger = logging.getLogger(__name__)
 class Playground:
     def __init__(self, in_queue, out_queue):
         self.exp_topo = None
-        self.in_queue = in_queue
-        self.out_queue = out_queue
-        self.init()
 
-    def init(self):
-        self.loop(self.in_queue, self.out_queue)
+    #     self.in_queue = in_queue
+    #     self.out_queue = out_queue
+    #     self.init()
 
-    def loop(self, in_queue, out_queue):
-        logger.info("Playground loop started")
-        while True:
-            try:
-                msg = in_queue.get()
-            except Exception as e:
-                logger.debug(f"Exception in the loop: {e}")
-            else:
-                cmd = msg.get("cmd")
-                scenario = msg.get("scenario")
+    # def init(self):
+    #     self.loop(self.in_queue, self.out_queue)
 
-                logger.info("Playground command %s", cmd)
+    # def loop(self, in_queue, out_queue):
+    #     logger.info("Playground loop started")
+    #     while True:
+    #         try:
+    #             msg = in_queue.get()
+    #         except Exception as e:
+    #             logger.debug(f"Exception in the loop: {e}")
+    #         else:
+    #             cmd = msg.get("cmd")
+    #             scenario = msg.get("scenario")
 
-                if cmd == "start":
-                    reply = self.start(scenario)
-                elif cmd == "stop":
-                    reply = self.stop()
-                else:
-                    reply = {}
+    #             logger.info("Playground command %s", cmd)
 
-                out_queue.put(reply)
+    #             if cmd == "start":
+    #                 reply = self.start(scenario)
+    #             elif cmd == "stop":
+    #                 reply = self.stop()
+    #             else:
+    #                 reply = {}
 
-                if cmd == "stop":
-                    break
+    #             out_queue.put(reply)
+
+    #             if cmd == "stop":
+    #                 break
 
     def start(self, scenario):
         self.clear()
@@ -71,7 +72,11 @@ class Playground:
 
     def stop(self):
         logger.info("Stopping topo %s", self.exp_topo)
-        ack = self.exp_topo.stop()
+
+        ack = True
+        if self.exp_topo:
+            ack = self.exp_topo.stop()
+
         self.exp_topo = None
 
         msg = {
@@ -94,50 +99,64 @@ class Playground:
 class Scenario(ScenarioBase):
     def __init__(self, info):
         self.info = info
-        self.playground = None
-        self.in_queue = Queue()
-        self.out_queue = Queue()
+        self.playground = Playground(None, None)
+        # self.in_queue = Queue()
+        # self.out_queue = Queue()
 
-    async def call(self, cmd, scenario):
-        msg = {"cmd": cmd, "scenario": scenario}
-        self.in_queue.put(msg)
-        reply = self.out_queue.get()
-        return reply
+    # async def call(self, cmd, scenario):
+    #     msg = {"cmd": cmd, "scenario": scenario}
+    #     self.in_queue.put(msg)
+    #     reply = self.out_queue.get()
+    #     return reply
 
-    def init(self):
-        Playground(self.in_queue, self.out_queue)
-        print("Finished Playground")
+    # def init(self):
+    #     Playground(self.in_queue, self.out_queue)
+    #     print("Finished Playground")
 
-    def start(self):
-        self.in_queue = Queue()
-        self.out_queue = Queue()
-        self.playground = Process(target=self.init)
-        self.playground.start()
-        logger.info("Started playground")
+    # def start(self):
+    #     self.in_queue = Queue()
+    #     self.out_queue = Queue()
+    #     self.playground = Process(target=self.init)
+    #     self.playground.start()
+    #     logger.info("Started playground")
 
-    def stop(self):
-        self.playground.join(1)
-        time.sleep(0.5)
-        logger.info("playground alive %s", self.playground.is_alive())
-        logger.info("playground exitcode ok %s", self.playground.exitcode)
-        self.in_queue = None
-        self.out_queue = None
-        self.playground = None
-        logger.info("Stoped playground")
+    # def stop(self):
+    #     self.playground.join(1)
+    #     time.sleep(0.5)
+    #     logger.info("playground alive %s", self.playground.is_alive())
+    #     logger.info("playground exitcode ok %s", self.playground.exitcode)
+    #     self.in_queue = None
+    #     self.out_queue = None
+    #     self.playground = None
+    #     logger.info("Stoped playground")
+
+    # async def play(self, id, command, scenario):
+    #     if command == "start":
+    #         if self.playground:
+    #             logger.debug("Stopping running playground")
+    #             await self.call("stop", None)
+    #             self.stop()
+
+    #         self.start()
+    #         reply = await self.call(command, scenario)
+
+    #     elif command == "stop":
+    #         reply = await self.call(command, scenario)
+    #         self.stop()
+    #     else:
+    #         logger.debug(f"Unkown playground command {command}")
+    #         return False, {}
+
+    #     ack, info = reply.get("ok"), reply.get("msg")
+    #     return ack, info
 
     async def play(self, id, command, scenario):
         if command == "start":
-            if self.playground:
-                logger.debug("Stopping running playground")
-                await self.call("stop", None)
-                self.stop()
-
-            self.start()
-            reply = await self.call(command, scenario)
+            reply = self.playground.start(scenario)
 
         elif command == "stop":
-            reply = await self.call(command, scenario)
-            self.stop()
+            reply = self.playground.stop()
+
         else:
             logger.debug(f"Unkown playground command {command}")
             return False, {}
