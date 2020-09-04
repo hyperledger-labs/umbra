@@ -4,7 +4,7 @@ import signal
 import time
 import json
 from multiprocessing import Process
-from multiprocessing import Queue 
+from multiprocessing import Queue
 
 from google.protobuf import json_format
 
@@ -26,7 +26,7 @@ class Playground:
 
     def init(self):
         self.loop(self.in_queue, self.out_queue)
-        
+
     def loop(self, in_queue, out_queue):
         logger.info("Playground loop started")
         while True:
@@ -37,7 +37,7 @@ class Playground:
             else:
                 cmd = msg.get("cmd")
                 scenario = msg.get("scenario")
-                
+
                 logger.info("Playground command %s", cmd)
 
                 if cmd == "start":
@@ -54,10 +54,9 @@ class Playground:
 
     def start(self, scenario):
         self.clear()
-        self.exp_topo = Environment(scenario)       
-        ok, info = self.exp_topo.start()       
+        self.exp_topo = Environment(scenario)
+        ok, info = self.exp_topo.start()
         logger.info("hosts info %s", info)
-        
 
         msg = {
             "info": info,
@@ -65,8 +64,8 @@ class Playground:
         }
 
         ack = {
-            'ok': str(ok),
-            'msg': msg, 
+            "ok": str(ok),
+            "msg": msg,
         }
         return ack
 
@@ -81,8 +80,8 @@ class Playground:
         }
 
         ack = {
-            'ok': str(ack),
-            'msg': msg, 
+            "ok": str(ack),
+            "msg": msg,
         }
         return ack
 
@@ -93,8 +92,7 @@ class Playground:
 
 
 class Scenario(ScenarioBase):
-    def __init__(self, info):
-        self.info = info
+    def __init__(self):
         self.playground = None
         self.in_queue = Queue()
         self.out_queue = Queue()
@@ -115,25 +113,25 @@ class Scenario(ScenarioBase):
         self.playground = Process(target=self.init)
         self.playground.start()
         logger.info("Started playground")
-                            
-    def stop(self):       
+
+    def stop(self):
         self.playground.join(1)
         time.sleep(0.5)
-        logger.info("playground alive %s", self.playground.is_alive())        
+        logger.info("playground alive %s", self.playground.is_alive())
         logger.info("playground exitcode ok %s", self.playground.exitcode)
         self.in_queue = None
         self.out_queue = None
         self.playground = None
         logger.info("Stoped playground")
 
-    async def play(self, id, command, scenario):       
+    async def play(self, id, command, scenario):
         if command == "start":
             if self.playground:
                 logger.debug("Stopping running playground")
                 await self.call("stop", None)
                 self.stop()
-            
-            self.start()            
+
+            self.start()
             reply = await self.call(command, scenario)
 
         elif command == "stop":
@@ -142,43 +140,43 @@ class Scenario(ScenarioBase):
         else:
             logger.debug(f"Unkown playground command {command}")
             return False, {}
-       
+
         ack, info = reply.get("ok"), reply.get("msg")
         return ack, info
-
 
     def parse_bytes(self, msg):
         msg_dict = {}
 
         if type(msg) is bytes:
-            msg_str = msg.decode('utf32')
+            msg_str = msg.decode("utf32")
             msg_dict = json.loads(msg_str)
-        
+
         return msg_dict
 
     def serialize_bytes(self, msg):
-        msg_bytes = b''
+        msg_bytes = b""
 
         if type(msg) is dict:
             msg_str = json.dumps(msg)
-            msg_bytes = msg_str.encode('utf32')
-            
+            msg_bytes = msg_str.encode("utf32")
+
         return msg_bytes
 
     async def Establish(self, stream):
-        deploy = await stream.recv_message()        
-        
-        # scenario = deploy_dict.get("scenario")
+        deploy = await stream.recv_message()
+
         scenario_bytes = deploy.scenario
         scenario = self.parse_bytes(scenario_bytes)
-        
-        deploy_dict = json_format.MessageToDict(deploy, preserving_proto_field_name=True)
-        id = deploy_dict.get("id")
-        command = deploy_dict.get("workflow")
 
-        ok, msg = await self.play(id, command, scenario)
+        deploy_dict = json_format.MessageToDict(
+            deploy, preserving_proto_field_name=True
+        )
+        id = deploy_dict.get("id")
+        action = deploy_dict.get("action")
+
+        ok, msg = await self.play(id, action, scenario)
         logger.debug(f"Playground msg: {msg}")
-        
+
         error = msg.get("error")
         built_info = self.serialize_bytes(msg.get("info"))
 

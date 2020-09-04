@@ -51,7 +51,7 @@ class RemotePlugin:
         finally:
             return connect_flag
 
-    def execute_command(self, command):
+    def execute_command(self, command, daemon=False):
         """Execute a command on the remote host."""
 
         self.ssh_output = None
@@ -60,8 +60,13 @@ class RemotePlugin:
 
         try:
             if self._connect():
-                logger.info("Executing command --> {}".format(command))
+                logger.info("Executing remote command --> {}".format(command))
                 _, stdout, stderr = self._client.exec_command(command, timeout=None)
+
+                if daemon:
+                    stdout.channel.close()
+                    stderr.channel.close()
+
                 self.ssh_output = stdout.read()
                 self.ssh_error = stderr.read()
 
@@ -70,13 +75,13 @@ class RemotePlugin:
                         f"Problem occurred while running command: error {self.ssh_error}"
                     )
                     # result_flag = False
-                    result = self.ssh_error
+                    result = str(self.ssh_error) if self.ssh_error else "error"
 
                 if self.ssh_output:
                     logger.info(
                         f"Command execution completed successfully: output {self.ssh_output}"
                     )
-                    result = self.ssh_output
+                    result = str(self.ssh_output) if self.ssh_output else "ok"
 
                 self._client.close()
             else:
@@ -123,7 +128,7 @@ class RemotePlugin:
 
 
 class LocalPlugin:
-    def start_process(self, args):
+    def execute_command(self, args, daemon=False):
         """Run a process using the provided args
         if stop is true it waits the timeout specified
         before stopping the process, otherwise waits till
@@ -145,7 +150,7 @@ class LocalPlugin:
         code, out, err = 0, {}, {}
 
         try:
-            logger.info(f"RUnning process {args}")
+            logger.info(f"Running local process {args}")
             result = subprocess.run(
                 args,
                 check=True,
@@ -154,22 +159,23 @@ class LocalPlugin:
                 stderr=subprocess.DEVNULL,
             )
             logger.info(f"Process Status {result}")
-            result.check_returncode()
+            code = result.returncode
+            out = result.stdout
+            err = result.stderr
 
         except Exception as e:
-            logger.info(f"Process exception {e}")
+            logger.info(f"Process exception {repr(e)}")
             code = -1
-            err = e
+            err = repr(e)
         finally:
-
-            return code, out, err
-
-    def execute_command(self, command):
-        code, out, err = self.start_process(command)
-        if code == 0:
-            return True, out
-        else:
-            return False, err
+            if code == 0:
+                out_str = str(out) if out else "ok"
+                logger.info(f"Process stdout {out_str}")
+                return True, out_str
+            else:
+                err_str = str(err) if err else "error"
+                logger.info(f"Process stderr {err_str}")
+                return False, err_str
 
     def copy_files(self, source, destination):
         logger.info(f"Local-Copying files from {source} to {destination}")
@@ -182,13 +188,24 @@ class Proxy:
         self._local_plugin = LocalPlugin()
         self._plugin = None
         self.model = ""
+        self.envid = None
         self.host_cfg = {}
         self.components = {}
         self.settings = {}
+        self._envs_stats = {}
+
+    def clear(self):
+        self._plugin = None
+        self.model = ""
+        self.host_cfg = {}
+        self.components = {}
+        self.settings = {}
+        self._envs_stats = {}
 
     def load(self, env_cfg):
         logger.info(f"Loading environment config")
         self.remote = env_cfg.get("remote", False)
+        self.envid = env_cfg.get("id")
 
         if self.remote:
             self.host_cfg = env_cfg.get("host")
@@ -201,6 +218,10 @@ class Proxy:
         self.settings = env_cfg.get("settings")
         self.model = env_cfg.get("model")
 
+        self._envs_stats[self.envid] = {
+            "components": {},
+        }
+
         logger.info(
             f"Environment: id {env_cfg.get('id')}, model {env_cfg.get('model')}, remote {env_cfg.get('remote')}"
         )
@@ -212,11 +233,11 @@ class Proxy:
         cmd = "sudo umbra-{name} --uuid {uuid} --address {address} --debug &".format(
             name=name, uuid=info.get("uuid"), address=info.get("address")
         )
-        ack, msg = self._plugin.execute_command(cmd)
+        ack, msg = self._plugin.execute_command(cmd, daemon=True)
 
         output = {
             "ack": ack,
-            "msg": msg,
+            "msg": [msg],
         }
         logger.info(f"Stats: {ack} - msg: {msg}")
         return output
@@ -229,7 +250,7 @@ class Proxy:
 
         output = {
             "ack": ack,
-            "msg": msg,
+            "msg": [msg],
         }
         logger.info(f"Stats: {ack} - msg: {msg}")
         return output
@@ -283,11 +304,11 @@ class Proxy:
             ack_install_model, msg_install_model = self._workflow_model("install")
 
             ack = ack_clone and ack_install and ack_install_model
-            msg = {
-                "clone": msg_clone,
-                "install": msg_install,
-                "install-model": msg_install_model,
-            }
+            msg = [
+                "clone: " + msg_clone,
+                "install: " + msg_install,
+                "install-model :" + msg_install_model,
+            ]
             output = {
                 "ack": ack,
                 "msg": msg,
@@ -312,11 +333,11 @@ class Proxy:
         ack_rm, msg_rm = self._workflow_source_files("uninstall")
 
         ack = ack_rm and ack_uninstall and ack_uninstall_model
-        msg = {
-            "remove": msg_rm,
-            "uninstall": msg_uninstall,
-            "uninstall-model": msg_uninstall_model,
-        }
+        msg = [
+            "remove: " + msg_rm,
+            "uninstall: " + msg_uninstall,
+            "uninstall-model: " + msg_uninstall_model,
+        ]
         output = {
             "ack": ack,
             "msg": msg,
@@ -355,7 +376,7 @@ class Proxy:
         Returns:
             bool: If the transaction was successful (True) or not (False)
         """
-        logger.info(f"Implementing actions")
+        logger.info(f"Implementing actions - {actions} ")
 
         action_outputs = {}
 
@@ -363,18 +384,73 @@ class Proxy:
             action_output = {}
 
             if action in ["install"]:
-                action_output = self._workflow_install()
+                logger.info(f"Implementing action - {action}")
+
+                is_installed = self._envs_stats[self.envid].get(action, False)
+
+                if not is_installed:
+                    logger.info(
+                        f"Calling action - {action} - Installing environment {self.envid}"
+                    )
+                    action_output = self._workflow_install()
+                    self._envs_stats[self.envid][action] = action_output.get("ack")
+                else:
+                    logger.info(
+                        f"Calling action {action} not needed - environment already installed"
+                    )
+                    action_output = {
+                        "ack": True,
+                        "msg": ["install: environment already installed"],
+                    }
 
             if action in ["uninstall"]:
-                action_output = self._workflow_uninstall()
+                is_installed = self._envs_stats[self.envid].get(action, False)
+
+                if is_installed:
+                    logger.info(
+                        f"Calling action - {action} - Uninstalling environment {self.envid}"
+                    )
+                    action_output = self._workflow_uninstall()
+                    self._envs_stats[self.envid][action] = action_output.get("ack")
+                else:
+                    logger.info(
+                        f"Calling action {action} not needed - environment not installed"
+                    )
+                    action_output = {
+                        "ack": False,
+                        "msg": ["uninstall: environment not installed"],
+                    }
 
             if action in ["start"]:
                 for name, info in self.components.items():
+                    logger.info(
+                        f"Calling action {action} - environment {self.envid} - component {name}"
+                    )
                     action_output = self._workflow_start(name, info)
+
+                    self._envs_stats[self.envid]["components"].setdefault(name, {})
+                    self._envs_stats[self.envid]["components"][name].setdefault(
+                        action, False
+                    )
+
+                    self._envs_stats[self.envid]["components"][name][
+                        action
+                    ] = action_output.get("ack")
 
             if action in ["stop"]:
                 for name, info in self.components.items():
+                    logger.info(
+                        f"Calling action {action} - environment {self.envid} - component {name}"
+                    )
                     action_output = self._workflow_stop(name, info)
+
+                    self._envs_stats[self.envid]["components"].setdefault(name, {})
+                    self._envs_stats[self.envid]["components"][name].setdefault(
+                        action, False
+                    )
+                    self._envs_stats[self.envid]["components"][name][
+                        action
+                    ] = action_output.get("ack")
 
             if action_output:
                 action_outputs[action] = action_output
@@ -397,6 +473,7 @@ class Environments:
 
     def generate_env_cfgs(self, topology):
         logger.info("Generating environments configuration")
+        self._proxy.clear()
         envs = topology.get_environments()
         setts = topology.get_settings()
         model = topology.get_model()
@@ -423,15 +500,27 @@ class Environments:
 
         if action == "start":
             if revert:
-                actions.extend(["stop", "uninstall"])
+                actions.extend(["stop"])
             else:
-                actions.extend(["install", "start"])
+                actions.extend(["start"])
 
         if action == "stop":
             if revert:
-                actions.extend(["install", "start"])
+                actions.extend(["start"])
             else:
-                actions.extend(["stop", "uninstall"])
+                actions.extend(["stop"])
+
+        if action == "install":
+            if revert:
+                actions.extend(["uninstall"])
+            else:
+                actions.extend(["install"])
+
+        if action == "uninstall":
+            if revert:
+                actions.extend(["install"])
+            else:
+                actions.extend(["uninstall"])
 
         return actions
 
@@ -446,16 +535,21 @@ class Environments:
         for envid, env_cfg in self.env_cfgs.items():
             self._proxy.load(env_cfg)
             env_acks, env_stat = self._proxy.implement(actions)
+
             env_stats[envid] = env_stat
             all_env_acks[envid] = env_acks
 
         all_acks = all([ack for ack in all_env_acks.values()])
         self.env_stats = env_stats
 
+        messages = [stat.get("msg") for stat in env_stats.values()]
+        logger.info("Replying messages")
+        logger.info(f"{messages}")
+
         if all_acks:
-            return True
+            return True, messages
         else:
-            return False
+            return False, messages
 
     def stats_env_cfgs(self):
         return self.env_stats

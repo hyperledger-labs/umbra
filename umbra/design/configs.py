@@ -270,6 +270,22 @@ class Topology(Graph):
         self._environments = {}
         self._default_environments()
 
+    def set_default_environment(self, environment):
+        keys = ["id", "remote", "components"]
+        has_all_keys = all([True if k in environment else False for k in keys])
+        if has_all_keys:
+
+            mandatory_components = ["scenario", "broker"]
+            components = environment.get("components")
+            has_all_mandatory_components = all(
+                [True if k in components else False for k in mandatory_components]
+            )
+            if has_all_mandatory_components:
+                self._environments["umbra-default"] = environment
+                return True
+
+        return False
+
     def _default_environments(self):
         env_default = {
             "id": "umbra-default",
@@ -299,6 +315,11 @@ class Topology(Graph):
 
     def get_environments(self):
         return self._environments
+
+    def get_default_environment(self):
+        default_env = self._environments.get("umbra-default")
+        return default_env
+
 
     def get(self):
         return self.topo
@@ -1264,9 +1285,11 @@ class FabricTopology(Topology):
         cfgs_folder = self._full_path(self.get_settings())
         try:
             os.makedirs(cfgs_folder)
-            logger.info(f"Configs dir created: {cfgs_folder}")
+            logger.debug(f"Configs dir created: {cfgs_folder}")
         except FileExistsError:
-            logger.info(f"Configs dir already exists: {cfgs_folder}")
+            logger.debug(f"Configs dir already exists: {cfgs_folder}")
+        except OSError as e:
+            logger.debug(f"Configs dir {cfgs_folder} creation error: {repr(e)}")
 
     def build_configs(self):
         self._make_configs_dirs()

@@ -76,7 +76,7 @@ def build_simple_fabric_cfg():
 
     domain = "example.com"
     image_tag = "2.2.1"
-    ca_tag = "latest.1"
+    ca_tag = "1.4.7.1"
 
     fab_topo.add_org("org1", domain, policies=org1_policy)
     fab_topo.add_peer(

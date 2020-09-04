@@ -13,13 +13,14 @@ class Broker(BrokerBase):
     def __init__(self, info):
         self.info = info
         self.operator = Operator(info)
-    
-    async def Manage(self, stream):
+
+    async def Execute(self, stream):
         request = await stream.recv_message()
-        reply = await self.operator.run(request)
+        reply = await self.operator.execute(request)
         await stream.send_message(reply)
 
     async def Measure(self, stream):
-        request = await stream.recv_message()
-        reply = await self.operator.run(request)
-        await stream.send_message(reply)
+        pass
+        # request = await stream.recv_message()
+        # reply = await self.operator.run(request)
+        # await stream.send_message(reply)

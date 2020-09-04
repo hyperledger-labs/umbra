@@ -22,12 +22,20 @@ class CLIRunner:
             "load": self.load,
             "start": self.start,
             "stop": self.stop,
+            "install": self.install,
+            "uninstall": self.uninstall,
+            "begin": self.begin,
+            "end": self.end,
         }
 
         self._status = {
             "load": False,
             "start": False,
             "stop": False,
+            "install": False,
+            "uninstall": False,
+            "begin": False,
+            "end": False,
         }
         logger.info("CLIRunner init")
 
@@ -41,33 +49,36 @@ class CLIRunner:
     def load_file(self, filename):
         filepath = self.filepath(filename)
         data = {}
+        error = ""
         try:
             with open(filepath, "+r") as fp:
                 data = json.load(fp)
         except Exception as e:
-            logger.debug(f"Load file error: {e}")
+            error = f"Load file error: {repr(e)}"
+            logger.debug(error)
         else:
             logger.debug(f"Load file ok")
         finally:
-            return data
+            return data, error
 
     def load(self, filename):
         logger.info(f"Load triggered - filename {filename}")
         ack = True
 
-        scenario_config = self.load_file(filename)
-        if scenario_config:
-            self.scenario = Scenario("")
-            self.scenario.parse(scenario_config)
-            self.topology = self.scenario.get_topology()
-            self.environments.generate_env_cfgs(self.topology)
-        else:
-            ack = False
+        data, error = self.load_file(filename)
 
-        if ack:
-            msg = "Config loaded"
+        if error:
+            msg = "Config not loaded - " + error
         else:
-            msg = "Config not loaded"
+            self.scenario = Scenario("")
+            ack = self.scenario.parse(data)
+
+            if ack:
+                self.topology = self.scenario.get_topology()
+                self.environments.generate_env_cfgs(self.topology)
+                msg = "Config loaded"
+            else:
+                msg = "Config not loaded - Error parsing scenario data"
 
         self._status["load"] = ack
         logger.info(f"{msg}")
@@ -75,54 +86,120 @@ class CLIRunner:
 
     def start(self):
         logger.info(f"Start triggered")
-        ack = self.environments.implement_env_cfgs("start")
+        ack, messages = self.environments.implement_env_cfgs("start")
         self._status["start"] = ack
 
-        if ack:
-            msg = "Topology started"
-        else:
-            msg = "Topology not started"
-
-        logger.info(f"{msg}")
-        return msg
+        logger.info(f"{messages}")
+        return ack, messages
 
     def stop(self):
         logger.info(f"Stop triggered")
-        ack = self.environments.implement_env_cfgs("stop")
+        ack, messages = self.environments.implement_env_cfgs("stop")
         self._status["start"] = not ack
         self._status["stop"] = ack
 
-        if ack:
-            msg = "Topology stopped"
-        else:
-            msg = "Topology not stopped"
+        logger.info(f"{messages}")
+        return messages
 
-        logger.info(f"{msg}")
-        return msg
+    def install(self):
+        logger.info(f"install triggered")
+        ack, messages = self.environments.implement_env_cfgs("install")
+        self._status["install"] = ack
+
+        logger.info(f"{messages}")
+        return ack, messages
+
+    def uninstall(self):
+        logger.info(f"uninstall triggered")
+        ack, messages = self.environments.implement_env_cfgs("uninstall")
+        self._status["install"] = not ack
+        self._status["uninstall"] = ack
+
+        logger.info(f"{messages}")
+        return messages
+
+    def begin(self):
+        logger.info(f"begin triggered")
+        default_env = self.topology.get_default_environment()
+        default_env_components = default_env.get("components")
+        broker_env = default_env_components.get("broker")
+
+        scenario = self.scenario.dump()
+        reply, error = self.broker_interface.begin(broker_env, scenario)
+
+        ack = False if error else True
+        self._status["begin"] = ack
+
+        if ack:
+            messages = reply
+        else:
+            messages = error
+
+        logger.info(f"{messages}")
+        return ack, messages
+
+    def end(self):
+        logger.info(f"end triggered")
+        default_env = self.topology.get_default_environment()
+        default_env_components = default_env.get("components")
+        broker_env = default_env_components.get("broker")
+
+        scenario = self.scenario.dump()
+        reply, error = self.broker_interface.end(broker_env, scenario)
+
+        ack = False if error else True
+        self._status["end"] = ack
+        self._status["begin"] = not ack
+
+        if ack:
+            messages = reply
+        else:
+            messages = error
+
+        logger.info(f"{messages}")
+        return ack, messages
 
     def status(self, command):
         ack = False
+        error = ""
 
         if command == "load":
             ack = not self._status["start"]
-            error = "Cannot load config - config started - stop it first"
+            if not ack:
+                error = "Cannot load - config started - stop it first"
 
         if command == "start":
             ack = self._status["load"] and not self._status["start"]
-            error = "Cannot start config - config not loaded or config started"
+            if not ack:
+                error = "Cannot start - config not loaded or config started"
 
         if command == "stop":
             ack = self._status["start"] and not self._status["stop"]
-            error = "Cannot stop config - config not started or config stopped"
+            if not ack:
+                error = "Cannot stop - config not started or config stopped"
 
-        return ack, error
+        if command == "install":
+            pass
+
+        if command == "uninstall":
+            pass
+
+        if command == "begin":
+            pass
+
+        if command == "end":
+            pass
+
+        return True, error
 
     def execute(self, cmds):
         cmd = cmds[0]
+        logger.info(f"Executing commands: {cmds}")
 
         ok, error = self.status(cmd)
 
         if ok:
+            available_cmds = list(self.cmds.keys())
 
             if cmd == "load":
                 if len(cmds) == 2:
@@ -132,14 +209,13 @@ class CLIRunner:
                 else:
                     return "Missing config filepath"
 
-            if cmd == "start":
+            if cmd in available_cmds:
                 func = self.cmds.get(cmd)
                 output = func()
                 return output
 
-            if cmd == "stop":
-                func = self.cmds.get(cmd)
-                output = func()
+            else:
+                output = f"Command not found in {available_cmds}"
                 return output
 
         else:
@@ -166,6 +242,15 @@ class CLI:
 
         return []
 
+    def print_output(self, output):
+        if type(output) is str:
+            print(output)
+        elif type(output) is list:
+            for out in output:
+                print(out)
+        else:
+            print(f"Unkown command output format {type(output)}")
+
     def init(self, session):
         logger.info("CLI init")
         while True:
@@ -184,6 +269,6 @@ class CLI:
 
                 if commands:
                     output = self.runner.execute(commands)
-                    print(output)
+                    self.print_output(output)
 
         print("GoodBye!")

@@ -7,7 +7,7 @@ import "google/protobuf/timestamp.proto";
 
 
 service Broker {
-  rpc Manage(Config) returns (Report);
+  rpc Execute(Config) returns (Report);
   rpc Measure(Evaluation) returns (Status);
 }
 
@@ -25,29 +25,30 @@ service Agent {
 
 message Config {
   string id = 1;
-  bytes scenario = 2;
-  google.protobuf.Timestamp timestamp = 3;
+  string action = 2;
+  bytes scenario = 3;
+  google.protobuf.Timestamp timestamp = 4;
 }
 
 message Report {
   string id = 1;
-  bytes status = 2;    
-  google.protobuf.Timestamp timestamp = 3;
+  bytes info = 2;
+  string error = 3;
+  google.protobuf.Timestamp timestamp = 4;
 }
 
 message Workflow {
   string id = 1;
-  string workflow = 2;
+  string action = 2;
   bytes scenario = 3;
   google.protobuf.Timestamp timestamp = 4;
 }
 
 message Status {
   string id = 1;
-  string ok = 2;
-  string error = 3;
-  bytes info = 4;
-  google.protobuf.Timestamp timestamp = 5;
+  string error = 2;
+  bytes info = 3;
+  google.protobuf.Timestamp timestamp = 4;
 }
 
 message Instruction {

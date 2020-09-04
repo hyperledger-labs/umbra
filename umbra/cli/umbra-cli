@@ -1,6 +1,7 @@
 #!/usr/bin/env python3.8
 # coding=utf-8
 import logging
+import os
 
 from prompt_toolkit import PromptSession
 from prompt_toolkit.completion import WordCompleter
@@ -39,7 +40,16 @@ class UmbraCLI:
         self.cli.init(session)
 
 
+def create_umbra_logs_dir():
+    dir_name = "/tmp/umbra/logs/"
+    try:
+        os.makedirs(dir_name)
+    except OSError:
+        pass
+
+
 if __name__ == "__main__":
+    create_umbra_logs_dir()
     Logs("/tmp/umbra/logs/umbra-cli.log", screen=False, debug=True)
     cli = UmbraCLI()
     cli.run()

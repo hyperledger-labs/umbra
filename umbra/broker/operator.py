@@ -45,28 +45,37 @@ class Operator:
 
         return msg_bytes
 
-    async def call_scenario(self, test, command, topology, address):
-        logger.info(f"Deploying Scenario - {command}")
+    async def call_scenario(self, uid, action, topology, address):
+        logger.info(f"Calling Scenario - {action}")
 
         scenario = self.serialize_bytes(topology)
-        deploy = Workflow(id=test, workflow=command, scenario=scenario)
+        deploy = Workflow(id=uid, action=action, scenario=scenario)
         deploy.timestamp.FromDatetime(datetime.now())
 
         host, port = address.split(":")
-        channel = Channel(host, port)
-        stub = ScenarioStub(channel)
-        status = await stub.Establish(deploy)
 
-        if status.error:
+        try:
+            channel = Channel(host, port)
+            stub = ScenarioStub(channel)
+            status = await stub.Establish(deploy)
+
+        except Exception as e:
             ack = False
-            logger.info(f"Scenario not deployed error: {status.error}")
+            info = repr(e)
+            logger.info(
+                f"Error - deploy topology in environment failed - exceptio {info}"
+            )
         else:
-            ack = True
-            logger.info(f"Scenario deployed: {status.ok}")
-
-            info = self.parse_bytes(status.info)
-
-        channel.close()
+            if status.error:
+                ack = False
+                logger.info(f"Scenario not deployed error: {status.error}")
+                info = status.error
+            else:
+                ack = True
+                logger.info(f"Scenario deployed: {status.ok}")
+                info = self.parse_bytes(status.info)
+        finally:
+            channel.close()
 
         return ack, info
 
@@ -110,12 +119,13 @@ class Operator:
         events = scenario.get("events")
         self.schedule_plugins(events)
 
-    async def call_scenarios(self, request, topology, mode):
+    async def call_scenarios(self, uid, topology, action):
         envs = topology.get_environments()
         topo_envs = topology.build_environments()
 
+        logger.info(f"Calling scenarios - {action}")
         logger.info(f"Environment scenarios - {envs}")
-        logger.info(f"Environment topologies - {topo_envs}")
+        logger.debug(f"Environment topologies - {topo_envs}")
 
         acks = {}
         envs_topo_info = {}
@@ -131,7 +141,7 @@ class Operator:
                 env_topo = topo_envs.get(env)
 
                 ack, topo_info = await self.call_scenario(
-                    request, mode, env_topo, env_address
+                    uid, action, env_topo, env_address
                 )
 
                 acks[env] = ack
@@ -144,33 +154,76 @@ class Operator:
 
         return acks, envs_topo_info
 
-    async def run(self, request):
-        logger.info("Running scenario request")
-        report = Report(id=request.id)
-
-        request_scenario = request.scenario
-        scenario = self.parse_bytes(request_scenario)
-
-        if scenario:
+    def load(self, scenario_message):
+        try:
+            scenario = self.parse_bytes(scenario_message)
             self.scenario = Scenario("tmp")
             self.scenario.parse(scenario)
             topology = self.scenario.get_topology()
             topology.build()
+            ack = True
+        except Exception as e:
+            logger.info(f"Could not load scenario - exception {repr(e)}")
+            ack = False
+        finally:
+            return ack
 
-            acks, topos_info = await self.call_scenarios(request.id, topology, "start")
+    async def start(self, uid):
+        topology = self.scenario.get_topology()
+        acks, stats = await self.call_scenarios(uid, topology, "start")
 
-            if acks:
-                # events_info = await self.call_events(scenario, topos_info)
+        info, error = {}, {}
+        if all(acks.values()):
+            info = stats
+        else:
+            error = stats
 
-                status_info = {
-                    "topology": topos_info,
-                    # "events": events_info,
-                }
-                status_bytes = self.serialize_bytes(status_info)
-                report.status = status_bytes
+        return info, error
+
+    async def stop(self, uid):
+        topology = {}
+        acks, stats = await self.call_scenarios(uid, topology, "stop")
+
+        info, error = {}, {}
+        if all(acks.values()):
+            info = stats
+        else:
+            error = stats
+
+        return info, error
+
+    def build_report(self, uid, info, error):
+        info_msg = self.serialize_bytes(info)
+        error_msg = self.serialize_bytes(error)
+        report = Report(id=uid, info=info_msg, error=error_msg)
+        return report
+
+    async def execute(self, config):
+        uid = config.id
+        action = config.action
+        scenario = config.scenario
+
+        if self.load(scenario):
+
+            info, error = {}, {}
+
+            if action == "start":
+                info, error = await self.start(uid)
+
+                # events_info = await self.call_events()
+
+            elif action == "stop":
+                info, error = await self.stop(uid)
 
             else:
-                acks, topos_info = await self.call_scenarios(
-                    request.id, topology, "stop"
-                )
+                error = {
+                    "Execution error": f"Unkown action ({action}) to execute config"
+                }
+
+            report = self.build_report(uid, info, error)
+
+        else:
+            error_msg = "scenario could not be parsed/loaded"
+            report = Report(id=config.id, error=error_msg)
+
         return report
