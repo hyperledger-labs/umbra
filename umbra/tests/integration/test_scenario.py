@@ -37,7 +37,7 @@ def load_file(filename):
 class TestScenario(unittest.TestCase):
     def test_scenario_start_stop(self):
 
-        sc = Scenario()
+        sc = Scenario(None)
 
         scenario_config = load_file("./Fabric-Simple-01.json")
         topology = scenario_config.get("topology")

@@ -92,7 +92,8 @@ class Playground:
 
 
 class Scenario(ScenarioBase):
-    def __init__(self):
+    def __init__(self, info):
+        self.info = info
         self.playground = None
         self.in_queue = Queue()
         self.out_queue = Queue()

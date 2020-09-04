@@ -5,8 +5,7 @@ sphinx_rtd_theme==0.5.0
 psutil==5.7.0
 fabric_sdk_py==0.9.0
 colorlog==4.2.1
-docker_py==1.10.6
-grpc==1.0.0
+docker==1.10.6
 grpclib==0.3.2
 hfc==0.0.1
 networkx==2.5
