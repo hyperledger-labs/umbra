@@ -72,8 +72,8 @@ class Operator:
                 info = status.error
             else:
                 ack = True
-                logger.info(f"Scenario deployed: {status.ok}")
                 info = self.parse_bytes(status.info)
+                logger.info(f"Scenario deployed: {info}")
         finally:
             channel.close()
 
