@@ -434,15 +434,13 @@ class Environment:
                 if dst_node:
                     node = dst_node
                     params = link.get("params_dst", {})
-                    logger.info(f"Node link: dst {src} - params {params}")
+                    logger.info(f"Node link: dst {dst} - params {params}")
 
                 intf_tun_name = params.get("tun_id", None)
                 tun_remote_ip = params.get("tun_remote_ip", None)
 
                 if intf_tun_name and tun_remote_ip:
-                    cmd = f" add-port {node.deployed_name} "
-                    f"{intf_tun_name} -- set Interface {intf_tun_name} type=gre "
-                    f"options:remote_ip={tun_remote_ip}"
+                    cmd = f" add-port {node.deployed_name} {intf_tun_name} -- set Interface {intf_tun_name} type=gre options:remote_ip={tun_remote_ip}"
 
                     logger.info(f"Adding external link: {cmd}")
 
