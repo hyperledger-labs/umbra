@@ -181,7 +181,7 @@ class Operator:
         return info, error
 
     async def stop(self, uid):
-        topology = {}
+        topology = self.scenario.get_topology()
         acks, stats = await self.call_scenarios(uid, topology, "stop")
 
         info, error = {}, {}

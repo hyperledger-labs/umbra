@@ -5,6 +5,7 @@ import asyncio
 import unittest
 
 from umbra.scenario.main import Scenario
+from umbra.design.configs import Scenario as DesignScenario
 
 from utils import start_process, stop_process
 
@@ -37,20 +38,34 @@ def load_file(filename):
 class TestScenario(unittest.TestCase):
     def test_scenario_start_stop(self):
 
-        sc = Scenario(None)
+        sc = Scenario("")
 
         scenario_config = load_file("./Fabric-Simple-01.json")
-        topology = scenario_config.get("topology")
+
+        scenario = DesignScenario("")
+        ack = scenario.parse(scenario_config)
+
+        assert ack is True
+
+        topology = scenario.get_topology()
+        topology.build()
+
+        envs = topology.get_environments()
+        topo_envs = topology.build_environments()
+
+        logger.info(f"topology envs {envs}")
+
+        topology_dict = topo_envs.get("x")
 
         logger.info("Starting topology")
-        reply = asyncio.run(sc.play("1", "start", topology))
+        reply = asyncio.run(sc.play("1", "start", topology_dict))
         ok, msg = reply
 
         logger.info(f"topology started {ok}")
         logger.info(json.dumps(msg, sort_keys=True, indent=4))
 
         logger.info("Stopping topology")
-        reply = asyncio.run(sc.play("1", "stop", topology))
+        reply = asyncio.run(sc.play("1", "stop", topology_dict))
         ok, msg = reply
 
         logger.info(f"topology stoped {ok}")

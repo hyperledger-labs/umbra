@@ -54,6 +54,10 @@ class EnvironmentParser:
             elif node_type == "switch":
                 self.deploy["switches"].append(node_id)
 
+        logger.info("Plugin nodes %s", self.deploy["nodes"])
+
+        logger.info("Plugin switches %s", self.deploy["switches"])
+
     def parse_links(self):
         self.deploy["links"] = {}
 

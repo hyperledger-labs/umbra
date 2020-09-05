@@ -482,11 +482,17 @@ class Environments:
 
         for envid, env in envs.items():
 
+            src_folder = setts
+            dst_folder = setts.split("/")
+            dst_folder = "/".join(dst_folder[:-1])
+
+            logger.info(f"Settings: src_folder {src_folder} - dst_folder {dst_folder}")
+
             env_cfg = {
                 "id": envid,
                 "model": model,
                 "remote": env.get("remote", False),
-                "settings": {"source": setts, "destination": setts,},
+                "settings": {"source": src_folder, "destination": dst_folder,},
                 "components": env.get("components"),
                 "host": env.get("host", {}),
             }
