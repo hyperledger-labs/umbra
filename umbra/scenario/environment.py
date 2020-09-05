@@ -535,12 +535,14 @@ class Environment:
 
     def mn_cleanup(self):
         clean.cleanup()
+        self.remove_docker_container_chaincodes()
+        self.remove_docker_network()
 
     def stop(self):
         self._stop_network()
         self.mn_cleanup()
-        self.remove_docker_container_chaincodes()
-        self.remove_docker_network()
+        # self.remove_docker_container_chaincodes()
+        # self.remove_docker_network()
         self.nodes = {}
         self.switches = {}
         self.nodes_info = {}
