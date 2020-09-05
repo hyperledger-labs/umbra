@@ -32,20 +32,20 @@ class TestCLI(unittest.TestCase):
         ack = self.stop_command(lp)
         assert ack == True
 
-    # def test_clirunner_remote_exec_command(self):
-    #     rp = RemotePlugin()
-    #     cfg = {
-    #         "user": "umbra",
-    #         "address": "192.168.122.44",
-    #         "port": "22",
-    #         "password": "L1v3s.",
-    #     }
-    #     rp.cfg(cfg)
-    #     ack = self.start_command(rp)
-    #     assert ack == True
+    def test_clirunner_remote_exec_command(self):
+        rp = RemotePlugin()
+        cfg = {
+            "user": "umbra",
+            "address": "192.168.122.44",
+            "port": "22",
+            "password": "L1v3s.",
+        }
+        rp.cfg(cfg)
+        ack = self.start_command(rp)
+        assert ack == True
 
-    #     ack = self.stop_command(rp)
-    #     assert ack == True
+        ack = self.stop_command(rp)
+        assert ack == True
 
 
 if __name__ == "__main__":

@@ -168,7 +168,7 @@ class Scenario(ScenarioBase):
         msg_dict = {}
 
         if type(msg) is bytes:
-            msg_str = msg.decode("utf32")
+            msg_str = msg.decode("utf-8")
             msg_dict = json.loads(msg_str)
 
         return msg_dict
@@ -178,7 +178,7 @@ class Scenario(ScenarioBase):
 
         if type(msg) is dict:
             msg_str = json.dumps(msg)
-            msg_bytes = msg_str.encode("utf32")
+            msg_bytes = msg_str.encode("utf-8")
 
         return msg_bytes
 
