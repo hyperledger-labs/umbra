@@ -431,10 +431,14 @@ class Environment:
                     params = link.get("params_src", {})
                     logger.info(f"Node link: src {src} - params {params}")
 
-                if dst_node:
+                elif dst_node:
                     node = dst_node
                     params = link.get("params_dst", {})
                     logger.info(f"Node link: dst {dst} - params {params}")
+
+                else:
+                    logger.info(f"Node link not found: nor dst {dst} nor src {src}")
+                    continue
 
                 intf_tun_name = params.get("tun_id", None)
                 tun_remote_ip = params.get("tun_remote_ip", None)
@@ -444,7 +448,7 @@ class Environment:
 
                     logger.info(f"Adding external link: {cmd}")
 
-                    ack = src_node.vsctl(cmd)
+                    ack = node.vsctl(cmd)
 
                     logger.info(f"Link external {link_type} {link_id} added")
                     logger.info(f"Link external vsctl out: {ack}")
