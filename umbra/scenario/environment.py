@@ -107,6 +107,7 @@ class Environment:
         self.nodes_info = {}
         self._docker_client = None
         self._connected_to_docker = False
+        self._docker_network = None
         logger.debug("Environment Instance Created")
         logger.debug(f"{json.dumps(self.topo, indent=4)}")
 
@@ -151,7 +152,8 @@ class Environment:
                         network_name
                     )
 
-                self._docker_network.remove()
+                if self._docker_network:
+                    self._docker_network.remove()
 
             except docker.errors.APIError as e:
                 logger.debug(f"Docker network not removed - API Error {e}")
