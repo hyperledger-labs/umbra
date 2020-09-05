@@ -423,8 +423,8 @@ class Environment:
 
                 logger.info(f"Adding external link: src {src} - dst {dst}")
 
-                src_node = self.nodes.get(src)
-                dst_node = self.nodes.get(dst)
+                src_node = self.switches.get(src)
+                dst_node = self.switches.get(dst)
 
                 if src_node:
                     node = src_node
