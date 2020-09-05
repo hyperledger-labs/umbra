@@ -68,7 +68,7 @@ class EnvironmentParser:
             link_src = link.get("src")
             link_dst = link.get("dst")
 
-            if link_type == "internal":
+            if link_type == "internal" or link_type == "external":
                 link_id = link_src + "-" + link_dst
 
                 params_dst = link.get("params_dst")
