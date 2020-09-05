@@ -755,6 +755,7 @@ class FabricTopology(Topology):
     def add_networks_link(self, src, dst):
 
         if src in self._networks and dst in self._networks:
+
             src_net = self._networks[src]
             src_net_env_name = src_net.get("env")
 
@@ -769,24 +770,35 @@ class FabricTopology(Topology):
                     "profile": {},
                     "type": link_type,
                 }
-
             else:
                 link_type = "external"
-                dst_net_env = self._environments.get(dst_net_env_name)
-                dst_net_env_address = dst_net_env.get("address")
-                dst_net_env_address_ip = dst_net_env_address.split(":")[0]
 
-                net_tun_id = src_net.get("tun_ids")
-                tun_id = "tun" + str(net_tun_id)
-                tun_remote_ip = dst_net_env_address_ip
+                # Adds forward tunnel
+
+                dst_net_env = self._environments.get(dst_net_env_name)
+                dst_net_env_address_ip = dst_net_env.get("host").get("address")
+
+                src_net_tun_id = src_net.get("tun_ids")
+                src_tun_id = "tun" + str(src_net_tun_id)
+                src_tun_remote_ip = dst_net_env_address_ip
+
+                src_net_env = self._environments.get(src_net_env_name)
+                src_net_env_address_ip = src_net_env.get("host").get("address")
+
+                dst_net_tun_id = dst_net.get("tun_ids")
+                dst_tun_id = "tun" + str(dst_net_tun_id)
+                dst_tun_remote_ip = src_net_env_address_ip
 
                 src_net["links"][dst] = {
                     "type": link_type,
-                    "tun_id": tun_id,
-                    "tun_remote_ip": tun_remote_ip,
+                    "src_tun_id": src_tun_id,
+                    "src_tun_remote_ip": src_tun_remote_ip,
+                    "dst_tun_id": dst_tun_id,
+                    "dst_tun_remote_ip": dst_tun_remote_ip,
                 }
 
-                src_net["tun_ids"] = net_tun_id + 1
+                src_net["tun_ids"] = src_net_tun_id + 1
+                dst_net["tun_ids"] = dst_net_tun_id + 1
 
     def add_network(self, net, envid=None):
         if not envid:
@@ -1173,8 +1185,12 @@ class FabricTopology(Topology):
                         link_type,
                         link_profile,
                         params_src={
-                            "tun_id": links[link_dst].get("tun_id"),
-                            "tun_remote_ip": links[link_dst].get("tun_remote_ip"),
+                            "tun_id": links[link_dst].get("src_tun_id"),
+                            "tun_remote_ip": links[link_dst].get("src_tun_remote_ip"),
+                        },
+                        params_dst={
+                            "tun_id": links[link_dst].get("dst_tun_id"),
+                            "tun_remote_ip": links[link_dst].get("dst_tun_remote_ip"),
                         },
                     )
 

@@ -419,22 +419,41 @@ class Environment:
 
             if link_type == "external":
                 src = link.get("src")
-                # dst = link.get("dst")
+                dst = link.get("dst")
 
-                params_s = link.get("params_src", {})
-                intf_tun_name = params_s.get("tun_id")
-                tun_remote_ip = params_s.get("tun_remote_ip")
+                logger.info(f"Adding external link: src {src} - dst {dst}")
 
                 src_node = self.nodes.get(src)
+                dst_node = self.nodes.get(dst)
 
-                cmd = f" add-port {src_node.deployed_name} "
-                f"{intf_tun_name} -- set Interface {intf_tun_name} type=gre "
-                f"options:remote_ip={tun_remote_ip}"
+                if src_node:
+                    node = src_node
+                    params = link.get("params_src", {})
+                    logger.info(f"Node link: src {src} - params {params}")
 
-                ack = src_node.vsctl(cmd)
+                if dst_node:
+                    node = dst_node
+                    params = link.get("params_dst", {})
+                    logger.info(f"Node link: dst {src} - params {params}")
 
-                logger.info(f"Link {link_type} {link_id} added")
-                logger.info(f"Link vsctl out: {ack}")
+                intf_tun_name = params.get("tun_id", None)
+                tun_remote_ip = params.get("tun_remote_ip", None)
+
+                if intf_tun_name and tun_remote_ip:
+                    cmd = f" add-port {node.deployed_name} "
+                    f"{intf_tun_name} -- set Interface {intf_tun_name} type=gre "
+                    f"options:remote_ip={tun_remote_ip}"
+
+                    logger.info(f"Adding external link: {cmd}")
+
+                    ack = src_node.vsctl(cmd)
+
+                    logger.info(f"Link external {link_type} {link_id} added")
+                    logger.info(f"Link external vsctl out: {ack}")
+                else:
+                    logger.info(
+                        f"Could not add external link: missing intf_tun_name {intf_tun_name} or tun_remote_ip {tun_remote_ip}"
+                    )
 
     def _start_network(self):
         if self.net:

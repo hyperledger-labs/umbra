@@ -32,7 +32,8 @@ class Operator:
 
         if type(msg) is bytes:
             msg_str = msg.decode("utf-8")
-            msg_dict = json.loads(msg_str)
+            if msg_str:
+                msg_dict = json.loads(msg_str)
 
         return msg_dict
 
@@ -72,8 +73,11 @@ class Operator:
                 info = status.error
             else:
                 ack = True
-                info = self.parse_bytes(status.info)
-                logger.info(f"Scenario deployed: {info}")
+                if status.info:
+                    info = self.parse_bytes(status.info)
+                else:
+                    info = {}
+                logger.info(f"Scenario info: {info}")
         finally:
             channel.close()
 

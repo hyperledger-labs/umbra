@@ -61,7 +61,7 @@ class Playground:
 
         msg = {
             "info": info,
-            "error": None,
+            "error": "",
         }
 
         ack = {
@@ -80,7 +80,7 @@ class Playground:
         self.exp_topo = None
 
         msg = {
-            "info": "",
+            "info": {},
             "error": "",
         }
 
@@ -197,8 +197,8 @@ class Scenario(ScenarioBase):
         ok, msg = await self.play(id, action, scenario)
         logger.debug(f"Playground {ok} msg: {msg}")
 
-        error = msg.get("error")
+        built_error = msg.get("error")
         built_info = self.serialize_bytes(msg.get("info"))
 
-        built = Status(id=id, error=error, info=built_info)
+        built = Status(id=id, error=built_error, info=built_info)
         await stream.send_message(built)
