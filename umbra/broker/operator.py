@@ -88,7 +88,7 @@ class Operator:
 
     def build_monitor_directrix(self, env, info, action):
         hosts = info.get("topology").get("hosts")
-        targets = set(hosts.keys())
+        targets = repr(set(hosts.keys()))
 
         data = {
             "action": action,
@@ -111,7 +111,10 @@ class Operator:
                 {
                     "id": 2,
                     "name": "host",
-                    "parameters": {"duration": "30", "interval": "5",},
+                    "parameters": {
+                        "duration": "30",
+                        "interval": "5",
+                    },
                     "sched": {},
                 },
             ],
@@ -252,6 +255,7 @@ class Operator:
             self.scenario.parse(scenario)
             topology = self.scenario.get_topology()
             topology.build()
+            self.topology = topology
             ack = True
         except Exception as e:
             logger.info(f"Could not load scenario - exception {repr(e)}")
@@ -262,10 +266,10 @@ class Operator:
     async def start(self, uid):
         topology = self.scenario.get_topology()
         acks, stats = await self.call_scenarios(uid, topology, "start")
-        all_monitors_ack = await self.call_monitors(stats, "start")
 
         info, error = {}, {}
         if all(acks.values()):
+            all_monitors_ack = await self.call_monitors(stats, "start")
             info = stats
         else:
             error = stats
@@ -274,11 +278,12 @@ class Operator:
 
     async def stop(self, uid):
         topology = self.scenario.get_topology()
+
         acks, stats = await self.call_scenarios(uid, topology, "stop")
-        all_monitors_ack = await self.call_monitors(stats, "stop")
 
         info, error = {}, {}
         if all(acks.values()):
+            all_monitors_ack = await self.call_monitors(stats, "stop")
             info = stats
         else:
             error = stats

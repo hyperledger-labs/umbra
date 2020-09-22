@@ -81,7 +81,7 @@ class CLIRunner:
                 self.topology = self.scenario.get_topology()
                 self.environments.generate_env_cfgs(self.topology)
                 msg = "Configuration loaded"
-                print_cli(msg, style="info")
+                print_cli(msg, style="normal")
             else:
                 msg = "Configuration not loaded - Error parsing scenario data"
                 print_cli(None, err=msg, style="error")
@@ -91,7 +91,7 @@ class CLIRunner:
         logger.info(f"{msg}")
         return msg
 
-    def start(self):
+    async def start(self):
         logger.info(f"Start triggered")
 
         print_cli(f"Starting")
@@ -102,7 +102,7 @@ class CLIRunner:
         logger.info(f"{messages}")
         return ack, messages
 
-    def stop(self):
+    async def stop(self):
         logger.info(f"Stop triggered")
 
         print_cli(f"Stopping")
@@ -114,7 +114,7 @@ class CLIRunner:
         logger.info(f"{messages}")
         return messages
 
-    def install(self):
+    async def install(self):
         logger.info(f"install triggered")
 
         print_cli(f"Installing")
@@ -125,7 +125,7 @@ class CLIRunner:
         logger.info(f"{messages}")
         return ack, messages
 
-    def uninstall(self):
+    async def uninstall(self):
         logger.info(f"uninstall triggered")
 
         print_cli(f"Uninstalling")
@@ -137,7 +137,7 @@ class CLIRunner:
         logger.info(f"{messages}")
         return messages
 
-    def begin(self):
+    async def begin(self):
         logger.info(f"begin triggered")
 
         print_cli(f"Beginning Umbra Experiment")
@@ -147,7 +147,7 @@ class CLIRunner:
         broker_env = default_env_components.get("broker")
 
         scenario = self.scenario.dump()
-        reply, error = self.broker_interface.begin(broker_env, scenario)
+        reply, error = await self.broker_interface.begin(broker_env, scenario)
 
         ack = False if error else True
         self._status["begin"] = ack
@@ -162,7 +162,7 @@ class CLIRunner:
         logger.info(f"{messages}")
         return ack, messages
 
-    def end(self):
+    async def end(self):
         logger.info(f"end triggered")
 
         print_cli(f"Ending Umbra Experiment")
@@ -172,7 +172,7 @@ class CLIRunner:
         broker_env = default_env_components.get("broker")
 
         scenario = self.scenario.dump()
-        reply, error = self.broker_interface.end(broker_env, scenario)
+        reply, error = await self.broker_interface.end(broker_env, scenario)
 
         ack = False if error else True
         self._status["end"] = ack
@@ -221,7 +221,7 @@ class CLIRunner:
 
         return True, error
 
-    def execute(self, cmds):
+    async def execute(self, cmds):
         cmd = cmds[0]
         logger.info(f"Executing commands: {cmds}")
 
@@ -240,7 +240,7 @@ class CLIRunner:
 
             if cmd in available_cmds:
                 func = self.cmds.get(cmd)
-                output = func()
+                output = await func()
                 return output
 
             else:
@@ -316,7 +316,7 @@ class CLI:
                 else:
 
                     if commands:
-                        self.runner.execute(commands)
+                        await self.runner.execute(commands)
                         # output = self.runner.execute(commands)
                         # self.print_output(output)
 

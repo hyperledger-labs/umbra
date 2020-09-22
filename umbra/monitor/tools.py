@@ -87,10 +87,10 @@ class Tool:
 
     async def process_call(self):
         """Performs the async execution of cmd in a subprocess
-        
+
         Arguments:
             cmd {string} -- The full command to be called in a subprocess shell
-        
+
         Returns:
             dict -- The output of the cmd execution containing stdout and stderr fields
         """
@@ -627,7 +627,9 @@ class MonContainer(Tool):
 
             out = {
                 "name": data.get("name"),
-                "tags": {"source": self.name,},
+                "tags": {
+                    "source": self.name,
+                },
                 "fields": fields,
             }
             output.append(out)
@@ -649,7 +651,8 @@ class MonContainer(Tool):
             t = float(opts["duration"])
 
         if "targets" in opts:
-            names = opts["targets"]
+            targets = opts["targets"]
+            names = eval(targets)
         else:
             return metrics
 
@@ -910,7 +913,9 @@ class MonHost(Tool):
 
         out = {
             "name": self._info.get("node"),
-            "tags": {"source": self.name,},
+            "tags": {
+                "source": self.name,
+            },
             "fields": fields,
         }
 

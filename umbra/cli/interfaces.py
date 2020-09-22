@@ -42,6 +42,7 @@ class UmbraInterface:
         reply, error = {}, ""
         try:
             msg_reply = await stub_func(msg)
+
             reply = json_format.MessageToDict(
                 msg_reply, preserving_proto_field_name=True
             )
@@ -77,15 +78,14 @@ class BrokerInterface(UmbraInterface):
         channel.close()
         return reply, error
 
-    def begin(self, environment, topology):
+    async def begin(self, environment, topology):
         address = environment.get("address")
         action = "start"
-        reply, error = asyncio.run(self.call(address, action, topology))
+        reply, error = await self.call(address, action, topology)
         return reply, error
 
-    def end(self, environment, topology):
+    async def end(self, environment, topology):
         address = environment.get("address")
         action = "stop"
-        reply, error = asyncio.run(self.call(address, action, topology))
+        reply, error = await self.call(address, action, topology)
         return reply, error
-

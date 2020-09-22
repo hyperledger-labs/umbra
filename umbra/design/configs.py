@@ -1363,7 +1363,9 @@ class FabricTopology(Topology):
                     "Count": num_org_peers,  # TODO: assign peer names accordingly
                     "SANS": ["localhost"],
                 },
-                "Users": {"Count": 1,},
+                "Users": {
+                    "Count": 1,
+                },
             }
 
             crypto_config["PeerOrgs"].append(org_frmt)
@@ -1660,7 +1662,9 @@ class FabricTopology(Topology):
                         "grpc.ssl_target_name_override": orderer.get("orderer_fqdn"),
                         "grpc-max-send-message-length": 15,
                     },
-                    "tlsCACerts": {"path": orderer_tls_file.pop(),},
+                    "tlsCACerts": {
+                        "path": orderer_tls_file.pop(),
+                    },
                 }
             }
 
@@ -1690,7 +1694,9 @@ class FabricTopology(Topology):
                             "grpc.ssl_target_name_override": peer.get("peer_fqdn"),
                             "grpc.http2.keepalive_time": 15,
                         },
-                        "tlsCACerts": {"path": peer_tls_file.pop(),},
+                        "tlsCACerts": {
+                            "path": peer_tls_file.pop(),
+                        },
                     }
                 }
                 peers.update(peer_frmt)
@@ -1705,8 +1711,12 @@ class FabricTopology(Topology):
                 CA_frmt = {
                     CA.get("name_org"): {
                         "url": "localhost:" + str(CA.get("port")),
-                        "grpcOptions": {"verify": True,},
-                        "tlsCACerts": {"path": org_ca_tls_file.pop(),},
+                        "grpcOptions": {
+                            "verify": True,
+                        },
+                        "tlsCACerts": {
+                            "path": org_ca_tls_file.pop(),
+                        },
                         "registrar": [
                             {
                                 "enrollId": CA.get("ca_admin"),

@@ -41,7 +41,16 @@ def build_simple_fabric_cfg():
             "port": "22",
             "password": "L1v3s.",
         },
-        "components": {"scenario": {"uuid": "y", "address": "192.168.122.44:8957",}},
+        "components": {
+            "scenario": {
+                "uuid": "y-scenario",
+                "address": "192.168.122.44:8957",
+            },
+            "monitor": {
+                "uuid": "y-monitor",
+                "address": "192.168.122.44:8958",
+            },
+        },
     }
 
     env1_id = "env156"
@@ -54,7 +63,16 @@ def build_simple_fabric_cfg():
             "port": "22",
             "password": "L1v3s.",
         },
-        "components": {"scenario": {"uuid": "z", "address": "192.168.122.156:8957",}},
+        "components": {
+            "scenario": {
+                "uuid": "z-scenario",
+                "address": "192.168.122.156:8957",
+            },
+            "monitor": {
+                "uuid": "z-monitor",
+                "address": "192.168.122.156:8958",
+            },
+        },
     }
 
     fab_topo.add_environment(env=env0_info)
@@ -95,7 +113,10 @@ def build_simple_fabric_cfg():
     )
 
     ord_specs = [
-        {"Hostname": "orderer", "SANS": ["localhost"],},
+        {
+            "Hostname": "orderer",
+            "SANS": ["localhost"],
+        },
     ]
 
     fab_topo.add_orderer(
