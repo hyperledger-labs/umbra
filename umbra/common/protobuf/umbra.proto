@@ -8,7 +8,7 @@ import "google/protobuf/timestamp.proto";
 
 service Broker {
   rpc Execute(Config) returns (Report);
-  rpc Measure(Evaluation) returns (Status);
+  rpc Collect(Stats) returns (Status);
 }
 
 service Scenario {
@@ -16,12 +16,17 @@ service Scenario {
 }
 
 service Monitor {
-  rpc Listen(Instruction) returns (Snapshot);
+  rpc Measure(Directrix) returns (Status);
 }
 
 service Agent {
   rpc Probe(Instruction) returns (Snapshot);
 }
+
+service CLI {
+  rpc Inform(State) returns (Status);
+}
+
 
 message Config {
   string id = 1;
@@ -51,20 +56,19 @@ message Status {
   google.protobuf.Timestamp timestamp = 4;
 }
 
+message Sched {
+  uint32 from = 1;
+  uint32 until = 2;
+  uint32 duration = 3;
+  uint32 interval = 4;
+  uint32 repeat = 5;
+}
+
 message Instruction {
-
-  message Sched {
-    uint32 from = 1;
-    uint32 until = 2;
-    uint32 duration = 3;
-    uint32 interval = 4;
-    uint32 repeat = 5;
-  }
-
   message Action {
     message Output {
       bool live = 1;
-      string address = 2;     
+      string address = 2;
     }
     
     string id = 1;
@@ -110,4 +114,55 @@ message Evaluation {
 message Snapshot {
   string id = 1;
   repeated Evaluation evaluations = 2;
+}
+
+
+message Measurement {
+  message Field {
+    string name = 1;
+    string type = 2;
+    string unit = 3;
+    string value = 4;
+  }
+
+  string name = 1;
+  map<string,string> tags = 2;
+  map<string,Field> fields = 3;
+}
+
+
+message Source {
+  uint32 id = 1;
+  string name = 2;
+  map<string,string> parameters = 3;  
+  Sched schedule = 4;
+}
+
+message Directrix { 
+  message Flush {
+    bool live = 1;
+    string address = 2;
+    string environment = 3;
+  }
+  Flush flush = 1;
+  repeated Source sources = 2;
+  string action = 3;
+}
+
+message Stats {
+  string environment = 1;
+  string source = 2;
+  repeated Measurement measurements = 3;
+}
+
+
+message State {
+  message Content {
+    string info = 1;
+    string error = 2;
+  }
+
+  string source = 1;
+  repeated Content messages = 2;
+  google.protobuf.Timestamp ts = 3;
 }

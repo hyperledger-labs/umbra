@@ -13,15 +13,19 @@ import platform as pl
 
 from subprocess import check_output, CalledProcessError
 
+from grpclib.client import Channel
+from grpclib.exceptions import GRPCError
+from google.protobuf import json_format
+
 from umbra.common.scheduler import Handler
-from umbra.common.protobuf.umbra_pb2 import Evaluation
+from umbra.common.protobuf.umbra_pb2 import Stats
 from umbra.common.protobuf.umbra_grpc import BrokerStub
 
 
 logger = logging.getLogger(__name__)
 
 
-class Tool():
+class Tool:
     def __init__(self, id_, name):
         self.is_process = False
         self.id = id_
@@ -36,7 +40,51 @@ class Tool():
         self._tstart = None
         self._tstop = None
         self.cfg()
-       
+
+    async def _send(self, stub, message):
+
+        try:
+            info = json_format.ParseDict(message, Stats())
+            reply = await stub.Collect(info)
+            info_reply = json_format.MessageToDict(
+                reply, preserving_proto_field_name=True
+            )
+
+        except GRPCError as e:
+            logger.info(f"Error in reaching: Info")
+            logger.debug(f"Exception in info: {repr(e)}")
+            info_reply = {}
+
+        except OSError as e:
+            logger.info(f"Could not reach channel for Info")
+            logger.debug(f"Exception: {repr(e)}")
+            info_reply = {}
+
+        finally:
+            return info_reply
+
+    def format_metrics(self, metrics):
+        message = {
+            "environment": self.output.get("environment"),
+            "source": self.output.get("source"),
+            "measurements": metrics,
+        }
+        return message
+
+    def flush(self, metrics):
+        message = self.format_metrics(metrics)
+
+        address = self.output.get("address")
+        host, port = address.split(":")
+        channel = Channel(host, port)
+
+        stub = BrokerStub(channel)
+        reply = asyncio.run(self._send(stub, message))
+
+        logger.info(f"Message stats send - reply {reply}")
+
+        channel.close()
+
     async def process_call(self):
         """Performs the async execution of cmd in a subprocess
         
@@ -104,11 +152,12 @@ class Tool():
 
     def parser(self, results):
         pass
-        
-    def init(self, action):
-        self.action = action
-        self.uuid = action.get('id')
-        self.output = action.get('output', {})
+
+    def init(self, flush, source):
+        self.action = source
+        self.output = flush
+
+        self.uuid = source.get("id")
         parameters = self.action.get("parameters", {})
         options = self.serialize(**parameters)
         self.options(**options)
@@ -130,10 +179,10 @@ class Tool():
             stimulus = self.stimulus
         else:
             stimulus = "monitor-function-" + self.name
-        
+
         source = {
-            'call': stimulus,
-            'name': self.name,
+            "call": stimulus,
+            "name": self.name,
         }
         return source
 
@@ -154,15 +203,15 @@ class Tool():
 
 class MonDummy(Tool):
     def __init__(self):
-        Tool.__init__(self, 11, 'dummy')
-        
+        Tool.__init__(self, 11, "dummy")
+
     def cfg(self):
         params = {
-            'interval': 'interval',
-            'duration': 'duration',
+            "interval": "interval",
+            "duration": "duration",
         }
         self.parameters = params
-        self.cmd = 'uname'
+        self.cmd = "uname"
 
     def monitor(self, opts):
         metrics = []
@@ -173,17 +222,17 @@ class MonDummy(Tool):
         i = 9
         while True:
             current = datetime.now()
-            _time = {'timestamp': current.strftime('%Y-%m-%dT%H:%M:%S.%fZ')}
-            seconds = (current-past).total_seconds()
+            _time = {"timestamp": current.strftime("%Y-%m-%dT%H:%M:%S.%fZ")}
+            seconds = (current - past).total_seconds()
             if seconds > duration:
                 break
             else:
                 out = i
-                measurement = {'result': str(out)}
-                
+                measurement = {"result": str(out)}
+
                 metrics.append(measurement)
                 i += 1
-                
+
                 # if live:
                 #     self.flush(url, measurement)
 
@@ -196,38 +245,34 @@ class MonDummy(Tool):
         self.stimulus = partial(self.monitor, kwargs)
 
     def parser(self, out):
-        output = {
-            "uuid": self.uuid,
-            "metrics": out
-        }
+        output = {"uuid": self.uuid, "metrics": out}
         self.metrics = output
-        
+
 
 class MonProcess(Tool):
-
     def __init__(self):
-        Tool.__init__(self, 1, 'process')
+        Tool.__init__(self, 1, "process")
         self._first = True
         self._command = None
 
     def cfg(self):
         params = {
-            'interval': 'interval',
-            'name': 'name',
-            'pid': 'pid',
-            'duration': 'duration',
+            "interval": "interval",
+            "name": "name",
+            "pid": "pid",
+            "duration": "duration",
         }
         self.parameters = params
         self.cmd = ""
 
     def _get_process_info(self):
         info = {}
-        info['name'] = self._p.name()
-        info['exe'] = self._p.exe()
-        info['cwd'] = self._p.cwd()
-        info['status'] = self._p.status()
-        info['username'] = self._p.username()
-        info['create_time'] = self._p.create_time()
+        info["name"] = self._p.name()
+        info["exe"] = self._p.exe()
+        info["cwd"] = self._p.cwd()
+        info["status"] = self._p.status()
+        info["username"] = self._p.username()
+        info["create_time"] = self._p.create_time()
         return info
 
     def _get_process_cpu(self, tm, prev_info):
@@ -252,8 +297,12 @@ class MonProcess(Tool):
         user_time, system_time = cpu_times.user, cpu_times.system
 
         if self._first == False:
-            cpu_stats["user_time"] = (user_time - prev_info["user_time"]) / (tm - prev_info["time"])
-            cpu_stats["system_time"] = (system_time - prev_info["system_time"]) / (tm - prev_info["time"])
+            cpu_stats["user_time"] = (user_time - prev_info["user_time"]) / (
+                tm - prev_info["time"]
+            )
+            cpu_stats["system_time"] = (system_time - prev_info["system_time"]) / (
+                tm - prev_info["time"]
+            )
 
         cpu_stats["user_time"] = user_time
         cpu_stats["system_time"] = system_time
@@ -285,12 +334,24 @@ class MonProcess(Tool):
         io_counters = self._p.io_counters()
 
         if self._first == False:
-            io_stats["read_count"] = (io_counters.read_count * 1.0 - prev_info["read_count"]) / (tm - prev_info["time"])
-            io_stats["read_bytes"] = (io_counters.read_bytes * 1.0 - prev_info["read_bytes"]) / (tm - prev_info["time"])
-            io_stats["write_count"] = (io_counters.write_count * 1.0 - prev_info["write_count"]) / (tm - prev_info["time"])
-            io_stats["write_bytes"] = (io_counters.write_bytes * 1.0 - prev_info["write_bytes"]) / (tm - prev_info["time"])
-            io_stats["write_chars"] = (io_counters.write_chars * 1.0 - prev_info["write_chars"]) / (tm - prev_info["time"])
-            io_stats["read_chars"] = (io_counters.read_chars * 1.0 - prev_info["read_chars"]) / (tm - prev_info["time"])
+            io_stats["read_count"] = (
+                io_counters.read_count * 1.0 - prev_info["read_count"]
+            ) / (tm - prev_info["time"])
+            io_stats["read_bytes"] = (
+                io_counters.read_bytes * 1.0 - prev_info["read_bytes"]
+            ) / (tm - prev_info["time"])
+            io_stats["write_count"] = (
+                io_counters.write_count * 1.0 - prev_info["write_count"]
+            ) / (tm - prev_info["time"])
+            io_stats["write_bytes"] = (
+                io_counters.write_bytes * 1.0 - prev_info["write_bytes"]
+            ) / (tm - prev_info["time"])
+            io_stats["write_chars"] = (
+                io_counters.write_chars * 1.0 - prev_info["write_chars"]
+            ) / (tm - prev_info["time"])
+            io_stats["read_chars"] = (
+                io_counters.read_chars * 1.0 - prev_info["read_chars"]
+            ) / (tm - prev_info["time"])
 
         io_stats["read_count"] = io_counters.read_count * 1.0
         io_stats["read_bytes"] = io_counters.read_bytes * 1.0
@@ -305,7 +366,7 @@ class MonProcess(Tool):
         #     io_stats["write_bytes"] = "0.0"
 
         return io_stats
-            # storage = {}
+        # storage = {}
         # of = self._p.open_files()
         # of = [f.__dict__ for f in of]
         # storage['open_files'] = of
@@ -317,8 +378,8 @@ class MonProcess(Tool):
         net = {}
         conns = self._p.connections()
         conns = [c.__dict__ for c in conns]
-        net['connections'] = conns
-        net['connections'] = []
+        net["connections"] = conns
+        net["connections"] = []
         return net
 
     def _get_process_stats(self, tm, measurement):
@@ -341,7 +402,7 @@ class MonProcess(Tool):
         pidlist = []
         try:
             pidlist = list(map(int, check_output(["pidof", name]).split()))
-        except  CalledProcessError:
+        except CalledProcessError:
             pidlist = []
         finally:
             if pidlist:
@@ -355,18 +416,18 @@ class MonProcess(Tool):
         interval = 1
         pid = None
 
-        if 'interval' in opts:
-            interval = float(opts.get('interval'))
+        if "interval" in opts:
+            interval = float(opts.get("interval"))
 
-        if 'duration' in opts:
-            t = float(opts.get('duration'))
+        if "duration" in opts:
+            t = float(opts.get("duration"))
         else:
             return metrics
 
-        if 'pid' in opts:
-            pid = int(opts['pid'])
-        elif 'name' in opts:
-            name = str(opts['name'])
+        if "pid" in opts:
+            pid = int(opts["pid"])
+        elif "name" in opts:
+            name = str(opts["name"])
             pid = self.get_pid(name)
         else:
             return metrics
@@ -381,10 +442,10 @@ class MonProcess(Tool):
         measurement = {}
         measurement["time"] = 0.0
         past = datetime.now()
-        
+
         while True:
             current = datetime.now()
-            seconds = (current-past).total_seconds()
+            seconds = (current - past).total_seconds()
             if seconds > t:
                 break
             else:
@@ -395,7 +456,7 @@ class MonProcess(Tool):
 
                 metrics.append(measurement)
                 time.sleep(interval)
-        
+
         return metrics
 
     def parser(self, out):
@@ -403,12 +464,20 @@ class MonProcess(Tool):
 
         if out:
             metric_names = list(out[0].keys())
-            
+
             for name in metric_names:
 
                 metric_values = dict(
-                    [ ( str(out.index(out_value)), {"key":str(out.index(out_value)), "value":float(out_value.get(name))} )
-                    for out_value in out ]
+                    [
+                        (
+                            str(out.index(out_value)),
+                            {
+                                "key": str(out.index(out_value)),
+                                "value": float(out_value.get(name)),
+                            },
+                        )
+                        for out_value in out
+                    ]
                 )
 
                 m = {
@@ -419,26 +488,23 @@ class MonProcess(Tool):
                 }
 
                 metrics.append(m)
-        
-        self.metrics = {
-            "uuid": self.uuid,
-            "metrics": metrics
-        }
+
+        self.metrics = {"uuid": self.uuid, "metrics": metrics}
 
 
 class MonContainer(Tool):
     def __init__(self, url=None):
-        Tool.__init__(self, 2, 'container')
+        Tool.__init__(self, 2, "container")
         self._command = None
         self._connected_to_docker = False
         self.url = url
         if not url:
-            self.url = 'unix://var/run/docker.sock'
-        
+            self.url = "unix://var/run/docker.sock"
+
     def cfg(self):
         params = {
             "interval": "interval",
-            "target": "target",
+            "targets": "targets",
             "duration": "duration",
         }
         self.parameters = params
@@ -453,83 +519,86 @@ class MonContainer(Tool):
 
         except Exception as e:
             self._dc = None
-            logger.warn('could not connect to docker socket - check if docker is installed/running %s', e)
+            logger.warn(
+                "could not connect to docker socket - check if docker is installed/running %s",
+                e,
+            )
         else:
             self._connected_to_docker = True
 
     def _stats_cpu(self, stats):
         summary_stats_cpu = {}
-        cpu_stats = stats['cpu_stats']
-        cpu_usage = cpu_stats['cpu_usage']
+        cpu_stats = stats["cpu_stats"]
+        cpu_usage = cpu_stats["cpu_usage"]
         # summary_stats_cpu['cpu_throttling_data'] = cpu_stats['throttling_data']
-        summary_stats_cpu['system_cpu_usage'] = cpu_stats['system_cpu_usage']
-        summary_stats_cpu['cpu_total_usage'] = cpu_usage['total_usage'] 
-        summary_stats_cpu['cpu_usage_in_kernelmode'] = cpu_usage['usage_in_kernelmode']
-        summary_stats_cpu['cpu_usage_in_usermode'] = cpu_usage['usage_in_usermode']
-        summary_stats_cpu['cpu_percent'] = self._stats_cpu_perc(stats)
+        summary_stats_cpu["system_cpu_usage"] = cpu_stats["system_cpu_usage"]
+        summary_stats_cpu["cpu_total_usage"] = cpu_usage["total_usage"]
+        summary_stats_cpu["cpu_usage_in_kernelmode"] = cpu_usage["usage_in_kernelmode"]
+        summary_stats_cpu["cpu_usage_in_usermode"] = cpu_usage["usage_in_usermode"]
+        summary_stats_cpu["cpu_percent"] = self._stats_cpu_perc(stats)
         return summary_stats_cpu
 
     def _stats_cpu_perc(self, stats):
-        cpu_stats = stats['cpu_stats']
-        cpu_usage = cpu_stats['cpu_usage']
-        system_cpu_usage = cpu_stats['system_cpu_usage']
-        percpu = cpu_usage['percpu_usage']
+        cpu_stats = stats["cpu_stats"]
+        cpu_usage = cpu_stats["cpu_usage"]
+        system_cpu_usage = cpu_stats["system_cpu_usage"]
+        percpu = cpu_usage["percpu_usage"]
         cpu_percent = 0.0
-        if 'precpu_stats' in stats:
-            precpu_stats = stats['precpu_stats']
-            precpu_usage = precpu_stats['cpu_usage']
-            cpu_delta = cpu_usage['total_usage'] - precpu_usage['total_usage']
-            system_delta = system_cpu_usage - precpu_stats['system_cpu_usage']
+        if "precpu_stats" in stats:
+            precpu_stats = stats["precpu_stats"]
+            precpu_usage = precpu_stats["cpu_usage"]
+            cpu_delta = cpu_usage["total_usage"] - precpu_usage["total_usage"]
+            system_delta = system_cpu_usage - precpu_stats["system_cpu_usage"]
             if system_delta > 0 and cpu_delta > 0:
                 cpu_percent = 100.0 * cpu_delta / system_delta * len(percpu)
         return cpu_percent
 
     def _stats_mem(self, stats):
         summary_stats_mem = {}
-        mem_stats = stats['memory_stats']
-        
-        in_mem_stats = mem_stats['stats']
-        for k,v in in_mem_stats.items():
-            new_k = 'mem_' + k
+        mem_stats = stats["memory_stats"]
+
+        in_mem_stats = mem_stats["stats"]
+        for k, v in in_mem_stats.items():
+            new_k = "mem_" + k
             summary_stats_mem[new_k] = v
 
-        summary_stats_mem['mem_percent'] = self._stats_mem_perc(stats)
-        summary_stats_mem['mem_limit'] = mem_stats['limit']
-        summary_stats_mem['mem_max_usage'] = mem_stats['max_usage']
-        summary_stats_mem['mem_usage'] = mem_stats['usage']
+        summary_stats_mem["mem_percent"] = self._stats_mem_perc(stats)
+        summary_stats_mem["mem_limit"] = mem_stats["limit"]
+        summary_stats_mem["mem_max_usage"] = mem_stats["max_usage"]
+        summary_stats_mem["mem_usage"] = mem_stats["usage"]
         return summary_stats_mem
 
     def _stats_mem_perc(self, stats):
-        mem_stats = stats['memory_stats']
-        mem_percent = 100.0 * mem_stats['usage'] / mem_stats['limit']
+        mem_stats = stats["memory_stats"]
+        mem_percent = 100.0 * mem_stats["usage"] / mem_stats["limit"]
         return mem_percent
 
     def _stats_blkio(self, stats):
         blkio_values = {}
-        blkio_stats = stats['blkio_stats']
-        
-        blkio_values['io_read'] = 0
-        blkio_values['io_write'] = 0
+        blkio_stats = stats["blkio_stats"]
+
+        blkio_values["io_read"] = 0
+        blkio_values["io_write"] = 0
         for key, values in blkio_stats.items():
-            if key == 'io_service_bytes_recursive':
+            if key == "io_service_bytes_recursive":
                 for value in values:
-                    if value['op'] == 'Read':
-                        if value['value'] >= blkio_values['io_read']:
-                            blkio_values['io_read'] = value['value']
-                    if value['op'] == 'Write':
-                        if value['value'] >= blkio_values['io_write']:
-                            blkio_values['io_write'] = value['value']                    
+                    if value["op"] == "Read":
+                        if value["value"] >= blkio_values["io_read"]:
+                            blkio_values["io_read"] = value["value"]
+                    if value["op"] == "Write":
+                        if value["value"] >= blkio_values["io_write"]:
+                            blkio_values["io_write"] = value["value"]
         return blkio_values
 
     def _stats(self, name=None):
         summary_stats = {}
-        
+
         container = self._dc.containers.get(name)
         if container:
             stats = container.stats(stream=False)
         else:
             return summary_stats
-        
+
         stats_cpu = self._stats_cpu(stats)
         summary_stats.update(stats_cpu)
         stats_mem = self._stats_mem(stats)
@@ -542,36 +611,72 @@ class MonContainer(Tool):
         self.is_process = False
         self.stimulus = partial(self.monitor, kwargs)
 
+    def format_measurement(self, measurements):
+        output = []
+
+        for data in measurements:
+            fields = {}
+            for name, value in data.items():
+                m = {
+                    "name": name,
+                    "type": "float",
+                    "unit": "",
+                    "value": str(value),
+                }
+                fields[name] = m
+
+            out = {
+                "name": data.get("name"),
+                "tags": {"source": self.name,},
+                "fields": fields,
+            }
+            output.append(out)
+
+        return output
+
     def monitor(self, opts):
         self.connect()
+
+        output_live = self.output.get("live")
 
         metrics = []
         interval = 1
         t = 3
 
-        if 'interval' in opts:
-            interval = float(opts['interval'])
-        if 'duration' in opts:
-            t = float(opts['duration'])
+        if "interval" in opts:
+            interval = float(opts["interval"])
+        if "duration" in opts:
+            t = float(opts["duration"])
 
-        if 'target' in opts:
-            name = opts['target']
+        if "targets" in opts:
+            names = opts["targets"]
         else:
             return metrics
 
         past = datetime.now()
         while True:
             current = datetime.now()
-            _time = {'timestamp': current.strftime('%Y-%m-%dT%H:%M:%S.%fZ')}
-            seconds = (current-past).total_seconds()
+            _time = {"timestamp": current.strftime("%Y-%m-%dT%H:%M:%S.%fZ")}
+            seconds = (current - past).total_seconds()
             if seconds > t:
                 break
             else:
-                measurement = self._stats(name=name)
-                if 'read' in measurement:
-                    del measurement['read']
-         
-                metrics.append(measurement)        
+
+                measurements = []
+                for name in names:
+                    measurement = self._stats(name=name)
+                    measurement["name"] = name
+
+                    if "read" in measurement:
+                        del measurement["read"]
+
+                    measurements.append(measurement)
+
+                if output_live:
+                    output = self.format_measurement(measurements)
+                    self.flush(output)
+
+                # metrics.append(measurements)
                 time.sleep(interval)
 
         return metrics
@@ -585,8 +690,17 @@ class MonContainer(Tool):
             for name in metric_names:
 
                 metric_values = dict(
-                    [( str(out.index(out_value)), {"key": str(out.index(out_value)), "value":float(out_value.get(name))} )
-                    for out_value in out ])
+                    [
+                        (
+                            str(out.index(out_value)),
+                            {
+                                "key": str(out.index(out_value)),
+                                "value": float(out_value.get(name)),
+                            },
+                        )
+                        for out_value in out
+                    ]
+                )
 
                 m = {
                     "name": name,
@@ -596,23 +710,21 @@ class MonContainer(Tool):
                 }
 
                 metrics.append(m)
-        
-        self.metrics = {
-            "uuid": self.uuid,
-            "metrics": metrics
-        }
-        
+
+        self.metrics = {"uuid": self.uuid, "metrics": metrics}
+
 
 class MonHost(Tool):
     def __init__(self):
-        Tool.__init__(self, 3, 'host')
+        Tool.__init__(self, 3, "host")
         self._first = True
         self._command = None
+        self._info = self._get_node_info()
 
     def cfg(self):
         params = {
-            'interval':'interval',
-            'duration':'duration',
+            "interval": "interval",
+            "duration": "duration",
         }
         self.parameters = params
         self.cmd = ""
@@ -620,31 +732,62 @@ class MonHost(Tool):
     def _get_node_info(self):
         info = {}
         system, node, release, version, machine, processor = pl.uname()
-        info['system'] = system
-        info['node'] = node
-        info['release'] = release
-        info['version'] = version
-        info['machine'] = machine
-        info['processor'] = processor
+        info["system"] = system
+        info["node"] = node
+        info["release"] = release
+        info["version"] = version
+        info["machine"] = machine
+        info["processor"] = processor
         return info
 
     def _get_node_cpu(self, tm, prev_info):
         cpu_stats = {}
         cpu_stats["cpu_percent"] = ps.cpu_percent(interval=0.5)
 
-        user, nice, system, idle, iowait, irq, softirq, steal, guest, guest_nice = ps.cpu_times()
+        (
+            user,
+            nice,
+            system,
+            idle,
+            iowait,
+            irq,
+            softirq,
+            steal,
+            guest,
+            guest_nice,
+        ) = ps.cpu_times()
 
         if self._first == False:
-            cpu_stats["user_time"] = (user - prev_info["user_time"]) / (tm - prev_info["time"])
-            cpu_stats["nice_time"] = (nice - prev_info["nice_time"]) / (tm - prev_info["time"])
-            cpu_stats["system_time"] = (system - prev_info["system_time"]) / (tm - prev_info["time"])
-            cpu_stats["idle_time"] = (idle - prev_info["idle_time"]) / (tm - prev_info["time"])
-            cpu_stats["iowait_time"] = (iowait - prev_info["iowait_time"]) / (tm - prev_info["time"])
-            cpu_stats["irq_time"] = (irq - prev_info["irq_time"]) / (tm - prev_info["time"])
-            cpu_stats["softirq_time"] = (softirq - prev_info["softirq_time"]) / (tm - prev_info["time"])
-            cpu_stats["steal_time"] = (steal - prev_info["steal_time"]) / (tm - prev_info["time"])
-            cpu_stats["guest_time"] = (guest - prev_info["guest_time"]) / (tm - prev_info["time"])
-            cpu_stats["guest_nice_time"] = (guest_nice - prev_info["guest_nice_time"]) / (tm - prev_info["time"])
+            cpu_stats["user_time"] = (user - prev_info["user_time"]) / (
+                tm - prev_info["time"]
+            )
+            cpu_stats["nice_time"] = (nice - prev_info["nice_time"]) / (
+                tm - prev_info["time"]
+            )
+            cpu_stats["system_time"] = (system - prev_info["system_time"]) / (
+                tm - prev_info["time"]
+            )
+            cpu_stats["idle_time"] = (idle - prev_info["idle_time"]) / (
+                tm - prev_info["time"]
+            )
+            cpu_stats["iowait_time"] = (iowait - prev_info["iowait_time"]) / (
+                tm - prev_info["time"]
+            )
+            cpu_stats["irq_time"] = (irq - prev_info["irq_time"]) / (
+                tm - prev_info["time"]
+            )
+            cpu_stats["softirq_time"] = (softirq - prev_info["softirq_time"]) / (
+                tm - prev_info["time"]
+            )
+            cpu_stats["steal_time"] = (steal - prev_info["steal_time"]) / (
+                tm - prev_info["time"]
+            )
+            cpu_stats["guest_time"] = (guest - prev_info["guest_time"]) / (
+                tm - prev_info["time"]
+            )
+            cpu_stats["guest_nice_time"] = (
+                guest_nice - prev_info["guest_nice_time"]
+            ) / (tm - prev_info["time"])
 
         cpu_stats["user_time"] = user
         cpu_stats["nice_time"] = nice
@@ -673,16 +816,16 @@ class MonHost(Tool):
 
         mem_stats["mem_percent"] = vm.percent
 
-        mem_stats["total_mem"] = vm.total / (1024. * 1024.)
-        mem_stats["available_mem"] = vm.available / (1024. * 1024.)
-        mem_stats["used_mem"] = vm.used / (1024. * 1024.)
-        mem_stats["free_mem"] = vm.free / (1024. * 1024.)
-        mem_stats["active_mem"] = vm.active / (1024. * 1024.)
-        mem_stats["inactive_mem"] = vm.inactive / (1024. * 1024.)
-        mem_stats["buffers_mem"] = vm.buffers / (1024. * 1024.)
-        mem_stats["cached_mem"] = vm.cached / (1024. * 1024.)
-        mem_stats["shared_mem"] = vm.shared / (1024. * 1024.)
-        mem_stats["slab_mem"] = vm.slab / (1024. * 1024.)
+        mem_stats["total_mem"] = vm.total / (1024.0 * 1024.0)
+        mem_stats["available_mem"] = vm.available / (1024.0 * 1024.0)
+        mem_stats["used_mem"] = vm.used / (1024.0 * 1024.0)
+        mem_stats["free_mem"] = vm.free / (1024.0 * 1024.0)
+        mem_stats["active_mem"] = vm.active / (1024.0 * 1024.0)
+        mem_stats["inactive_mem"] = vm.inactive / (1024.0 * 1024.0)
+        mem_stats["buffers_mem"] = vm.buffers / (1024.0 * 1024.0)
+        mem_stats["cached_mem"] = vm.cached / (1024.0 * 1024.0)
+        mem_stats["shared_mem"] = vm.shared / (1024.0 * 1024.0)
+        mem_stats["slab_mem"] = vm.slab / (1024.0 * 1024.0)
 
         return mem_stats
         # mem = {}
@@ -696,10 +839,18 @@ class MonHost(Tool):
 
         dio = ps.disk_io_counters()
         if self._first == False:
-            disk_stats["read_count"] = (dio.read_count * 1.0 - prev_info["read_count"]) / (tm - prev_info["time"])
-            disk_stats["read_bytes"] = (dio.read_bytes * 1.0 - prev_info["read_bytes"]) / (tm - prev_info["time"])
-            disk_stats["write_count"] = (dio.write_count * 1.0 - prev_info["write_count"]) / (tm - prev_info["time"])
-            disk_stats["write_bytes"] = (dio.write_bytes * 1.0 - prev_info["write_bytes"]) / (tm - prev_info["time"])
+            disk_stats["read_count"] = (
+                dio.read_count * 1.0 - prev_info["read_count"]
+            ) / (tm - prev_info["time"])
+            disk_stats["read_bytes"] = (
+                dio.read_bytes * 1.0 - prev_info["read_bytes"]
+            ) / (tm - prev_info["time"])
+            disk_stats["write_count"] = (
+                dio.write_count * 1.0 - prev_info["write_count"]
+            ) / (tm - prev_info["time"])
+            disk_stats["write_bytes"] = (
+                dio.write_bytes * 1.0 - prev_info["write_bytes"]
+            ) / (tm - prev_info["time"])
 
         disk_stats["read_count"] = dio.read_count * 1.0
         disk_stats["read_bytes"] = dio.read_bytes * 1.0
@@ -745,15 +896,38 @@ class MonHost(Tool):
         self.is_process = False
         self.stimulus = partial(self.monitor, kwargs)
 
+    def format_measurement(self, data):
+        fields = {}
+
+        for name, value in data.items():
+            m = {
+                "name": name,
+                "type": "float",
+                "unit": "",
+                "value": str(value),
+            }
+            fields[name] = m
+
+        out = {
+            "name": self._info.get("node"),
+            "tags": {"source": self.name,},
+            "fields": fields,
+        }
+
+        output = [out]
+        return output
+
     def monitor(self, opts):
+        ouput_live = self.output.get("live")
+
         metrics = []
         interval = 1
         t = 3
-        if 'interval' in opts:
-            interval = float(opts.get('interval', 1))
-        
-        if 'duration' in opts:
-            t = float(opts.get('duration', 0))
+        if "interval" in opts:
+            interval = float(opts.get("interval", 1))
+
+        if "duration" in opts:
+            t = float(opts.get("duration", 0))
         else:
             return metrics
 
@@ -762,8 +936,8 @@ class MonHost(Tool):
         measurement["time"] = 0.0
         while True:
             current = datetime.now()
-            _time = {'timestamp': current.strftime('%Y-%m-%dT%H:%M:%S.%fZ')}
-            seconds = (current-past).total_seconds()
+            _time = {"timestamp": current.strftime("%Y-%m-%dT%H:%M:%S.%fZ")}
+            seconds = (current - past).total_seconds()
             if seconds > t:
                 break
             else:
@@ -773,7 +947,11 @@ class MonHost(Tool):
                 current = datetime.now()
                 self._first = False
 
-                metrics.append(measurement)
+                if ouput_live:
+                    output = self.format_measurement(measurement)
+                    self.flush(output)
+
+                # metrics.append(measurement)
                 time.sleep(interval)
 
         return metrics
@@ -787,8 +965,16 @@ class MonHost(Tool):
             for name in metric_names:
 
                 metric_values = dict(
-                    [ ( out.index(out_value), {"key":out.index(out_value), "value":float(out_value.get(name))} ) 
-                    for out_value in out ]
+                    [
+                        (
+                            out.index(out_value),
+                            {
+                                "key": out.index(out_value),
+                                "value": float(out_value.get(name)),
+                            },
+                        )
+                        for out_value in out
+                    ]
                 )
 
                 m = {
@@ -799,57 +985,47 @@ class MonHost(Tool):
                 }
 
                 metrics.append(m)
-        
-        self.metrics = {
-            "uuid": self.uuid,
-            "metrics": metrics
-        }
+
+        self.metrics = {"uuid": self.uuid, "metrics": metrics}
 
 
 class MonTcpdump(Tool):
     def __init__(self):
         Tool.__init__(self, 4, "tcpdump")
-        self._output_folder = '/home/'
+        self._output_folder = "/home/"
 
     def cfg(self):
-        params = {
-            'interface':'-i',
-            'pcap':'-w'
-        }
+        params = {"interface": "-i", "pcap": "-w"}
         self.parameters = params
         self.cmd = ""
 
     def options(self, **kwargs):
-        if '-w' in kwargs:
-            pcap_value = kwargs.get('-w')
+        if "-w" in kwargs:
+            pcap_value = kwargs.get("-w")
             pcap_path = self.filepath(pcap_value)
-            kwargs['-w'] = pcap_path
+            kwargs["-w"] = pcap_path
 
         args = ["tcpdump"]
 
-        for k,v in kwargs.items():
-            args.extend([k,v])
+        for k, v in kwargs.items():
+            args.extend([k, v])
 
         self.is_process = True
         self.stimulus = " ".join(args)
-                
-    def parse_pcap(self, pcap_file): 
-        #TODO: extract basic info about pcap (# of packets, traffic statistics, etc)
+
+    def parse_pcap(self, pcap_file):
+        # TODO: extract basic info about pcap (# of packets, traffic statistics, etc)
         return {"pcap": pcap_file}
 
     def filepath(self, filename):
-        _filepath = os.path.normpath(os.path.join(
-            self._output_folder, filename))
+        _filepath = os.path.normpath(os.path.join(self._output_folder, filename))
         return _filepath
 
     def parse(self, out):
         # pcap_file = opts.get("-w")
         # metrics = self.parse_pcap(pcap_file)
 
-        self.metrics = {
-            "uuid": self.uuid, 
-            "metrics": []
-        }
+        self.metrics = {"uuid": self.uuid, "metrics": []}
 
 
 class Tools:
@@ -861,12 +1037,13 @@ class Tools:
         MonDummy,
     ]
 
-    def __init__(self):
+    def __init__(self, info):
+        self.info = info
         self.toolset = {}
         self.tools_instances = {}
         self.load_tools()
         self.handler = Handler()
-        
+
     def load_tools(self):
         for tool_cls in self.TOOLS:
             tool_instance = tool_cls()
@@ -874,65 +1051,65 @@ class Tools:
             self.toolset[tool_name] = tool_cls
         logger.debug("loaded toolset")
 
-    def build_calls(self, actions):
+    def build_calls(self, flush, sources):
         logger.info("Building actions into calls")
         calls = {}
 
-        for action in actions:
-            tool_name = action.get("tool")
+        for source in sources:
+            source_name = sources.get("name")
 
-            if tool_name in self.toolset:
+            if source_name in self.toolset:
 
-                action_id = action.get("id")
-                action_sched = action.get("schedule", {})
+                source_id = source.get("id")
+                source_sched = source.get("schedule", {})
 
-                tool_cls = self.toolset[tool_name]
-                tool = tool_cls()                             
-                tool.init(action)
-                action_call = tool.call()
-                
-                calls[action_id] = (action_call, action_sched)
+                tool_cls = self.toolset[source_name]
+                tool = tool_cls()
+                tool.init(flush, source)
+                source_call = tool.call
+
+                calls[source_id] = (source_call, source_sched)
 
                 tool_uuid = tool.get_uuid()
                 self.tools_instances[tool_uuid] = tool
+                logger.info(f"Built call for source {source_name}")
 
             else:
                 logger.info(
-                    f"Could not locate action tool name {tool_name}"
+                    f"Could not locate action tool name {source_name}"
                     f" into set of tools {self.toolset.keys()}"
                 )
 
         return calls
 
-    def build_outputs(self, outputs):        
-        logger.info(f'build outputs: {outputs}')
-        data = []
-        uuid_end = []
+    def parse_bytes(self, msg):
+        msg_dict = {}
 
-        for uuid,output in outputs.items():
-            tool = self.tools_instances.get(uuid)
-            tool_eval = {
-                'id': uuid,
-                'source': tool.source(),
-                'timestamp': tool.timestamp(),
-                'metrics': output.get('metrics', []),
-            }
-            data.append(tool_eval)
+        if type(msg) is bytes:
+            msg_str = msg.decode("utf-8")
+            if msg_str:
+                msg_dict = json.loads(msg_str)
 
-        for uuid in uuid_end:
-            del self.tools_instances[uuid]
+        return msg_dict
 
-        return data
+    def serialize_bytes(self, msg):
+        msg_bytes = b""
 
-    async def handle(self, instruction):
-        actions = instruction.get("actions")
-        calls = self.build_calls(actions)
-        results = await self.handler.run(calls)
-        evals = self.build_outputs(results)
-        logger.info(f"Finished handling instruction actions")
-        snap = {
-            "id": instruction.get('id'),
-            "evaluations": evals,
-        }
-        logger.debug(f"{snap}")
-        return snap
+        if type(msg) is dict:
+            msg_str = json.dumps(msg)
+            msg_bytes = msg_str.encode("utf-8")
+
+        return msg_bytes
+
+    async def measure(self, directrix):
+
+        flush = directrix.get("flush")
+        sources = directrix.get("sources")
+
+        flush["source"] = self.info.get("address")
+
+        calls = self.build_calls(flush, sources)
+        asyncio.create_task(self.handler.run(calls))
+
+        status_dict = {"info": self.serialize_bytes({"calls": "ok"})}
+        return status_dict

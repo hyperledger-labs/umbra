@@ -1,9 +1,15 @@
 .PHONY: clean-pyc clean-build
 .DEFAULT_GOAL := help
+
 TEST_PATH=./umbra/tests
+
 DEPS_FOLDER=./deps
 DEPS=deps.sh
 DEPS_FABRIC=deps_fabric.sh
+
+AUX_FOLDER=./aux
+AUX_MONITOR=monitor.sh
+
 
 install-fabric:
 	sh -c "cd $(DEPS_FOLDER) && ./$(DEPS_FABRIC) install && cd - "
@@ -64,6 +70,12 @@ docker-run: docker-build
 	--detach=false \
 	--name=umbra \
 	umbra:latest umbra-cli
+
+start-aux-monitor:
+	sh -c "cd $(AUX_FOLDER) && ./$(AUX_MONITOR) start && cd - "
+
+stop-aux-monitor:
+	sh -c "cd $(AUX_FOLDER) && ./$(AUX_MONITOR) stop && cd - "
 
 all: requirements install run
 

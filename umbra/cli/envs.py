@@ -7,6 +7,8 @@ import asyncio
 import subprocess
 from scp import SCPClient, SCPException
 
+from umbra.cli.output import print_cli
+
 
 logger = logging.getLogger(__name__)
 
@@ -144,7 +146,7 @@ class LocalPlugin:
             stopping the process, in case stop is true (default: {60})
 
         Returns:
-            tuple -- (int, string, string) The return code of the 
+            tuple -- (int, string, string) The return code of the
             process, its stdout and its stderr (both formated in json)
         """
         code, out, err = 0, {}, {}
@@ -227,8 +229,18 @@ class Proxy:
         )
         logger.info(f"Components: {env_cfg.get('components')}")
 
+    def _workflow_start_monitor(self, name):
+        install_cmd = "cd /tmp/umbra/source && sudo make start-aux-monitor"
+        ack_install, msg_install = self._plugin.execute_command(install_cmd)
+        logger.info(
+            f"Workflow start: monitor aux component {ack_install} - {msg_install}"
+        )
+
     def _workflow_start(self, name, info):
         logger.info(f"Workflow start: component {name}")
+
+        if self.envid == "umbra-default" and name == "broker":
+            self._workflow_start_monitor(name)
 
         cmd = "sudo umbra-{name} --uuid {uuid} --address {address} --debug &".format(
             name=name, uuid=info.get("uuid"), address=info.get("address")
@@ -392,12 +404,34 @@ class Proxy:
                     logger.info(
                         f"Calling action - {action} - Installing environment {self.envid}"
                     )
+
+                    print_cli(f"Installing Umbra at environment {self.envid}")
+
                     action_output = self._workflow_install()
                     self._envs_stats[self.envid][action] = action_output.get("ack")
+
+                    if action_output.get("ack"):
+                        print_cli(
+                            f"Install Umbra in environment {self.envid} Ok",
+                            style="normal",
+                        )
+
+                    else:
+                        print_cli(
+                            f"Install Umbra in environment {self.envid} Error",
+                            style="error",
+                        )
+
                 else:
                     logger.info(
                         f"Calling action {action} not needed - environment already installed"
                     )
+
+                    print_cli(
+                        f"Installing Umbra in environment {self.envid} not needed - environment already installed",
+                        style="attention",
+                    )
+
                     action_output = {
                         "ack": True,
                         "msg": ["install: environment already installed"],
@@ -410,12 +444,33 @@ class Proxy:
                     logger.info(
                         f"Calling action - {action} - Uninstalling environment {self.envid}"
                     )
+
+                    print_cli(f"Uninstalling Umbra at environment {self.envid}")
+
                     action_output = self._workflow_uninstall()
                     self._envs_stats[self.envid][action] = action_output.get("ack")
+
+                    if action_output.get("ack"):
+                        print_cli(
+                            f"Uninstall Umbra in environment {self.envid} Ok",
+                            style="normal",
+                        )
+
+                    else:
+                        print_cli(
+                            f"Uninstall Umbra in environment {self.envid} Error",
+                            style="error",
+                        )
+
                 else:
                     logger.info(
                         f"Calling action {action} not needed - environment not installed"
                     )
+                    print_cli(
+                        f"Uninstalling Umbra in environment {self.envid} not needed - environment not installed",
+                        style="attention",
+                    )
+
                     action_output = {
                         "ack": False,
                         "msg": ["uninstall: environment not installed"],
@@ -426,6 +481,11 @@ class Proxy:
                     logger.info(
                         f"Calling action {action} - environment {self.envid} - component {name}"
                     )
+
+                    print_cli(
+                        f"Starting component 'umbra-{name}' in environment {self.envid}"
+                    )
+
                     action_output = self._workflow_start(name, info)
 
                     self._envs_stats[self.envid]["components"].setdefault(name, {})
@@ -437,11 +497,29 @@ class Proxy:
                         action
                     ] = action_output.get("ack")
 
+                    if action_output.get("ack"):
+                        print_cli(
+                            f"Started component 'umbra-{name}' in environment {self.envid} Ok",
+                            style="normal",
+                        )
+
+                    else:
+
+                        print_cli(
+                            f"Started component 'umbra-{name}' in environment {self.envid} Error",
+                            style="error",
+                        )
+
             if action in ["stop"]:
                 for name, info in self.components.items():
                     logger.info(
                         f"Calling action {action} - environment {self.envid} - component {name}"
                     )
+
+                    print_cli(
+                        f"Stopping component 'umbra-{name}' in environment {self.envid}"
+                    )
+
                     action_output = self._workflow_stop(name, info)
 
                     self._envs_stats[self.envid]["components"].setdefault(name, {})
@@ -451,6 +529,19 @@ class Proxy:
                     self._envs_stats[self.envid]["components"][name][
                         action
                     ] = action_output.get("ack")
+
+                    if action_output.get("ack"):
+                        print_cli(
+                            f"Stopped component 'umbra-{name}' in environment {self.envid} Ok",
+                            style="normal",
+                        )
+
+                    else:
+
+                        print_cli(
+                            f"Stopped component 'umbra-{name}' in environment {self.envid} Error",
+                            style="error",
+                        )
 
             if action_output:
                 action_outputs[action] = action_output
@@ -492,7 +583,10 @@ class Environments:
                 "id": envid,
                 "model": model,
                 "remote": env.get("remote", False),
-                "settings": {"source": src_folder, "destination": dst_folder,},
+                "settings": {
+                    "source": src_folder,
+                    "destination": dst_folder,
+                },
                 "components": env.get("components"),
                 "host": env.get("host", {}),
             }

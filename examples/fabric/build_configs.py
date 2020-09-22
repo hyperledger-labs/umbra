@@ -31,26 +31,6 @@ def build_simple_fabric_cfg():
     scenario = Scenario("Fabric-Simple-01")
     scenario.set_topology(fab_topo)
 
-    # env1_id = "1"
-    # env1_addr = "192.168.122.156:8988"
-
-    # env1_info = {
-    #     "id": "x"
-    #     "user": "umbra",
-    #     "address": "192.168.122.156",
-    #     "port": "22",
-    # }
-
-    # env2_id = "2"
-    # env2_addr = "192.168.122.44:8988"
-
-    # fab_topo.add_environment(env=env1_id, address=env1_addr)
-    # fab_topo.add_environment(env=env2_id, address=env2_addr)
-
-    # Creates the network topology - orgs/nodes and links
-    # fab_topo.add_network("s1", env=env1_id)
-    # fab_topo.add_network("s2", env=env2_id)
-
     env0_id = "env44"
     env0_info = {
         "id": env0_id,

@@ -19,7 +19,7 @@ function install() {
     echo "Installing Umbra Dependencies"
     echo "###################################"
 
-    sudo apt update && sudo apt install -y curl wget ansible git aptitude
+    sudo apt update && sudo apt install -y curl wget ansible git aptitude python3-pip
     sudo python3.8 -m pip install -U "docker<=4.1.0" cffi pexpect
 
     git clone https://github.com/raphaelvrosa/containernet git/containernet
@@ -30,6 +30,14 @@ function install() {
     cd ..
 
     # sudo usermod -aG docker $USER
+
+    echo "###################################"
+    echo "Downloading Images for Monitoring Umbra: influxdb and graphana"
+    echo "###################################"
+
+    docker pull influxdb:latest
+    docker pull grafana/grafana:latest
+
 }
 
 function uninstall() {

@@ -9,8 +9,8 @@ from grpclib.exceptions import GRPCError
 
 from google.protobuf import json_format
 
-from umbra.common.protobuf.umbra_grpc import ScenarioStub
-from umbra.common.protobuf.umbra_pb2 import Report, Workflow
+from umbra.common.protobuf.umbra_grpc import ScenarioStub, MonitorStub
+from umbra.common.protobuf.umbra_pb2 import Report, Workflow, Directrix, Status
 
 from umbra.design.configs import Topology, Scenario
 from umbra.broker.plugins.fabric import FabricEvents
@@ -45,6 +45,93 @@ class Operator:
             msg_bytes = msg_str.encode("utf-8")
 
         return msg_bytes
+
+    async def call_monitor(self, address, data):
+        logger.info(f"Calling Monitor - {address}")
+
+        directrix = json_format.ParseDict(data, Directrix())
+        host, port = address.split(":")
+
+        try:
+            channel = Channel(host, port)
+            stub = MonitorStub(channel)
+            status = await stub.Measure(directrix)
+
+        except Exception as e:
+            ack = False
+            info = repr(e)
+            logger.info(f"Error - monitor failed - {info}")
+        else:
+            if status.error:
+                ack = False
+                logger.info(f"Monitor error: {status.error}")
+                info = status.error
+            else:
+                ack = True
+                if status.info:
+                    info = self.parse_bytes(status.info)
+                else:
+                    info = {}
+                logger.info(f"Monitor info: {info}")
+        finally:
+            channel.close()
+
+        return ack, info
+
+    def get_monitor_env_address(self, env):
+        envs = self.topology.get_environments()
+        env_data = envs.get(env)
+        env_components = env_data.get("components")
+        env_monitor_component = env_components.get("monitor")
+        env_monitor_address = env_monitor_component.get("address")
+        return env_monitor_address
+
+    def build_monitor_directrix(self, env, info, action):
+        hosts = info.get("topology").get("hosts")
+        targets = set(hosts.keys())
+
+        data = {
+            "action": action,
+            "flush": {
+                "live": True,
+                "environment": env,
+                "address": self.info.get("address"),
+            },
+            "sources": [
+                {
+                    "id": 1,
+                    "name": "container",
+                    "parameters": {
+                        "targets": targets,
+                        "duration": "30",
+                        "interval": "5",
+                    },
+                    "sched": {},
+                },
+                {
+                    "id": 2,
+                    "name": "host",
+                    "parameters": {"duration": "30", "interval": "5",},
+                    "sched": {},
+                },
+            ],
+        }
+
+        return data
+
+    async def call_monitors(self, stats, action):
+        logger.info(f"Call monitors")
+
+        all_acks = {}
+        for env, info in stats.items():
+            data = self.build_monitor_directrix(env, info, action)
+            address = self.get_monitor_env_address(env)
+            ack, info = await self.call_monitor(address, data)
+            all_acks[env] = ack
+
+        all_monitors_ack = all(all_acks.values())
+        logger.info(f"Call monitors - action {action} - status: {all_monitors_ack}")
+        return all_monitors_ack
 
     async def call_scenario(self, uid, action, topology, address):
         logger.info(f"Calling Scenario - {action}")
@@ -175,6 +262,7 @@ class Operator:
     async def start(self, uid):
         topology = self.scenario.get_topology()
         acks, stats = await self.call_scenarios(uid, topology, "start")
+        all_monitors_ack = await self.call_monitors(stats, "start")
 
         info, error = {}, {}
         if all(acks.values()):
@@ -187,6 +275,7 @@ class Operator:
     async def stop(self, uid):
         topology = self.scenario.get_topology()
         acks, stats = await self.call_scenarios(uid, topology, "stop")
+        all_monitors_ack = await self.call_monitors(stats, "stop")
 
         info, error = {}, {}
         if all(acks.values()):

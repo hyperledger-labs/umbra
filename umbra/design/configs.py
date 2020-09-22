@@ -292,7 +292,7 @@ class Topology(Graph):
             "remote": False,
             "components": {
                 "scenario": {"uuid": "default-scenario", "address": "127.0.0.1:8957"},
-                # "monitor": {"uuid": "default-monitor", "address": "127.0.0.1:8958"},
+                "monitor": {"uuid": "default-monitor", "address": "127.0.0.1:8958"},
                 "broker": {"uuid": "default-broker", "address": "127.0.0.1:8956"},
             },
         }

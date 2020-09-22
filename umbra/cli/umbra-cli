@@ -2,17 +2,30 @@
 # coding=utf-8
 import logging
 import os
+import sys
+import asyncio
 
-from prompt_toolkit import PromptSession
+from prompt_toolkit.shortcuts import PromptSession
 from prompt_toolkit.completion import WordCompleter
 from prompt_toolkit.styles import Style
 from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
+from prompt_toolkit.patch_stdout import patch_stdout
 
+from google.protobuf import json_format
+
+from umbra.common.protobuf.umbra_grpc import CLIBase
+from umbra.common.protobuf.umbra_pb2 import State, Status
+
+from umbra.common.app import App
+
+from umbra.cli.output import print_cli
 from umbra.cli.main import CLI
 from umbra.common.logs import Logs
 
 
-umbra_completer = WordCompleter(["load", "start", "stop"], ignore_case=True)
+umbra_completer = WordCompleter(
+    ["load", "start", "stop", "install", "uninstall", "begin", "end"], ignore_case=True
+)
 umbra_style = Style.from_dict(
     {
         "completion-menu.completion": "bg:#008888 #ffffff",
@@ -30,14 +43,52 @@ class UmbraCLI:
         logger.info("UmbraCLI init")
         self.cli = CLI()
 
-    def run(self):
+    async def run(self):
         session = PromptSession(
             completer=umbra_completer,
             style=umbra_style,
             auto_suggest=AutoSuggestFromHistory(),
         )
         logger.info("UmbraCLI run - cli session created")
-        self.cli.init(session)
+        await self.cli.init(session)
+        logger.info("UmbraCLI end - cli session finished")
+
+
+class UmbraCLIState(CLIBase):
+    def __init__(self, info):
+        self.info = info
+
+    async def show_state(self, state):
+        state_dict = json_format.MessageToDict(state)
+        print(state_dict)
+        return Status()
+
+    async def Inform(self, stream):
+        request = await stream.recv_message()
+        reply = await self.show_state(request)
+        await stream.send_message(reply)
+
+
+class UmbraCLIApp(App):
+    def __init__(self):
+        App.__init__(self)
+        self.args = {}
+
+    def argparse(self, argv):
+        ack = self.cfg.parse(argv)
+        if ack:
+            self.args = self.cfg.get()
+            self.logs(screen=False)
+        return ack
+
+    async def run(self):
+        try:
+            app_cls = UmbraCLIState
+            app_args = self.args
+            await self.main(app_cls, app_args)
+
+        except asyncio.CancelledError:
+            print_cli("#### << See you soon Umbra! >> ####", style="main")
 
 
 def create_umbra_logs_dir():
@@ -48,8 +99,27 @@ def create_umbra_logs_dir():
         pass
 
 
-if __name__ == "__main__":
+async def main(argv):
     create_umbra_logs_dir()
-    Logs("/tmp/umbra/logs/umbra-cli.log", screen=False, debug=True)
+    app = UmbraCLIApp()
+    ack = app.argparse(argv)
+
     cli = UmbraCLI()
-    cli.run()
+
+    if ack:
+
+        with patch_stdout():
+            background_task = asyncio.create_task(app.run())
+
+            try:
+                print_cli("#### << Welcome to Umbra >> ####", style="main")
+                await cli.run()
+            finally:
+                background_task.cancel()
+
+    else:
+        print_cli("CLI did not start - Argv was not correctly defined.", style="error")
+
+
+if __name__ == "__main__":
+    asyncio.run(main(sys.argv[1:]))

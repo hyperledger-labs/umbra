@@ -55,14 +55,15 @@ class TestScenario(unittest.TestCase):
 
         logger.info(f"topology envs {envs}")
 
-        topology_dict = topo_envs.get("x")
+        topology_dict = topo_envs.get("env156")
+        logger.info(json.dumps(topology_dict, sort_keys=True, indent=4))
 
         logger.info("Starting topology")
         reply = asyncio.run(sc.play("1", "start", topology_dict))
         ok, msg = reply
 
         logger.info(f"topology started {ok}")
-        logger.info(json.dumps(msg, sort_keys=True, indent=4))
+        print(json.dumps(msg, sort_keys=True, indent=4))
 
         logger.info("Stopping topology")
         reply = asyncio.run(sc.play("1", "stop", topology_dict))
@@ -89,10 +90,10 @@ class TestUmbraScenario(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    logging.basicConfig(
-        level=logging.DEBUG,
-        format="%(asctime)s %(levelname)s %(threadName)s %(name)s %(message)s",
-    )
+    # logging.basicConfig(
+    #     level=logging.DEBUG,
+    #     format="%(asctime)s %(levelname)s %(threadName)s %(name)s %(message)s",
+    # )
     # unittest.main()
 
     t = TestScenario()

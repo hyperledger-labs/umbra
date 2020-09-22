@@ -52,6 +52,7 @@ setup(
         "paramiko==2.6.0",
         "scp==0.13.2",
         "prompt_toolkit==3.0.6",
+        "influxdb==5.3.0",
     ],
     python_requires=">=3.8",
     setup_requires=["setuptools>=41.1.0"],
