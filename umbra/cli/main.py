@@ -153,10 +153,10 @@ class CLIRunner:
         self._status["begin"] = ack
 
         if ack:
-            print_cli(f"Begin Umbra Experiment Ok")
+            print_cli(f"Begin Umbra Experiment Ok", style="normal")
             messages = reply
         else:
-            print_cli(f"Begin Umbra Experiment Error")
+            print_cli(f"Begin Umbra Experiment Error", style="error")
             messages = error
 
         logger.info(f"{messages}")
@@ -179,10 +179,10 @@ class CLIRunner:
         self._status["begin"] = not ack
 
         if ack:
-            print_cli(f"Ended Umbra Experiment")
+            print_cli(f"Ended Umbra Experiment", style="normal")
             messages = reply
         else:
-            print_cli(f"Ended Umbra Experiment Error")
+            print_cli(f"Ended Umbra Experiment Error", style="error")
             messages = error
 
         logger.info(f"{messages}")

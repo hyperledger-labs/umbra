@@ -106,7 +106,7 @@ class Operator:
                         "duration": "30",
                         "interval": "5",
                     },
-                    "sched": {},
+                    "schedule": {},
                 },
                 {
                     "id": 2,
@@ -115,7 +115,7 @@ class Operator:
                         "duration": "30",
                         "interval": "5",
                     },
-                    "sched": {},
+                    "schedule": {},
                 },
             ],
         }

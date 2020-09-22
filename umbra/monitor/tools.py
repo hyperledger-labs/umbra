@@ -1061,7 +1061,7 @@ class Tools:
         calls = {}
 
         for source in sources:
-            source_name = sources.get("name")
+            source_name = source.get("name")
 
             if source_name in self.toolset:
 
