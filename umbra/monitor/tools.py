@@ -41,9 +41,14 @@ class Tool:
         self._tstop = None
         self.cfg()
 
-    async def _send(self, stub, message):
+    async def _send(self, address, message):
+        logger.info(f"Sending message Stats")
 
         try:
+            host, port = address.split(":")
+            channel = Channel(host, port)
+            stub = BrokerStub(channel)
+
             info = json_format.ParseDict(message, Stats())
             reply = await stub.Collect(info)
             info_reply = json_format.MessageToDict(
@@ -60,8 +65,14 @@ class Tool:
             logger.debug(f"Exception: {repr(e)}")
             info_reply = {}
 
+        except Exception as e:
+            logger.debug(f"Exception: {repr(e)}")
+            info_reply = {}
+
         finally:
-            return info_reply
+            channel.close()
+            logger.info(f"Reply message Stats {info_reply}")
+            # return info_reply
 
     def format_metrics(self, metrics):
         message = {
@@ -71,19 +82,17 @@ class Tool:
         }
         return message
 
-    def flush(self, metrics):
+    async def flush(self, metrics):
         message = self.format_metrics(metrics)
 
         address = self.output.get("address")
-        host, port = address.split(":")
-        channel = Channel(host, port)
 
-        stub = BrokerStub(channel)
-        reply = asyncio.run(self._send(stub, message))
+        # loop = asyncio.get_event_loop()
+        # loop.create_task(self._send(stub, message))
+        asyncio.create_task(self._send(address, message))
 
-        logger.info(f"Message stats send - reply {reply}")
-
-        channel.close()
+        # reply = asyncio.run(self._send(stub, message))
+        # logger.info(f"Message stats send - reply {reply}")
 
     async def process_call(self):
         """Performs the async execution of cmd in a subprocess
@@ -124,10 +133,11 @@ class Tool:
             return out
 
     async def function_call(self):
-        function_call = self.stimulus
-        loop = asyncio.get_event_loop()
-        with concurrent.futures.ProcessPoolExecutor() as pool:
-            output = await loop.run_in_executor(pool, function_call)
+        output = await self.stimulus
+        # function_call = self.stimulus
+        # loop = asyncio.get_event_loop()
+        # with concurrent.futures.ProcessPoolExecutor() as pool:
+        #     output = await loop.run_in_executor(pool, function_call)
 
         return output
 
@@ -140,6 +150,8 @@ class Tool:
             results = await self.function_call()
 
         self._tstop = datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+
+        logger.debug(f"Finished call - parsing results")
 
         self.parser(results)
         return self.metrics
@@ -609,12 +621,17 @@ class MonContainer(Tool):
 
     def options(self, **kwargs):
         self.is_process = False
-        self.stimulus = partial(self.monitor, kwargs)
+        # self.stimulus = partial(self.monitor, kwargs)
+        self.stimulus = self.monitor(kwargs)
 
     def format_measurement(self, measurements):
         output = []
 
         for data in measurements:
+
+            data_source_name = data.get("name")
+            del data["name"]
+
             fields = {}
             for name, value in data.items():
                 m = {
@@ -626,7 +643,7 @@ class MonContainer(Tool):
                 fields[name] = m
 
             out = {
-                "name": data.get("name"),
+                "name": data_source_name,
                 "tags": {
                     "source": self.name,
                 },
@@ -636,7 +653,7 @@ class MonContainer(Tool):
 
         return output
 
-    def monitor(self, opts):
+    async def monitor(self, opts):
         self.connect()
 
         output_live = self.output.get("live")
@@ -677,42 +694,41 @@ class MonContainer(Tool):
 
                 if output_live:
                     output = self.format_measurement(measurements)
-                    self.flush(output)
+                    await self.flush(output)
 
                 # metrics.append(measurements)
-                time.sleep(interval)
+                await asyncio.sleep(interval)
 
         return metrics
 
     def parser(self, out):
         metrics = []
+        # if out:
+        #     metric_names = list(out[0].keys())
 
-        if out:
-            metric_names = list(out[0].keys())
+        #     for name in metric_names:
 
-            for name in metric_names:
+        #         metric_values = dict(
+        #             [
+        #                 (
+        #                     str(out.index(out_value)),
+        #                     {
+        #                         "key": str(out.index(out_value)),
+        #                         "value": float(out_value.get(name)),
+        #                     },
+        #                 )
+        #                 for out_value in out
+        #             ]
+        #         )
 
-                metric_values = dict(
-                    [
-                        (
-                            str(out.index(out_value)),
-                            {
-                                "key": str(out.index(out_value)),
-                                "value": float(out_value.get(name)),
-                            },
-                        )
-                        for out_value in out
-                    ]
-                )
+        #         m = {
+        #             "name": name,
+        #             "type": "float",
+        #             "unit": "",
+        #             "series": metric_values,
+        #         }
 
-                m = {
-                    "name": name,
-                    "type": "float",
-                    "unit": "",
-                    "series": metric_values,
-                }
-
-                metrics.append(m)
+        #         metrics.append(m)
 
         self.metrics = {"uuid": self.uuid, "metrics": metrics}
 
@@ -897,7 +913,8 @@ class MonHost(Tool):
 
     def options(self, **kwargs):
         self.is_process = False
-        self.stimulus = partial(self.monitor, kwargs)
+        # self.stimulus = partial(self.monitor, kwargs)
+        self.stimulus = self.monitor(kwargs)
 
     def format_measurement(self, data):
         fields = {}
@@ -922,7 +939,7 @@ class MonHost(Tool):
         output = [out]
         return output
 
-    def monitor(self, opts):
+    async def monitor(self, opts):
         ouput_live = self.output.get("live")
 
         metrics = []
@@ -954,42 +971,42 @@ class MonHost(Tool):
 
                 if ouput_live:
                     output = self.format_measurement(measurement)
-                    self.flush(output)
+                    await self.flush(output)
 
                 # metrics.append(measurement)
-                time.sleep(interval)
+                await asyncio.sleep(interval)
 
         return metrics
 
     def parser(self, out):
         metrics = []
 
-        if out:
-            metric_names = list(out[0].keys())
+        # if out:
+        #     metric_names = list(out[0].keys())
 
-            for name in metric_names:
+        #     for name in metric_names:
 
-                metric_values = dict(
-                    [
-                        (
-                            out.index(out_value),
-                            {
-                                "key": out.index(out_value),
-                                "value": float(out_value.get(name)),
-                            },
-                        )
-                        for out_value in out
-                    ]
-                )
+        #         metric_values = dict(
+        #             [
+        #                 (
+        #                     out.index(out_value),
+        #                     {
+        #                         "key": out.index(out_value),
+        #                         "value": float(out_value.get(name)),
+        #                     },
+        #                 )
+        #                 for out_value in out
+        #             ]
+        #         )
 
-                m = {
-                    "name": name,
-                    "type": "float",
-                    "unit": "",
-                    "series": metric_values,
-                }
+        #         m = {
+        #             "name": name,
+        #             "type": "float",
+        #             "unit": "",
+        #             "series": metric_values,
+        #         }
 
-                metrics.append(m)
+        #         metrics.append(m)
 
         self.metrics = {"uuid": self.uuid, "metrics": metrics}
 
@@ -1110,11 +1127,22 @@ class Tools:
 
         flush = directrix.get("flush")
         sources = directrix.get("sources")
+        action = directrix.get("action")
 
         flush["source"] = self.info.get("address")
 
         calls = self.build_calls(flush, sources)
-        asyncio.create_task(self.handler.run(calls))
 
-        status_dict = {"info": self.serialize_bytes({"calls": "ok"})}
+        if action == "start":
+            output = await self.handler.start(calls)
+
+        elif action == "stop":
+            output = await self.handler.stop(calls)
+
+        else:
+            output = None
+
+        logger.debug(f"Handler {action} output: \n{output}")
+
+        status_dict = {}
         return status_dict

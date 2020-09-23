@@ -87,8 +87,12 @@ class Operator:
         return env_monitor_address
 
     def build_monitor_directrix(self, env, info, action):
-        hosts = info.get("topology").get("hosts")
-        targets = repr(set(hosts.keys()))
+
+        if action == "start":
+            hosts = info.get("topology").get("hosts")
+            targets = repr(set(hosts.keys()))
+        else:
+            targets = repr(set())
 
         data = {
             "action": action,
@@ -103,7 +107,7 @@ class Operator:
                     "name": "container",
                     "parameters": {
                         "targets": targets,
-                        "duration": "30",
+                        "duration": "3600",
                         "interval": "5",
                     },
                     "schedule": {},
@@ -112,7 +116,7 @@ class Operator:
                     "id": 2,
                     "name": "host",
                     "parameters": {
-                        "duration": "30",
+                        "duration": "3600",
                         "interval": "5",
                     },
                     "schedule": {},

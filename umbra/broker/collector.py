@@ -1,4 +1,5 @@
 import logging
+import aiohttp
 
 from google.protobuf import json_format
 from influxdb import InfluxDBClient
@@ -9,16 +10,127 @@ from umbra.common.protobuf.umbra_pb2 import Status
 logger = logging.getLogger(__name__)
 
 
+class GraphanaInterface:
+    def __init__(self):
+        self._ds_ids = 1
+        self._datasources = {}
+        self._dashboards = {}
+
+    def graphana_datasource_url(self, address):
+        port = str(3000)
+        suffix = "/api/datasources"
+        url = "http://" + address + ":" + port + suffix
+        return url
+
+    def graphana_dashboad_url(self, address):
+        port = str(3000)
+        suffix = "/api/dashboads"
+        url = "http://" + address + ":" + port + suffix
+        return url
+
+    async def post(self, user, password, url, data):
+        async with aiohttp.ClientSession() as session:
+
+            auth = aiohttp.BasicAuth(user, password)
+
+            async with session.post(url, auth=auth, json=data) as resp:
+                reply = await resp.json()
+                stats = resp.status
+
+                logger.debug(
+                    f"Post sent to graphana {url} - stats {stats} - response {reply}"
+                )
+
+    async def get(self, user, password, url):
+        async with aiohttp.ClientSession() as session:
+
+            auth = aiohttp.BasicAuth(user, password)
+
+            async with session.get(url, auth=auth) as resp:
+                reply = await resp.json()
+                stats = resp.status
+
+                logger.debug(
+                    f"Post sent to graphana {url} - stats {stats} - response {reply}"
+                )
+
+                return reply
+
+        return None
+
+    def format_datasource(
+        self, influx_url, influx_database, influx_user, influx_password
+    ):
+        ds_id = self._ds_ids
+        data = {
+            "id": ds_id,
+            "orgId": 1,
+            "name": influx_database,
+            "type": "influxdb",
+            "typeLogoUrl": "public/app/plugins/datasource/influxdb/img/influxdb_logo.svg",
+            "access": "proxy",
+            "url": influx_url,
+            "password": influx_password,
+            "user": influx_url,
+            "database": influx_database,
+            "basicAuth": False,
+            "isDefault": False,
+            "jsonData": {"httpMode": "GET"},
+            "readOnly": False,
+        }
+        self._ds_ids += 1
+
+        return data
+
+    async def add_datasource(self, info):
+        address = info.get("address")
+        database = info.get("database")
+
+        graphana_url = self.graphana_datasource_url(address)
+
+        influx_url = "http://" + address + ":" + str(8086)
+        influx_user = influx_password = "umbra-influxdb"
+        influx_database = database
+
+        data = self.format_datasource(
+            influx_url, influx_database, influx_user, influx_password
+        )
+
+        graphana_user = graphana_password = "umbra-graphana"
+        await self.post(graphana_user, graphana_password, graphana_url, data)
+
+    async def get_datasources(self, info):
+        address = info.get("address")
+
+        graphana_url = self.graphana_datasource_url(address)
+        graphana_user = graphana_password = "umbra-graphana"
+        reply = await self.get(graphana_user, graphana_password, graphana_url)
+        return reply
+
+    async def add_dashboard(self, info):
+
+        "/api/dashboards/db"
+        pass
+
+
 class Collector:
     def __init__(self, info):
         self.info = info
+        self.address = None
         self.influx_client = None
-        self.sources = {}
+        self.databases = {}
         self._is_connected = False
+        self._gi = GraphanaInterface()
+        self.set_address()
         self.connect()
 
+    def set_address(self):
+        address = self.info.get("address")
+        host = address.split(":")[0]
+        self.address = host
+
     def connect(self):
-        host = "localhost"
+        host = self.address
         port = 8086
         user = "umbra-influxdb"
         password = "umbra-influxdb"
@@ -37,6 +149,7 @@ class Collector:
     def dbs(self):
         dbs = self.influx_client.get_list_database()
         dbs = [db["name"] for db in dbs]
+        logger.debug(f"Databases in influx {dbs}")
         return dbs
 
     def init_db(self, dbname):
@@ -61,17 +174,20 @@ class Collector:
             err = "Could not write points do DB - not connected"
             return False, err
 
-    def parse_message(self, message):
+    async def parse_message(self, message):
         data = []
 
         source = message["source"]
         environment = message["environment"]
 
-        if source not in self.sources:
-            self.init_db(source)
-            logger.debug(f"New database: {source}, {environment}")
+        if environment not in self.databases:
+            self.init_db(environment)
+            logger.debug(f"New database: {environment}, {source}")
 
-        self.sources[source] = environment
+            await self.datasource(environment)
+            logger.debug(f"New datasource: {environment}")
+
+        self.databases[environment] = source
 
         measurements = message.get("measurements", [])
         for measurement in measurements:
@@ -98,15 +214,30 @@ class Collector:
                 "fields": frmt_fields,
             }
 
+            logger.debug(
+                f"Parsing measurement - database {environment} - measurement {measurement.get('name')}"
+            )
+
             data.append(frmt_measurement)
 
-        return data, source
+        return data, environment
 
-    def collect(self, message):
+    async def datasource(self, database):
+        info = {
+            "address": self.address,
+            "database": database,
+        }
+
+        await self._gi.add_datasource(info)
+
+    async def collect(self, message):
         msg = json_format.MessageToDict(message, preserving_proto_field_name=True)
 
-        data, database = self.parse_message(msg)
+        logger.debug(f"Collected message")
+        logger.debug(f"{msg}")
+
+        data, database = await self.parse_message(msg)
         ack, err = self.write(data, database)
 
-        reply = Status(info=str(ack), error=err)
+        reply = Status(info=str(ack).encode("utf-8"), error=err)
         return reply
