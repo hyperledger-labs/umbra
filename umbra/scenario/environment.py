@@ -182,6 +182,22 @@ class Environment:
             logger.debug(f"Could not prune docker containers")
             return False
 
+    def prune_docker_volumes(self):
+        self.connect_docker()
+
+        if self._connected_to_docker:
+            try:
+                pruned = self._docker_client.volumes.prune()
+                logger.debug(f"Docker volumes pruned {pruned}")
+            except docker.errors.APIError as e:
+                logger.debug(f"Docker volumes not pruned - API Error {e}")
+                return False
+            else:
+                return True
+        else:
+            logger.debug(f"Could not prune docker volumes")
+            return False
+
     def remove_docker_container(self, container_name):
         self.connect_docker()
 
@@ -560,12 +576,11 @@ class Environment:
         clean.cleanup()
         self.remove_docker_container_chaincodes()
         self.remove_docker_network()
+        self.prune_docker_volumes()
 
     def stop(self):
         self._stop_network()
         self.mn_cleanup()
-        # self.remove_docker_container_chaincodes()
-        # self.remove_docker_network()
         self.nodes = {}
         self.switches = {}
         self.nodes_info = {}

@@ -11,6 +11,9 @@ from umbra.common.cfg import Config
 logger = logging.getLogger(__name__)
 
 
+logging.getLogger("hpack").setLevel(logging.WARNING)
+
+
 class App:
     def __init__(self):
         self.cfg = Config()
