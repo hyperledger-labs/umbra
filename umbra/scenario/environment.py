@@ -54,7 +54,7 @@ class EnvironmentParser:
             elif node_type == "switch":
                 self.deploy["switches"].append(node_id)
 
-        logger.info("Plugin nodes %s", self.deploy["nodes"])
+        logger.info("Plugin nodes %s", self.deploy["nodes"].keys())
 
         logger.info("Plugin switches %s", self.deploy["switches"])
 
@@ -86,7 +86,7 @@ class EnvironmentParser:
             else:
                 logger.info("unknown link type %s", link_type)
 
-        logger.info("Plugin links %s", self.deploy["links"])
+        logger.info("Plugin links %s", self.deploy["links"].keys())
 
     def build(self, topology):
         logger.debug("Containernet plugin parsing topology")
@@ -308,6 +308,8 @@ class Environment:
         cpu_bw_p, cpu_bw_q = calculate_cpu_cfs_values(resources)
 
         mng_ip = node.get("mng_intf", None)
+
+        logger.debug("Adding container: %s - %s", node.get("name"), node.get("image"))
 
         container = self.net.addDocker(
             node.get("name"),
