@@ -31,6 +31,24 @@ def build_simple_fabric_cfg():
     scenario = Scenario("Fabric-Simple-01")
     scenario.set_topology(fab_topo)
 
+    umbra_default = {
+        "id": "umbra-default",
+        "remote": False,
+        "host": {},
+        "components": {
+            "scenario": {
+                "uuid": "default-scenario",
+                "address": "192.168.122.1:8957",
+            },
+            "broker": {
+                "uuid": "default-broker",
+                "address": "192.168.122.1:8956",
+            },
+        },
+    }
+
+    fab_topo.set_default_environment(umbra_default)
+
     env0_id = "env44"
     env0_info = {
         "id": env0_id,

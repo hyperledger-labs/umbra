@@ -136,6 +136,14 @@ class Handler:
         except asyncio.CancelledError:
             logger.debug(f"Cancelling task {uid}")
 
+            try:
+                if not task.done():
+                    task.cancel()
+                    await task
+
+            except asyncio.CancelledError:
+                logger.debug(f"Task {uid} cancelled")
+
         finally:
             return results
 

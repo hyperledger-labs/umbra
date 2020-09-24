@@ -281,6 +281,7 @@ class Topology(Graph):
                 [True if k in components else False for k in mandatory_components]
             )
             if has_all_mandatory_components:
+                environment["id"] = "umbra-default"
                 self._environments["umbra-default"] = environment
                 return True
 

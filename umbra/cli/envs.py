@@ -229,11 +229,12 @@ class Proxy:
         )
         logger.info(f"Components: {env_cfg.get('components')}")
 
-    def _workflow_monitor(self, name, action):
+    def _workflow_monitor(self, action):
+        logger.info(f"Workflow monitor {action}")
 
         if action == "start":
             cmd = "cd /tmp/umbra/source && sudo make start-aux-monitor"
-        if action == "stop":
+        elif action == "stop":
             cmd = "cd /tmp/umbra/source && sudo make stop-aux-monitor"
         else:
             cmd = None
@@ -246,7 +247,7 @@ class Proxy:
         logger.info(f"Workflow start: component {name}")
 
         if self.envid == "umbra-default" and name == "broker":
-            self._workflow_monitor(name, action="start")
+            self._workflow_monitor(action="start")
 
         cmd = "sudo umbra-{name} --uuid {uuid} --address {address} --debug &".format(
             name=name, uuid=info.get("uuid"), address=info.get("address")
@@ -273,7 +274,7 @@ class Proxy:
         logger.info(f"Stats: {ack} - msg: {msg}")
 
         if self.envid == "umbra-default" and name == "broker":
-            self._workflow_monitor(name, action="stop")
+            self._workflow_monitor(action="stop")
 
         return output
 

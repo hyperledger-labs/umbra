@@ -56,12 +56,12 @@ class Tool:
             )
 
         except GRPCError as e:
-            logger.info(f"Error in reaching: Info")
-            logger.debug(f"Exception in info: {repr(e)}")
+            logger.info(f"Error in reaching: Stats")
+            logger.debug(f"Exception in stats: {repr(e)}")
             info_reply = {}
 
         except OSError as e:
-            logger.info(f"Could not reach channel for Info")
+            logger.info(f"Could not reach channel for Stats")
             logger.debug(f"Exception: {repr(e)}")
             info_reply = {}
 
