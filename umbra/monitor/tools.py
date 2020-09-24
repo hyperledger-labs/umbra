@@ -642,10 +642,17 @@ class MonContainer(Tool):
                 }
                 fields[name] = m
 
+            # out = {
+            #     "name": data_source_name,
+            #     "tags": {
+            #         "source": self.name,
+            #     },
+            #     "fields": fields,
+            # }
             out = {
-                "name": data_source_name,
+                "name": self.name,
                 "tags": {
-                    "source": self.name,
+                    "source": data_source_name,
                 },
                 "fields": fields,
             }
@@ -928,10 +935,17 @@ class MonHost(Tool):
             }
             fields[name] = m
 
+        # out = {
+        #     "name": self._info.get("node"),
+        #     "tags": {
+        #         "source": self.name,
+        #     },
+        #     "fields": fields,
+        # }
         out = {
-            "name": self._info.get("node"),
+            "name": self.name,
             "tags": {
-                "source": self.name,
+                "source": self._info.get("node"),
             },
             "fields": fields,
         }

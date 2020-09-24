@@ -208,9 +208,12 @@ class Collector:
 
                 frmt_fields[f] = value
 
+            tags = measurement.get("tags")
+            tags["environment"] = environment
+
             frmt_measurement = {
                 "measurement": measurement.get("name"),
-                "tags": measurement.get("tags"),
+                "tags": tags,
                 "fields": frmt_fields,
             }
 
