@@ -183,7 +183,7 @@ class Profile:
             itemset = self.links.items()
         else:
             logger.debug("Could not look for profile where %s", where)
-            return None
+            return {}
         types = [(k, v) for (k, v) in itemset if v["profile"] == _type]
         if types:
             (k, v) = types.pop()
@@ -191,7 +191,7 @@ class Profile:
             return resources
         else:
             logger.debug("Could not look for profile where %s type %s", where, _type)
-            return None
+            return {}
 
 
 class Lifecycle:
@@ -1188,6 +1188,9 @@ class FabricTopology(Topology):
 
                         orderer["intf"] += 1
                         orderer["ips"][intf_name] = intf_ip.split("/")[0]
+
+                    if link_dst in self._networks:
+                        self.add_link_nodes(link_dst, net_name, link_type, link_profile)
 
                 if link_type == "external":
                     self.add_link_nodes(
