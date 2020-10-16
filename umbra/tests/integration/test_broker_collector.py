@@ -44,11 +44,57 @@ class TestBrokerCollector(unittest.TestCase):
 
         assert ok is True
 
+    async def create_dashboard(self):
+        gi = GraphanaInterface()
+
+        info = {
+            "address": "172.17.0.1",
+            "database": "y",
+        }
+
+        await gi.add_dashboard(info)
+
+        info = {
+            "address": "172.17.0.1",
+            "database": "x",
+        }
+
+        await gi.add_dashboard(info)
+
+    async def get_dashboard(self):
+        gi = GraphanaInterface()
+
+        info = {
+            "address": "172.17.0.1",
+        }
+
+        reply = await gi.get_dashboard(info)
+        return reply
+
+    def test_dashboard(self):
+        asyncio.run(self.create_dashboard())
+        reply = asyncio.run(self.get_dashboard())
+
+        ok = False
+
+        if reply.get("dashboard", None):
+            dashboard = reply.get("dashboard")
+            dash_uid = dashboard.get("uid")
+
+            if dash_uid == "umbra":
+                ok = True
+
+        assert ok is True
+
 
 if __name__ == "__main__":
     logging.basicConfig(
         level=logging.DEBUG,
         format="%(asctime)s %(levelname)s %(threadName)s %(name)s %(message)s",
     )
+    suite = unittest.TestSuite()
+    suite.addTest(TestBrokerCollector("test_dashboard"))
+    runner = unittest.TextTestRunner()
+    runner.run(suite)
 
-    unittest.main()
+    # unittest.main()

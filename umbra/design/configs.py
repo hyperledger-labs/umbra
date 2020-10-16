@@ -275,7 +275,8 @@ class Topology(Graph):
         has_all_keys = all([True if k in environment else False for k in keys])
         if has_all_keys:
 
-            mandatory_components = ["scenario", "broker"]
+            # mandatory_components = ["scenario", "broker"]
+            mandatory_components = ["broker"]
             components = environment.get("components")
             has_all_mandatory_components = all(
                 [True if k in components else False for k in mandatory_components]
@@ -291,6 +292,9 @@ class Topology(Graph):
         env_default = {
             "id": "umbra-default",
             "remote": False,
+            "host": {
+                "address": "localhost",
+            },
             "components": {
                 "scenario": {"uuid": "default-scenario", "address": "127.0.0.1:8957"},
                 "monitor": {"uuid": "default-monitor", "address": "127.0.0.1:8958"},
@@ -692,7 +696,7 @@ class Topology(Graph):
 class FabricTopology(Topology):
     def __init__(self, name, chaincode_dir=None, clear_dir=True):
         Topology.__init__(self, name, model="fabric")
-        self.project_network = "umbra"  # HARDCODED
+        self.project_network = "umbra"
         self.network_mode = "umbra"
         self.orgs = {}
         self.orderers = {}
@@ -700,8 +704,9 @@ class FabricTopology(Topology):
         self._configtx_fill = {}
         self._networks = {}
         self._ca_ports = 7054
-        self._peer_ports = 7000
+        self._peer_ports = 2000
         self._peer_subports = 51
+        self._peer_events_subports = 7053
         self._ip_network = ipaddress.IPv4Network("172.31.0.0/16")
         self._ip_network_assigned = []
         self._filepath_fabricbase = None
@@ -763,7 +768,9 @@ class FabricTopology(Topology):
             dst_net = self._networks[dst]
             dst_net_env_name = dst_net.get("env")
 
-            print("add network link orgs net envs", src_net_env_name, dst_net_env_name)
+            logger.debug(
+                f"Add network link environments: src {src_net_env_name} - dst {dst_net_env_name}"
+            )
 
             if src_net_env_name == dst_net_env_name:
                 link_type = "internal"
@@ -862,6 +869,7 @@ class FabricTopology(Topology):
             "image_tag": image_tag,
             "intf": 1,
             "ips": {},
+            "environment-address": "",
         }
         if name not in self.orderers:
             orderer["orderer_path"] = self.get_node_dir(orderer, orderer=True)
@@ -897,6 +905,7 @@ class FabricTopology(Topology):
             "ca_admin_pw": ca_admin_pw,
             "intf": 1,
             "ips": {},
+            "environment-address": "",
         }
         if org_name in self.orgs:
             org = self.orgs[org_name]
@@ -929,6 +938,7 @@ class FabricTopology(Topology):
             "peer_anchor_port": None,
             "intf": 1,
             "ips": {},
+            "environment-address": "",
         }
 
         if org_name in self.orgs:
@@ -1249,7 +1259,36 @@ class FabricTopology(Topology):
         }
         topo["umbra"] = info
 
+    def update_nodes_environment_address(self):
+        logger.debug(f"Updating nodes environment address")
+        for network in self._networks.values():
+
+            envid = network.get("env")
+            env = self._environments.get(envid)
+            env_address = env.get("host").get("address")
+
+            for org_name in network.get("links"):
+
+                if org_name in self.orgs:
+
+                    org = self.orgs.get(org_name, None)
+
+                    org_CAs = org.get("CAs", {})
+                    org_peers = org.get("peers", {})
+
+                    for peer in org_peers.values():
+                        peer["environment-address"] = env_address
+
+                    for CA in org_CAs.values():
+                        CA["environment-address"] = env_address
+
+                if org_name in self.orderers:
+                    orderer = self.orderers.get(org_name, None)
+                    orderer["environment-address"] = env_address
+
     def build(self):
+        self.update_nodes_environment_address()
+        self.build_configs()
         self._build_peers()
         self._build_CAs()
         self._build_orderers()
@@ -1600,7 +1639,7 @@ class FabricTopology(Topology):
     def _build_config_sdk(self):
         config = {
             "name": "sample-network",
-            "description": "Sample network contains 4 peers (2 orgs), 1 orderer and 2 cas for Python SDK testing",
+            "description": "Sample network for Python SDK testing",
             "version": "0.1",
             "client": {
                 "organization": "org1",
@@ -1658,7 +1697,9 @@ class FabricTopology(Topology):
 
             orderer_frmt = {
                 orderer.get("orderer_fqdn"): {
-                    "url": "localhost:" + str(orderer.get("port")),
+                    "url": orderer.get("environment-address")
+                    + ":"
+                    + str(orderer.get("port")),
                     "grpcOptions": {
                         "grpc.ssl_target_name_override": orderer.get("orderer_fqdn"),
                         "grpc-max-send-message-length": 15,
@@ -1689,8 +1730,12 @@ class FabricTopology(Topology):
 
                 peer_frmt = {
                     peer.get("peer_fqdn"): {
-                        "url": "localhost:" + str(peer.get("port")),
-                        "eventUrl": "localhost:9053",  # TODO find peer eventurl (set this ENV in fabric.yaml peer-base)
+                        "url": peer.get("environment-address")
+                        + ":"
+                        + str(peer.get("port")),
+                        "eventUrl": peer.get("environment-address")
+                        + ":"
+                        + "9053",  # TODO find peer eventurl (set this ENV in fabric.yaml peer-base)
                         "grpcOptions": {
                             "grpc.ssl_target_name_override": peer.get("peer_fqdn"),
                             "grpc.http2.keepalive_time": 15,
@@ -1711,7 +1756,9 @@ class FabricTopology(Topology):
 
                 CA_frmt = {
                     CA.get("name_org"): {
-                        "url": "localhost:" + str(CA.get("port")),
+                        "url": CA.get("environment-address")
+                        + ":"
+                        + str(CA.get("port")),
                         "grpcOptions": {
                             "verify": True,
                         },
@@ -1750,6 +1797,9 @@ class Events:
         self._ids = 1
         self._events = {}
 
+    def get(self):
+        return self._events
+
     def add(self, when, category, params):
         ev_id = self._ids
         event = {
@@ -1768,7 +1818,7 @@ class Events:
         self._events = data
 
 
-class Scenario:
+class Experiment:
     def __init__(self, name):
         self.name = name
         self.folder = None
@@ -1798,12 +1848,12 @@ class Scenario:
     def dump(self):
         topo_built = self.topology.build()
         events_built = self.events.build()
-        scenario = {
+        experiment = {
             "name": self.name,
             "topology": topo_built,
             "events": events_built,
         }
-        return scenario
+        return experiment
 
     def save(self):
         data = self.dump()
@@ -1812,7 +1862,7 @@ class Scenario:
         filepath = os.path.normpath(os.path.join(self.folder, filename))
 
         with open(filepath, "w") as outfile:
-            logger.info("Saving config file %s", filepath)
+            logger.info("Saving experiment config file %s", filepath)
             json.dump(data, outfile, indent=4, sort_keys=True)
             return True
 

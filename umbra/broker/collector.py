@@ -1,10 +1,13 @@
 import logging
 import aiohttp
+import asyncio
+import copy
 
 from google.protobuf import json_format
 from influxdb import InfluxDBClient
 
 from umbra.common.protobuf.umbra_pb2 import Status
+from umbra.broker.visualization import dashboard_template, panels_template
 
 
 logger = logging.getLogger(__name__)
@@ -15,6 +18,10 @@ class GraphanaInterface:
         self._ds_ids = 1
         self._datasources = {}
         self._dashboards = {}
+        self._dashboard_on = False
+        self._dashboard_version = 0
+        self._dashboard_panel_ids = 1
+        self._dashboard_panels = []
 
     def graphana_datasource_url(self, address):
         port = str(3000)
@@ -22,9 +29,14 @@ class GraphanaInterface:
         url = "http://" + address + ":" + port + suffix
         return url
 
-    def graphana_dashboad_url(self, address):
+    def graphana_dashboad_url(self, address, uid=None):
         port = str(3000)
-        suffix = "/api/dashboads"
+
+        if uid:
+            suffix = "/api/dashboards/uid/{uid}".format(uid=uid)
+        else:
+            suffix = "/api/dashboards/db"
+
         url = "http://" + address + ":" + port + suffix
         return url
 
@@ -40,6 +52,9 @@ class GraphanaInterface:
                 logger.debug(
                     f"Post sent to graphana {url} - stats {stats} - response {reply}"
                 )
+                return reply
+
+        return None
 
     async def get(self, user, password, url):
         async with aiohttp.ClientSession() as session:
@@ -51,7 +66,7 @@ class GraphanaInterface:
                 stats = resp.status
 
                 logger.debug(
-                    f"Post sent to graphana {url} - stats {stats} - response {reply}"
+                    f"Get sent to graphana {url} - stats {stats} - response {reply}"
                 )
 
                 return reply
@@ -107,10 +122,86 @@ class GraphanaInterface:
         reply = await self.get(graphana_user, graphana_password, graphana_url)
         return reply
 
-    async def add_dashboard(self, info):
+    def format_dashboard(self, dashboard_template):
+        dashboard = copy.deepcopy(dashboard_template)
 
-        "/api/dashboards/db"
-        pass
+        dashboard["id"] = None
+        data = {"dashboard": dashboard, "folderId": 0, "overwrite": False}
+        return data
+
+    def format_dashboard_panels(self, dashboard_template, panels_template, environment):
+        panels = copy.deepcopy(panels_template)
+        dashboard = copy.deepcopy(dashboard_template)
+
+        for panel in panels:
+            title = panel.get("title")
+            panel["title"] = title.format(environment=environment)
+            panel["datasource"] = environment
+            panel["id"] = self._dashboard_panel_ids
+            panel["gridPos"]["y"] = self._dashboard_panel_ids
+            self._dashboard_panel_ids += 1
+
+        self._dashboard_panels.extend(panels)
+        dashboard["panels"] = self._dashboard_panels
+        dashboard["id"] = 1
+        dashboard["version"] = self._dashboard_version
+
+        data = {"dashboard": dashboard, "folderId": 0, "overwrite": False}
+        return data
+
+    async def add_dashboard(self, info):
+        address = info.get("address")
+        environment = info.get("database")
+
+        graphana_user = graphana_password = "umbra-graphana"
+        graphana_url = self.graphana_dashboad_url(address)
+
+        if not self._dashboard_on:
+            data = self.format_dashboard(dashboard_template)
+            reply = await self.post(
+                graphana_user, graphana_password, graphana_url, data
+            )
+
+            if reply.get("status") == "success":
+                logger.info("Dashboard Created")
+                self._dashboard_on = True
+                self._dashboard_version += 1
+            else:
+                logger.info("Dashboard Not Created")
+                self._dashboard_on = False
+
+        if self._dashboard_on:
+            if environment not in self._dashboards:
+
+                data = self.format_dashboard_panels(
+                    dashboard_template, panels_template, environment
+                )
+
+                reply = await self.post(
+                    graphana_user, graphana_password, graphana_url, data
+                )
+
+                if reply.get("status") == "success":
+                    logger.info(f"Environment {environment} dashboard panels created")
+                    self._dashboards[environment] = True
+                    self._dashboard_version += 1
+
+                else:
+                    logger.info(
+                        f"Environment {environment} dashboard panels not created"
+                    )
+                    self._dashboards[environment] = False
+            else:
+                logger.info(
+                    f"Environment {environment} dashboard panels not created - already existent"
+                )
+
+    async def get_dashboard(self, info, uid="umbra"):
+        address = info.get("address")
+        graphana_url = self.graphana_dashboad_url(address, uid=uid)
+        graphana_user = graphana_password = "umbra-graphana"
+        reply = await self.get(graphana_user, graphana_password, graphana_url)
+        return reply
 
 
 class Collector:
@@ -121,6 +212,7 @@ class Collector:
         self.databases = {}
         self._is_connected = False
         self._gi = GraphanaInterface()
+        self._lock = asyncio.Lock()
         self.set_address()
         self.connect()
 
@@ -226,18 +318,20 @@ class Collector:
         return data, environment
 
     async def datasource(self, database):
-        info = {
-            "address": self.address,
-            "database": database,
-        }
+        async with self._lock:
+            info = {
+                "address": self.address,
+                "database": database,
+            }
 
-        await self._gi.add_datasource(info)
+            await self._gi.add_datasource(info)
+            await self._gi.add_dashboard(info)
 
     async def collect(self, message):
         msg = json_format.MessageToDict(message, preserving_proto_field_name=True)
 
         logger.debug(f"Collected message")
-        logger.debug(f"{msg}")
+        # logger.debug(f"{msg}")
 
         data, database = await self.parse_message(msg)
         ack, err = self.write(data, database)

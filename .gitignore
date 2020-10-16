@@ -8,3 +8,4 @@ latex/
 *~
 dist/
 build/
+__pycache__/

@@ -3,20 +3,25 @@ import json
 import asyncio
 import logging
 
-from umbra.design.configs import Scenario
+from prompt_toolkit.shortcuts import PromptSession
+from prompt_toolkit.completion import WordCompleter
+from prompt_toolkit.styles import Style
+from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
+
+from umbra.design.configs import Experiment
 from umbra.cli.envs import Environments
 from umbra.cli.interfaces import BrokerInterface
+from umbra.cli.output import print_cli, format_text
 
-from umbra.cli.output import print_cli
 
 logger = logging.getLogger(__name__)
 
 
 class CLIRunner:
     def __init__(self):
-        self.scenario = None
+        self.experiment = None
         self.topology = None
-        self.scenario_config = {}
+        self.experiment_config = {}
         self.environments = Environments()
         self.broker_interface = BrokerInterface()
         self.cmds = {
@@ -74,11 +79,11 @@ class CLIRunner:
             msg = "Configuration not loaded - " + error
             print_cli(None, err=msg, style="error")
         else:
-            self.scenario = Scenario("")
-            ack = self.scenario.parse(data)
+            self.experiment = Experiment("")
+            ack = self.experiment.parse(data)
 
             if ack:
-                self.topology = self.scenario.get_topology()
+                self.topology = self.experiment.get_topology()
                 self.environments.generate_env_cfgs(self.topology)
                 msg = "Configuration loaded"
                 print_cli(msg, style="normal")
@@ -94,7 +99,7 @@ class CLIRunner:
     async def start(self):
         logger.info(f"Start triggered")
 
-        print_cli(f"Starting")
+        print_cli(f"Starting", style="attention")
 
         ack, messages = self.environments.implement_env_cfgs("start")
         self._status["start"] = ack
@@ -105,7 +110,7 @@ class CLIRunner:
     async def stop(self):
         logger.info(f"Stop triggered")
 
-        print_cli(f"Stopping")
+        print_cli(f"Stopping", style="attention")
 
         ack, messages = self.environments.implement_env_cfgs("stop")
         self._status["start"] = not ack
@@ -117,7 +122,7 @@ class CLIRunner:
     async def install(self):
         logger.info(f"install triggered")
 
-        print_cli(f"Installing")
+        print_cli(f"Installing", style="attention")
 
         ack, messages = self.environments.implement_env_cfgs("install")
         self._status["install"] = ack
@@ -128,7 +133,7 @@ class CLIRunner:
     async def uninstall(self):
         logger.info(f"uninstall triggered")
 
-        print_cli(f"Uninstalling")
+        print_cli(f"Uninstalling", style="attention")
 
         ack, messages = self.environments.implement_env_cfgs("uninstall")
         self._status["install"] = not ack
@@ -140,23 +145,24 @@ class CLIRunner:
     async def begin(self):
         logger.info(f"begin triggered")
 
-        print_cli(f"Beginning Umbra Experiment")
+        print_cli(f"Beginning", style="attention")
 
         default_env = self.topology.get_default_environment()
         default_env_components = default_env.get("components")
         broker_env = default_env_components.get("broker")
 
-        scenario = self.scenario.dump()
+        print_cli(f"Experiment Begin", style="info")
+        scenario = self.experiment.dump()
         reply, error = await self.broker_interface.begin(broker_env, scenario)
 
         ack = False if error else True
         self._status["begin"] = ack
 
         if ack:
-            print_cli(f"Begin Umbra Experiment Ok", style="normal")
+            print_cli(f"Umbra Experiment Ok", style="normal")
             messages = reply
         else:
-            print_cli(f"Begin Umbra Experiment Error", style="error")
+            print_cli(f"Umbra Experiment Error", style="error")
             messages = error
 
         logger.info(f"{messages}")
@@ -165,13 +171,14 @@ class CLIRunner:
     async def end(self):
         logger.info(f"end triggered")
 
-        print_cli(f"Ending Umbra Experiment")
+        print_cli(f"Ending", style="attention")
 
         default_env = self.topology.get_default_environment()
         default_env_components = default_env.get("components")
         broker_env = default_env_components.get("broker")
 
-        scenario = self.scenario.dump()
+        print_cli(f"Experiment End", style="info")
+        scenario = self.experiment.dump()
         reply, error = await self.broker_interface.end(broker_env, scenario)
 
         ack = False if error else True
@@ -252,25 +259,30 @@ class CLIRunner:
 
 
 class CLI:
+    umbra_completer = WordCompleter(
+        ["load", "start", "stop", "install", "uninstall", "begin", "end"],
+        ignore_case=True,
+    )
+
+    umbra_style = Style.from_dict(
+        {
+            "completion-menu.completion": "bg:#008888 #ffffff",
+            "completion-menu.completion.current": "bg:#00aaaa #000000",
+            "scrollbar.background": "bg:#88aaaa",
+            "scrollbar.button": "bg:#222222",
+            "main": "#fb5607",
+            "normal": "#ffd500",
+            "error": "#d7263d",
+            "info": "#3a86ff",
+            "attention": "#8338ec",
+            "warning": "#ff006e italic",
+            "prompt": "#00bbf9 bold",
+        }
+    )
+
     def __init__(self):
         self.runner = CLIRunner()
         self._runner_cmds = self.runner.get_cmds()
-
-    # async def read_output_queue(self):
-    #     while True:
-    #         try:
-    #             out = await self.output_queue.get()
-    #         except asyncio.CancelledError:
-    #             out = []
-    #         except Exception as e:
-    #             logger.debug(f"Queue: {repr(e)}")
-    #             out = []
-    #         else:
-    #             if out == "stop":
-    #                 self.output_queue.task_done()
-    #                 logger.debug("Stopped output queue coroutine")
-    #                 break
-    #             self.print_output(out)
 
     def validator(self, text):
         words = text.split()
@@ -296,14 +308,24 @@ class CLI:
         else:
             print_cli(f"Unkown command output format {type(output)}", style="attention")
 
-    async def init(self, session):
+    async def init(self):
         logger.info("CLI init")
 
-        # background_task = asyncio.create_task(self.read_output_queue())
+        session = PromptSession(
+            complete_while_typing=True,
+            completer=CLI.umbra_completer,
+            style=CLI.umbra_style,
+            auto_suggest=AutoSuggestFromHistory(),
+        )
+
+        prompt = ":umbra> "
+
         try:
             while True:
                 try:
-                    text = await session.prompt_async("umbra> ")
+                    prompt_text = format_text(prompt, style="prompt")
+                    text = await session.prompt_async(prompt_text)
+
                 except KeyboardInterrupt:
                     continue
                 except EOFError:
@@ -317,12 +339,7 @@ class CLI:
 
                     if commands:
                         await self.runner.execute(commands)
-                        # output = self.runner.execute(commands)
-                        # self.print_output(output)
+                        # ack, reply = await self.runner.execute(commands)
 
         finally:
-            # logger.debug("cancelling output queue")
-            # asyncio.create_task(self.output_queue.put("stop"))
-            # logger.debug("cancelling back task")
-            # background_task.cancel()
             logger.debug("GoodBye!")

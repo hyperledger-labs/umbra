@@ -9,10 +9,10 @@ from grpclib.exceptions import GRPCError
 
 from google.protobuf import json_format
 
-from umbra.common.protobuf.umbra_grpc import ScenarioStub, MonitorStub
+from umbra.common.protobuf.umbra_grpc import ExperimentStub, MonitorStub
 from umbra.common.protobuf.umbra_pb2 import Report, Workflow, Directrix, Status
 
-from umbra.design.configs import Topology, Scenario
+from umbra.design.configs import Topology, Experiment
 from umbra.broker.plugins.fabric import FabricEvents
 
 
@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 class Operator:
     def __init__(self, info):
         self.info = info
-        self.scenario = None
+        self.experiment = None
         self.topology = None
         self.events_fabric = FabricEvents()
         self.plugins = {}
@@ -141,7 +141,7 @@ class Operator:
         return all_monitors_ack
 
     async def call_scenario(self, uid, action, topology, address):
-        logger.info(f"Calling Scenario - {action}")
+        logger.info(f"Calling Experiment - {action}")
 
         scenario = self.serialize_bytes(topology)
         deploy = Workflow(id=uid, action=action, scenario=scenario)
@@ -151,7 +151,7 @@ class Operator:
 
         try:
             channel = Channel(host, port)
-            stub = ScenarioStub(channel)
+            stub = ExperimentStub(channel)
             status = await stub.Establish(deploy)
 
         except Exception as e:
@@ -163,7 +163,7 @@ class Operator:
         else:
             if status.error:
                 ack = False
-                logger.info(f"Scenario not deployed error: {status.error}")
+                logger.info(f"Experiment not deployed error: {status.error}")
                 info = status.error
             else:
                 ack = True
@@ -171,7 +171,7 @@ class Operator:
                     info = self.parse_bytes(status.info)
                 else:
                     info = {}
-                logger.info(f"Scenario info: {info}")
+                logger.info(f"Experiment info: {info}")
         finally:
             channel.close()
 
@@ -199,22 +199,18 @@ class Operator:
             logger.info("Scheduling plugin %s events", name)
             plugin.schedule(events)
 
-    async def call_events(self, scenario, info_deploy):
+    async def call_events(self, info_deploy):
         logger.info("Scheduling events")
 
-        self.scenario = Scenario("tmp")
-        self.scenario.parse(scenario)
-
-        info_topology = info_deploy.get("topology")
-        info_hosts = info_deploy.get("hosts")
-
-        topo = self.scenario.get_topology()
-        topo.fill_config(info_topology)
-        topo.fill_hosts_config(info_hosts)
-        self.topology = topo
+        # info_topology = info_deploy.get("topology")
+        # info_hosts = info_deploy.get("hosts")
+        # topo = self.experiment.get_topology()
+        # topo.fill_config(info_topology)
+        # topo.fill_hosts_config(info_hosts)
+        # self.topology = topo
         self.config_plugins()
 
-        events = scenario.get("events")
+        events = self.experiment.events.get()
         self.schedule_plugins(events)
 
     async def call_scenarios(self, uid, topology, action):
@@ -255,9 +251,9 @@ class Operator:
     def load(self, scenario_message):
         try:
             scenario = self.parse_bytes(scenario_message)
-            self.scenario = Scenario("tmp")
-            self.scenario.parse(scenario)
-            topology = self.scenario.get_topology()
+            self.experiment = Experiment("tmp")
+            self.experiment.parse(scenario)
+            topology = self.experiment.get_topology()
             topology.build()
             self.topology = topology
             ack = True
@@ -268,7 +264,7 @@ class Operator:
             return ack
 
     async def start(self, uid):
-        topology = self.scenario.get_topology()
+        topology = self.experiment.get_topology()
         acks, stats = await self.call_scenarios(uid, topology, "start")
 
         info, error = {}, {}
@@ -281,7 +277,7 @@ class Operator:
         return info, error
 
     async def stop(self, uid):
-        topology = self.scenario.get_topology()
+        topology = self.experiment.get_topology()
 
         acks, stats = await self.call_scenarios(uid, topology, "stop")
 
@@ -312,7 +308,8 @@ class Operator:
             if action == "start":
                 info, error = await self.start(uid)
 
-                # events_info = await self.call_events()
+                if not error:
+                    events_info = await self.call_events(info)
 
             elif action == "stop":
                 info, error = await self.stop(uid)

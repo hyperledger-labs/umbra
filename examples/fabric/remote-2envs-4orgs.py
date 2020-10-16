@@ -2,10 +2,10 @@ import os
 import sys
 import logging
 
-from umbra.design.configs import Profile, Topology, Scenario
+from umbra.design.configs import Profile, Topology, Experiment
 from umbra.design.configs import FabricTopology
 
-from base_configtx.fabric import (
+from base_configtx.configtx_4orgs import (
     org1_policy,
     org2_policy,
     org3_policy,
@@ -15,31 +15,30 @@ from base_configtx.fabric import (
 )
 
 
-def build_simple_fabric_cfg():
-
+def builds():
     # temp_dir = "/tmp/umbra/fabric_configs"
     # configs_dir = os.path.abspath(os.path.join(temp_dir))
 
-    # temp_dir = "/tmp/umbra/chaincode"
-    # chaincode_dir = os.path.abspath(os.path.join(temp_dir))
+    temp_dir = "/tmp/umbra/fabric/chaincode"
+    chaincode_dir = os.path.abspath(os.path.join(temp_dir))
 
-    # Defines Fabric Topology - main class to have orgs/peers/cas/orderers added
-    fab_topo = FabricTopology("fabric_simple")
+    # Defines Fabric Topology - main class to have orgs/peers/cas/orderers
+    fab_topo = FabricTopology("remote-2envs-4orgs", chaincode_dir=chaincode_dir)
 
-    # Defines scenario containing topology, so events can be added
+    # Defines experiment containing topology, later events can be added
+    experiment = Experiment("remote-2envs-4orgs")
+    experiment.set_topology(fab_topo)
 
-    scenario = Scenario("Fabric-Simple-01")
-    scenario.set_topology(fab_topo)
-
+    # Defines environments
     umbra_default = {
         "id": "umbra-default",
         "remote": False,
         "host": {},
         "components": {
-            "scenario": {
-                "uuid": "default-scenario",
-                "address": "192.168.122.1:8957",
-            },
+            # "scenario": {
+            #     "uuid": "default-scenario",
+            #     "address": "192.168.122.1:8957",
+            # },
             "broker": {
                 "uuid": "default-broker",
                 "address": "192.168.122.1:8956",
@@ -98,9 +97,6 @@ def build_simple_fabric_cfg():
 
     fab_topo.add_network("s1", envid=env0_id)
     fab_topo.add_network("s2", envid=env1_id)
-
-    fab_topo.add_network("s1")
-    fab_topo.add_network("s2")
 
     fab_topo.add_networks_link(src="s1", dst="s2")
 
@@ -168,9 +164,6 @@ def build_simple_fabric_cfg():
     fab_topo.set_configtx_profile(p1, ["org1", "org2", "org3", "org4"])
     fab_topo.set_configtx_profile(p2, ["orderer"])
     fab_topo.set_configtx_profile(p3, ["org1", "org2", "org3", "org4"])
-
-    # Creates all config files - i.e., crypto-config configtx config-sdk
-    fab_topo.build_configs()
 
     fab_topo.add_org_network_link("org1", "s1", "links")
     fab_topo.add_org_network_link("org2", "s2", "links")
@@ -334,30 +327,26 @@ def build_simple_fabric_cfg():
         "chaincode_args": ["b"],
     }
 
-    # scenario.add_event("0", "fabric", ev_info_channels)
-    # scenario.add_event("1", "fabric", ev_create_channel)
-    # scenario.add_event("3", "fabric", ev_join_channel_org1)
-    # scenario.add_event("3", "fabric", ev_join_channel_org2)
-    # scenario.add_event("3", "fabric", ev_join_channel_org3)
-    # scenario.add_event("3", "fabric", ev_join_channel_org4)
-    # scenario.add_event("4", "fabric", ev_info_channel)
-    # scenario.add_event("5", "fabric", ev_info_channel_config)
-    # scenario.add_event("6", "fabric", ev_info_channels)
-    # scenario.add_event("7", "fabric", ev_info_network)
-    # scenario.add_event("8", "fabric", ev_chaincode_install_org1)
-    # scenario.add_event("8", "fabric", ev_chaincode_install_org2)
-    # scenario.add_event("10", "fabric", ev_chaincode_instantiate_org1)
-    # scenario.add_event("10", "fabric", ev_chaincode_instantiate_org2)
-    # scenario.add_event("20", "fabric", ev_chaincode_invoke_org1)
-    # scenario.add_event("30", "fabric", ev_chaincode_query_org1)
-    # scenario.add_event("32", "fabric", ev_chaincode_query_org2)
+    # experiment.add_event("0", "fabric", ev_info_channels)
+    # experiment.add_event("1", "fabric", ev_create_channel)
+    # experiment.add_event("3", "fabric", ev_join_channel_org1)
+    # experiment.add_event("3", "fabric", ev_join_channel_org2)
+    # experiment.add_event("3", "fabric", ev_join_channel_org3)
+    # experiment.add_event("3", "fabric", ev_join_channel_org4)
+    # experiment.add_event("4", "fabric", ev_info_channel)
+    # experiment.add_event("5", "fabric", ev_info_channel_config)
+    # experiment.add_event("6", "fabric", ev_info_channels)
+    # experiment.add_event("7", "fabric", ev_info_network)
+    # experiment.add_event("8", "fabric", ev_chaincode_install_org1)
+    # experiment.add_event("8", "fabric", ev_chaincode_install_org2)
+    # experiment.add_event("10", "fabric", ev_chaincode_instantiate_org1)
+    # experiment.add_event("10", "fabric", ev_chaincode_instantiate_org2)
+    # experiment.add_event("20", "fabric", ev_chaincode_invoke_org1)
+    # experiment.add_event("30", "fabric", ev_chaincode_query_org1)
+    # experiment.add_event("32", "fabric", ev_chaincode_query_org2)
 
     # Save config file
-    scenario.save()
-
-
-def builds():
-    build_simple_fabric_cfg()
+    experiment.save()
 
 
 def setup_logging(log_level=logging.DEBUG):

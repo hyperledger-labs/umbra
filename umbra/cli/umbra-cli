@@ -5,11 +5,8 @@ import os
 import sys
 import asyncio
 
-from prompt_toolkit.shortcuts import PromptSession
-from prompt_toolkit.completion import WordCompleter
-from prompt_toolkit.styles import Style
-from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
 from prompt_toolkit.patch_stdout import patch_stdout
+from prompt_toolkit.shortcuts import set_title
 
 from google.protobuf import json_format
 
@@ -23,18 +20,6 @@ from umbra.cli.main import CLI
 from umbra.common.logs import Logs
 
 
-umbra_completer = WordCompleter(
-    ["load", "start", "stop", "install", "uninstall", "begin", "end"], ignore_case=True
-)
-umbra_style = Style.from_dict(
-    {
-        "completion-menu.completion": "bg:#008888 #ffffff",
-        "completion-menu.completion.current": "bg:#00aaaa #000000",
-        "scrollbar.background": "bg:#88aaaa",
-        "scrollbar.button": "bg:#222222",
-    }
-)
-
 logger = logging.getLogger(__name__)
 
 
@@ -44,13 +29,8 @@ class UmbraCLI:
         self.cli = CLI()
 
     async def run(self):
-        session = PromptSession(
-            completer=umbra_completer,
-            style=umbra_style,
-            auto_suggest=AutoSuggestFromHistory(),
-        )
         logger.info("UmbraCLI run - cli session created")
-        await self.cli.init(session)
+        await self.cli.init()
         logger.info("UmbraCLI end - cli session finished")
 
 
@@ -60,7 +40,7 @@ class UmbraCLIState(CLIBase):
 
     async def show_state(self, state):
         state_dict = json_format.MessageToDict(state)
-        print(state_dict)
+        print_cli(state_dict)
         return Status()
 
     async def Inform(self, stream):
@@ -88,7 +68,7 @@ class UmbraCLIApp(App):
             await self.main(app_cls, app_args)
 
         except asyncio.CancelledError:
-            print_cli("#### << See you soon Umbra! >> ####", style="main")
+            print_cli("\t<<< See you soon! Cheers, Umbra >>>\t\t", style="main")
 
 
 def create_umbra_logs_dir():
@@ -112,7 +92,8 @@ async def main(argv):
             background_task = asyncio.create_task(app.run())
 
             try:
-                print_cli("#### << Welcome to Umbra >> ####", style="main")
+                set_title("Umbra")
+                print_cli("\t\t<<< Welcome to Umbra >>>\t\t", style="main")
                 await cli.run()
             finally:
                 background_task.cancel()

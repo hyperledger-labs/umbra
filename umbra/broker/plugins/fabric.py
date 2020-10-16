@@ -26,8 +26,13 @@ class FabricEvents:
         self._config_sdk = configsdk
         if all([topology, configsdk, chaincode, configtx]):
             logger.info("FabricEvents configs OK")
-            logger.info("configsdk %s, chaincode %s, configtx %s", configsdk, chaincode, configtx)
-            
+            logger.info(
+                "configsdk %s, chaincode %s, configtx %s",
+                configsdk,
+                chaincode,
+                configtx,
+            )
+
             self.config_gopath()
             self.build_cli()
             return True
@@ -36,31 +41,33 @@ class FabricEvents:
             return False
 
     def config_gopath(self):
-        gopath = os.path.normpath(os.path.join(
-            self._chaincode_dir
-        ))
-        os.environ['GOPATH'] = os.path.abspath(gopath)
+        gopath = os.path.normpath(os.path.join(self._chaincode_dir))
+        os.environ["GOPATH"] = os.path.abspath(gopath)
 
     def build_cli(self):
-        pathlist = ["$HOME/hl/bin",] # TODO set dynamic config path for configtxgen bin
+        pathlist = [
+            "$HOME/hl/bin",
+        ]  # TODO set dynamic config path for configtxgen bin
         os.environ["PATH"] += os.pathsep + os.pathsep.join(pathlist)
 
         self._cli = Client(net_profile=self._config_sdk)
         logger.debug("Fabric Orgs %s", self._cli.organizations)
-        logger.debug("Fabric Peers %s", self._cli.peers)  
-        logger.debug("Fabric Orderers %s", self._cli.orderers)  
-        logger.debug("Fabric CAs %s", self._cli.CAs) 
-        logger.info("Fabric Client SDK CLI Started") 
+        logger.debug("Fabric Peers %s", self._cli.peers)
+        logger.debug("Fabric Orderers %s", self._cli.orderers)
+        logger.debug("Fabric CAs %s", self._cli.CAs)
+        logger.info("Fabric Client SDK CLI Started")
 
     def schedule(self, events):
-        for _id,event in events.items():
+        for _id, event in events.items():
             event_category = event.get("category")
-            
+
             if event_category == "fabric":
                 when = event.get("when")
-                logger.info("Calling at %s event %s", when, event.get("params").get("action"))
+                logger.info(
+                    "Calling at %s event %s", when, event.get("params").get("action")
+                )
                 self.call_at(when, event.get("params"))
-    
+
     def sched_time(self, when):
         if type(when) is float:
             if when >= time.time():
@@ -78,16 +85,15 @@ class FabricEvents:
 
     def call_at(self, when, event):
         rel_when = self.sched_time(when)
-        self._async_loop.call_later(
-            max(0, rel_when), self.call, event)
+        self._async_loop.call_later(max(0, rel_when), self.call, event)
 
     def run_task(self, task):
         try:
             self._async_loop.create_task(task)
         except asyncio.CancelledError:
             pass
-        except Exception:
-            logger.error("Exception in Fabric Event Task", exc_info=True)
+        except Exception as e:
+            logger.error(f"Exception in Fabric Event Task - {repr(e)}", exc_info=True)
 
     def call(self, event):
         task = None
@@ -120,7 +126,7 @@ class FabricEvents:
             self.run_task(task)
         else:
             logger.info("Unkown task for event %s", event)
-    
+
     async def event_create_channel(self, ev):
         org_name = ev.get("org")
         user_name = ev.get("user")
@@ -133,20 +139,20 @@ class FabricEvents:
 
         org = self._topo.get("orgs").get(org_name)
         org_fqdn = org.get("org_fqdn")
-                
-        if org_fqdn and orderer_fqdn:          
+
+        if org_fqdn and orderer_fqdn:
             org_user = self._cli.get_user(org_name=org_fqdn, name=user_name)
-            
+
             response = await self._cli.channel_create(
                 orderer=orderer_fqdn,
                 channel_name=channel,
                 requestor=org_user,
                 config_yaml=self._configtx_dir,
-                channel_profile=profile
+                channel_profile=profile,
             )
             logger.info("Create channel response %s", response)
             return response
-        
+
         logger.info("unknown orderer %s and org %s", orderer_name, org_name)
         return None
 
@@ -162,22 +168,26 @@ class FabricEvents:
 
         org = self._topo.get("orgs").get(org_name)
         org_fqdn = org.get("org_fqdn")
-                
-        if org_fqdn and orderer_fqdn:          
+
+        if org_fqdn and orderer_fqdn:
             org_user = self._cli.get_user(org_name=org_fqdn, name=user_name)
 
             peers = org.get("peers")
-            peers_fqdn = [ peer.get("peer_fqdn") for peer in peers.values() if peer.get("name") in peers_names ]
+            peers_fqdn = [
+                peer.get("peer_fqdn")
+                for peer in peers.values()
+                if peer.get("name") in peers_names
+            ]
 
             response = await self._cli.channel_join(
                 requestor=org_user,
                 channel_name=channel,
                 peers=peers_fqdn,
-                orderer=orderer_fqdn
+                orderer=orderer_fqdn,
             )
             logger.info("Join channel response %s", response)
             return response
-        
+
         logger.info("unknown orderer %s and org %s", orderer_name, org_name)
         return None
 
@@ -191,20 +201,21 @@ class FabricEvents:
         org_fqdn = org.get("org_fqdn")
 
         peers = org.get("peers")
-        peers_fqdn = [ peer.get("peer_fqdn") for peer in peers.values() if peer.get("name") in peers_names ]
+        peers_fqdn = [
+            peer.get("peer_fqdn")
+            for peer in peers.values()
+            if peer.get("name") in peers_names
+        ]
 
-        if org_fqdn and peers_fqdn:          
+        if org_fqdn and peers_fqdn:
             org_user = self._cli.get_user(org_name=org_fqdn, name=user_name)
 
             response = await self._cli.query_info(
-                requestor=org_user,
-                channel_name=channel,
-                peers=peers_fqdn,
-                decode=True
+                requestor=org_user, channel_name=channel, peers=peers_fqdn, decode=True
             )
             logger.info("Info channel response %s", response)
             return response
-        
+
         logger.info("unknown org %s and/org peers %s", org_name, peers_names)
         return None
 
@@ -217,19 +228,21 @@ class FabricEvents:
         org_fqdn = org.get("org_fqdn")
 
         peers = org.get("peers")
-        peers_fqdn = [ peer.get("peer_fqdn") for peer in peers.values() if peer.get("name") in peers_names ]
+        peers_fqdn = [
+            peer.get("peer_fqdn")
+            for peer in peers.values()
+            if peer.get("name") in peers_names
+        ]
 
-        if org_fqdn and peers_fqdn:          
+        if org_fqdn and peers_fqdn:
             org_user = self._cli.get_user(org_name=org_fqdn, name=user_name)
 
             response = await self._cli.query_channels(
-                requestor=org_user,
-                peers=peers_fqdn,
-                decode=True
+                requestor=org_user, peers=peers_fqdn, decode=True
             )
             logger.info("Info channels response %s", response)
             return response
-        
+
         logger.info("unknown org %s and/org peers %s", org_name, peers_names)
         return None
 
@@ -243,23 +256,24 @@ class FabricEvents:
         org_fqdn = org.get("org_fqdn")
 
         peers = org.get("peers")
-        peers_fqdn = [ peer.get("peer_fqdn") for peer in peers.values() if peer.get("name") in peers_names ]
+        peers_fqdn = [
+            peer.get("peer_fqdn")
+            for peer in peers.values()
+            if peer.get("name") in peers_names
+        ]
 
-        if org_fqdn and peers_fqdn:          
+        if org_fqdn and peers_fqdn:
             org_user = self._cli.get_user(org_name=org_fqdn, name=user_name)
 
             response = await self._cli.get_channel_config(
-                requestor=org_user,
-                channel_name=channel,
-                peers=peers_fqdn,
-                decode=True
+                requestor=org_user, channel_name=channel, peers=peers_fqdn, decode=True
             )
             logger.info("Info channel config response %s", response)
             return response
-        
+
         logger.info("unknown org %s and/org peers %s", org_name, peers_names)
         return None
-        
+
     async def event_info_channel_chaincodes(self, ev):
         org_name = ev.get("org")
         user_name = ev.get("user")
@@ -269,19 +283,21 @@ class FabricEvents:
         org_fqdn = org.get("org_fqdn")
 
         peers = org.get("peers")
-        peers_fqdn = [ peer.get("peer_fqdn") for peer in peers.values() if peer.get("name") in peers_names ]
+        peers_fqdn = [
+            peer.get("peer_fqdn")
+            for peer in peers.values()
+            if peer.get("name") in peers_names
+        ]
 
-        if org_fqdn and peers_fqdn:          
+        if org_fqdn and peers_fqdn:
             org_user = self._cli.get_user(org_name=org_fqdn, name=user_name)
 
             response = await self._cli.query_installed_chaincodes(
-                requestor=org_user,
-                peers=peers_fqdn,
-                decode=True
+                requestor=org_user, peers=peers_fqdn, decode=True
             )
             logger.info("Info channel chaincodes response %s", response)
             return response
-        
+
         logger.info("unknown org %s and/org peers %s", org_name, peers_names)
         return None
 
@@ -289,16 +305,12 @@ class FabricEvents:
         orderer_name = ev.get("orderer")
         orderer = self._topo.get("orderers").get(orderer_name)
         orderer_fqdn = orderer.get("orderer_fqdn")
-        
+
         if orderer_fqdn:
-            response = self._cli.get_net_info(
-                'organizations',
-                orderer_fqdn,
-                'mspid'
-            )
+            response = self._cli.get_net_info("organizations", orderer_fqdn, "mspid")
             logger.info("Info network response %s", response)
             return response
-        
+
         logger.info("unknown orderer %s", orderer_name)
         return None
 
@@ -309,14 +321,18 @@ class FabricEvents:
         chaincode_name = ev.get("chaincode_name")
         chaincode_path = ev.get("chaincode_path")
         chaincode_version = ev.get("chaincode_version")
-        
+
         org = self._topo.get("orgs").get(org_name)
         org_fqdn = org.get("org_fqdn")
 
         peers = org.get("peers")
-        peers_fqdn = [ peer.get("peer_fqdn") for peer in peers.values() if peer.get("name") in peers_names ]
-                
-        if org_fqdn and peers_fqdn:          
+        peers_fqdn = [
+            peer.get("peer_fqdn")
+            for peer in peers.values()
+            if peer.get("name") in peers_names
+        ]
+
+        if org_fqdn and peers_fqdn:
             org_user = self._cli.get_user(org_name=org_fqdn, name=user_name)
 
             response = await self._cli.chaincode_install(
@@ -324,11 +340,11 @@ class FabricEvents:
                 peers=peers_fqdn,
                 cc_path=chaincode_path,
                 cc_name=chaincode_name,
-                cc_version=chaincode_version
+                cc_version=chaincode_version,
             )
             logger.info("Chaincode install response %s", response)
             return response
-        
+
         logger.info("unknown org %s and/or peers %s", org_name, peers_names)
         return None
 
@@ -338,16 +354,20 @@ class FabricEvents:
         peers_names = ev.get("peers")
         channel = ev.get("channel")
         chaincode_args = ev.get("chaincode_args")
-        chaincode_name = ev.get("chaincode_name")        
+        chaincode_name = ev.get("chaincode_name")
         chaincode_version = ev.get("chaincode_version")
-        
+
         org = self._topo.get("orgs").get(org_name)
         org_fqdn = org.get("org_fqdn")
 
         peers = org.get("peers")
-        peers_fqdn = [ peer.get("peer_fqdn") for peer in peers.values() if peer.get("name") in peers_names ]
-                
-        if org_fqdn and peers_fqdn:          
+        peers_fqdn = [
+            peer.get("peer_fqdn")
+            for peer in peers.values()
+            if peer.get("name") in peers_names
+        ]
+
+        if org_fqdn and peers_fqdn:
             org_user = self._cli.get_user(org_name=org_fqdn, name=user_name)
 
             response = await self._cli.chaincode_instantiate(
@@ -356,11 +376,11 @@ class FabricEvents:
                 peers=peers_fqdn,
                 args=chaincode_args,
                 cc_name=chaincode_name,
-                cc_version=chaincode_version
+                cc_version=chaincode_version,
             )
             logger.info("Chaincode instantiate response %s", response)
             return response
-        
+
         logger.info("unknown org %s and/or peers %s", org_name, peers_names)
         return None
 
@@ -370,15 +390,19 @@ class FabricEvents:
         peers_names = ev.get("peers")
         channel = ev.get("channel")
         chaincode_args = ev.get("chaincode_args")
-        chaincode_name = ev.get("chaincode_name")        
-        
+        chaincode_name = ev.get("chaincode_name")
+
         org = self._topo.get("orgs").get(org_name)
         org_fqdn = org.get("org_fqdn")
 
         peers = org.get("peers")
-        peers_fqdn = [ peer.get("peer_fqdn") for peer in peers.values() if peer.get("name") in peers_names ]
-                
-        if org_fqdn and peers_fqdn:          
+        peers_fqdn = [
+            peer.get("peer_fqdn")
+            for peer in peers.values()
+            if peer.get("name") in peers_names
+        ]
+
+        if org_fqdn and peers_fqdn:
             org_user = self._cli.get_user(org_name=org_fqdn, name=user_name)
 
             response = await self._cli.chaincode_invoke(
@@ -386,11 +410,11 @@ class FabricEvents:
                 channel_name=channel,
                 peers=peers_fqdn,
                 args=chaincode_args,
-                cc_name=chaincode_name
+                cc_name=chaincode_name,
             )
             logger.info("Chaincode invoke response %s", response)
             return response
-        
+
         logger.info("unknown org %s and/or peers %s", org_name, peers_names)
         return None
 
@@ -400,27 +424,30 @@ class FabricEvents:
         peers_names = ev.get("peers")
         channel = ev.get("channel")
         chaincode_args = ev.get("chaincode_args")
-        chaincode_name = ev.get("chaincode_name")        
-        
+        chaincode_name = ev.get("chaincode_name")
+
         org = self._topo.get("orgs").get(org_name)
         org_fqdn = org.get("org_fqdn")
 
         peers = org.get("peers")
-        peers_fqdn = [ peer.get("peer_fqdn") for peer in peers.values() if peer.get("name") in peers_names ]
-                
-        if org_fqdn and peers_fqdn:          
+        peers_fqdn = [
+            peer.get("peer_fqdn")
+            for peer in peers.values()
+            if peer.get("name") in peers_names
+        ]
+
+        if org_fqdn and peers_fqdn:
             org_user = self._cli.get_user(org_name=org_fqdn, name=user_name)
 
-    
             response = await self._cli.chaincode_query(
                 requestor=org_user,
                 channel_name=channel,
                 peers=peers_fqdn,
                 args=chaincode_args,
-                cc_name=chaincode_name
+                cc_name=chaincode_name,
             )
             logger.info("Chaincode query response %s", response)
             return response
-        
+
         logger.info("unknown org %s and/or peers %s", org_name, peers_names)
         return None
