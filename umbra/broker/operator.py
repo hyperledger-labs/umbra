@@ -9,7 +9,7 @@ from grpclib.exceptions import GRPCError
 
 from google.protobuf import json_format
 
-from umbra.common.protobuf.umbra_grpc import ExperimentStub, MonitorStub
+from umbra.common.protobuf.umbra_grpc import ScenarioStub, MonitorStub
 from umbra.common.protobuf.umbra_pb2 import Report, Workflow, Directrix, Status
 
 from umbra.design.configs import Topology, Experiment
@@ -151,7 +151,7 @@ class Operator:
 
         try:
             channel = Channel(host, port)
-            stub = ExperimentStub(channel)
+            stub = ScenarioStub(channel)
             status = await stub.Establish(deploy)
 
         except Exception as e:
