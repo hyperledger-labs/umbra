@@ -46,20 +46,22 @@ class Playground:
                 elif cmd == "stop":
                     reply = self.stop()
                 elif cmd == "environment_event":
-                    node_name = scenario.get('node_name', None)
+                    target_node = scenario.get('target_node', None)
                     action = scenario.get('action', None)
                     action_args = scenario.get('action_args', None)
 
                     if action == "kill_container":
-                        reply = self.kill_container(node_name)
+                        reply = self.kill_container(target_node)
                     elif action == "update_cpu_limit":
-                        reply= self.update_cpu_limit(node_name, action_args)
+                        reply= self.update_cpu_limit(target_node, action_args)
                     elif action == "update_memory_limit":
-                        reply= self.update_memory_limit(node_name, action_args)
+                        reply= self.update_memory_limit(target_node, action_args)
                     elif action == "update_link":
                         reply= self.update_link(action_args)
                     else:
                         reply = {}
+                elif cmd == "current_topology":
+                    reply = self.get_current_topology()
                 else:
                     reply = {}
 
@@ -101,9 +103,24 @@ class Playground:
         }
         return ack
 
-    def kill_container(self, node_name):
-        ok, err_msg = self.exp_topo.kill_container(node_name)
-        logger.info("Terminating container name: %s", node_name)
+    def get_current_topology(self):
+        ok, info = "True", {}
+        if self.exp_topo:
+            ok, info = self.exp_topo.get_current_topology()
+
+        ack = {
+            'ok': str(ok),
+            'msg': {
+                'info': info,
+                'error': "",
+            }
+        }
+
+        return ack
+
+    def kill_container(self, target_node):
+        ok, err_msg = self.exp_topo.kill_container(target_node)
+        logger.info("Terminating container name: %s", target_node)
 
         ack = {
             'ok': str(ok),
@@ -115,15 +132,15 @@ class Playground:
 
         return ack
 
-    def update_cpu_limit(self, node_name, params):
+    def update_cpu_limit(self, target_node, params):
         cpu_quota = params.get('cpu_quota', -1)
         cpu_period = params.get('cpu_period', -1)
         cpu_shares = params.get('cpu_shares', -1)
         cores = params.get('cores', None)
 
-        ok, err_msg = self.exp_topo.update_cpu_limit(node_name,
+        ok, err_msg = self.exp_topo.update_cpu_limit(target_node,
             cpu_quota, cpu_period,cpu_shares, cores)
-        logger.info("Updating cpu limit of %s with %s", node_name, params)
+        logger.info("Updating cpu limit of %s with %s", target_node, params)
 
         ack = {
             'ok': str(ok),
@@ -135,13 +152,13 @@ class Playground:
 
         return ack
 
-    def update_memory_limit(self, node_name, params):
+    def update_memory_limit(self, target_node, params):
         mem_limit = params.get('mem_limit', -1)
         memswap_limit = params.get('memswap_limit', -1)
 
-        ok, err_msg = self.exp_topo.update_memory_limit(node_name,
+        ok, err_msg = self.exp_topo.update_memory_limit(target_node,
             mem_limit, memswap_limit)
-        logger.info("Updating mem limit of %s with %s", node_name, params)
+        logger.info("Updating mem limit of %s with %s", target_node, params)
 
         ack = {
             'ok': str(ok),
@@ -215,8 +232,8 @@ class Scenario(ScenarioBase):
                 logger.debug("Stopping running playground")
                 await self.call("stop", None)
                 self.stop()
-            
-            self.start()            
+
+            self.start()
             reply = await self.call(command, scenario)
 
         elif command == "stop":
@@ -224,9 +241,11 @@ class Scenario(ScenarioBase):
             self.stop()
         elif command == "environment_event":
             reply = await self.call(command, scenario)
+        elif command == "current_topology":
+            reply = await self.call(command, scenario)
         else:
-            logger.debug(f"Unkown playground command {command}")
-            return False, {}
+            logger.warn(f"Unkown playground command {command}")
+            return "False", {}
        
         ack, info = reply.get("ok"), reply.get("msg")
         return ack, info
@@ -259,13 +278,30 @@ class Scenario(ScenarioBase):
         
         deploy_dict = json_format.MessageToDict(deploy, preserving_proto_field_name=True)
         id = deploy_dict.get("id")
-        command = deploy_dict.get("workflow")
+        command = deploy_dict.get("command")
 
         ok, msg = await self.play(id, command, scenario)
-        logger.debug(f"Playground msg: {msg}")
+        logger.debug(f"command = {command}, Playground msg = {msg}")
         
         error = msg.get("error")
         built_info = self.serialize_bytes(msg.get("info"))
 
         built = Status(id=id, ok=ok, error=error, info=built_info)
         await stream.send_message(built)
+
+    async def CurrentTopology(self, stream):
+        wflow_raw = await stream.recv_message()
+        event = self.parse_bytes(wflow_raw.scenario)
+
+        wflow_dict = json_format.MessageToDict(wflow_raw, preserving_proto_field_name=True)
+        ev_id = wflow_dict.get("id")
+        command = wflow_dict.get("command")
+
+        ok, msg = await self.play(id, command, scenario)
+        logger.debug(f"command = {command}, Playground msg = {msg}")
+
+        error = msg.get("error")
+        topo_info = self.serialize_bytes(msg.get("info"))
+
+        reply = Status(id=ev_id, ok=ok, error=error, info=topo_info)
+        await stream.send_message(reply)

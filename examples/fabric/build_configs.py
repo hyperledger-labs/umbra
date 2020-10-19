@@ -246,75 +246,32 @@ def build_simple_fabric_cfg():
         "chaincode_args": ['b'],
     }
 
-    ev_kill_container_peer0_org1 = {
-        "command": "environment_event",
-        "args": {
-            "node_name": "peer0.org1.example.com",
-            "action": "kill_container",
-            "action_args": {},
-        },
-        "schedule": {
-            "from": 4, # run on the 4th second, after ev_create_channel
-            "until": 0,
-            "duration": 0,
-            "interval": 0,
-            "repeat": 0
-        },
-    }
-
     ev_kill_container_peer0_org2 = {
         "command": "environment_event",
-        "args": {
-            "node_name": "peer0.org2.example.com",
-            "action": "kill_container",
-            "action_args": {},
-        },
-        "schedule": {
-            "from": 4, # run on the 4th second, after ev_create_channel
-            "until": 0,
-            "duration": 0,
-            "interval": 0,
-            "repeat": 0
-        },
+        "target_node": "peer0.org2.example.com",
+        "action": "kill_container",
+        "action_args": {},
     }
 
     ev_mem_limit_peer1_org1 = {
         "command": "environment_event",
-        "args": {
-            "action": "update_memory_limit",
-            "action_args": {
-                "mem_limit": 256000000,
-                "memswap_limit": -1
-            },
-            "node_name": "peer1.org1.example.com"
+        "action": "update_memory_limit",
+        "action_args": {
+            "mem_limit": 256000000,
+            "memswap_limit": -1
         },
-        "schedule": {
-            "from": 4, # run on the 4th second, after ev_create_channel
-            "until": 0,
-            "duration": 0,
-            "interval": 0,
-            "repeat": 0
-        },
+        "target_node": "peer1.org1.example.com",
     }
 
     ev_cpu_limit_peer1_org2 = {
         "command": "environment_event",
-        "args": {
-            "action": "update_cpu_limit",
-            "action_args": {
-                "cpu_quota": 10000,
-                "cpu_period": 50000,
-                "cpu_shares": -1,
-                "cores": {}
-            },
-            "node_name": "peer1.org2.example.com"
-        },
-        "schedule": {
-            "from": 4, # run on the 4th second, after ev_create_channel
-            "until": 0,
-            "duration": 0,
-            "interval": 0,
-            "repeat": 0
+        "target_node": "peer1.org2.example.com",
+        "action": "update_cpu_limit",
+        "action_args": {
+            "cpu_quota": 10000,
+            "cpu_period": 50000,
+            "cpu_shares": -1,
+            "cores": {}
         },
     }
 
@@ -327,111 +284,126 @@ def build_simple_fabric_cfg():
     qdisc htb 5: root refcnt 2 r2q 10 default 1 direct_packets_stat 0 direct_qlen 1000
     qdisc netem 10: parent 5:1 limit 1000 delay 4.0ms loss 10%
     """
-    ev_update_link = {
+    ev_update_link_res = {
         "command": "environment_event",
-        "args": {
-            "action": "update_link",
-            "action_args": {
-                "events": [
-                    {
-                        "group": "links",
-                        "specs": {
-                            "action": "update",
-                            "online": True,
-                            "resources": {
-                                "bw": 3,
-                                "delay": "4ms",
-                                "loss": 10,
-                            }
-                        },
-                        "targets": ("s0", "peer1.org1.example.com")
+        "action": "update_link",
+        "action_args": {
+            "events": [
+                {
+                    "group": "links",
+                    "specs": {
+                        "action": "update",
+                        "online": True,
+                        "resources": {
+                            "bw": 3,
+                            "delay": "4ms",
+                            "loss": 10,
+                        }
                     },
-                    {
-                        "group": "links",
-                        "specs": {
-                            "action": "update",
-                            "online": True,
-                            "resources": {
-                                "bw": 3,
-                                "delay": "4ms",
-                                "loss": 10,
-                            }
-                        },
-                        "targets": ("s0", "peer0.org3.example.com")
+                    "targets": ("s0", "peer1.org1.example.com")
+                },
+                {
+                    "group": "links",
+                    "specs": {
+                        "action": "update",
+                        "online": True,
+                        "resources": {
+                            "bw": 3,
+                            "delay": "4ms",
+                            "loss": 10,
+                        }
                     },
-                ]
-            },
-        },
-        "schedule": {
-            "from": 6,
-            "until": 0,
-            "duration": 0,
-            "interval": 0,
-            "repeat": 0
+                    "targets": ("s0", "peer0.org3.example.com")
+                },
+            ]
         },
     }
 
+    # Find peer1.org1.example.com connection name from scenario.log
+    # In this case, it is s0-eth2
     # $ ip link show s0-eth2 # ensure state DOWN
-    # ... state DOWN mode DEFAULT
+    # ... mtu 1500 qdisc htb master ovs-system state DOWN
     ev_update_link_peer1_org1_downlink = {
         "command": "environment_event",
-        "args": {
-            "action": "update_link",
-            "action_args": {
-                "events": [
-                    {
-                        "group": "links",
-                        "specs": {
-                            "action": "update",
-                            "online": False,
-                            "resources": None
-                        },
-                        "targets": ("s0", "peer1.org1.example.com")
+        "action": "update_link",
+        "action_args": {
+            "events": [
+                {
+                    "group": "links",
+                    "specs": {
+                        "action": "update",
+                        "online": False,
+                        "resources": None
                     },
-                ]
-            },
-        },
-        "schedule": {
-            "from": 1,
-            "until": 0,
-            "duration": 0,
-            "interval": 0,
-            "repeat": 0
+                    "targets": ("s0", "peer1.org1.example.com")
+                },
+            ]
         },
     }
 
     ev_update_link_peer1_org1_uplink = {
         "command": "environment_event",
-        "args": {
-            "action": "update_link",
-            "action_args": {
-                "events": [
-                    {
-                        "group": "links",
-                        "specs": {
-                            "action": "update",
-                            "online": True,
-                            "resources": {
-                                "bw": 1,
-                                "delay": "2ms",
-                                # "loss": None,
-                            }
-                        },
-                        "targets": ("s0", "peer1.org1.example.com")
+        "action": "update_link",
+        "action_args": {
+            "events": [
+                {
+                    "group": "links",
+                    "specs": {
+                        "action": "update",
+                        "online": True,
+                        "resources": {
+                            "bw": 1,
+                            "delay": "2ms",
+                            # "loss": None,
+                        }
                     },
-                ]
-            },
-        },
-        "schedule": {
-            "from": 3,
-            "until": 0,
-            "duration": 0,
-            "interval": 0,
-            "repeat": 0
+                    "targets": ("s0", "peer1.org1.example.com")
+                },
+            ]
         },
     }
 
-    ev_agent_v2 = {
+    ev_update_link_orderer_down = {
+        "command": "environment_event",
+        "action": "update_link",
+        "action_args": {
+            "events": [
+                {
+                    "group": "links",
+                    "specs": {
+                        "action": "update",
+                        "online": False,
+                        "resources": None
+                    },
+                    "targets": ("s0", "orderer.example.com")
+                },
+            ]
+        },
+    }
+
+    ev_update_link_orderer_up = {
+        "command": "environment_event",
+        "action": "update_link",
+        "action_args": {
+            "events": [
+                {
+                    "group": "links",
+                    "specs": {
+                        "action": "update",
+                        "online": True,
+                        "resources": {
+                            "bw": 1,
+                            "delay": "2ms",
+                            # "loss": None,
+                        }
+                    },
+                    "targets": ("s0", "orderer.example.com")
+                },
+            ]
+        },
+    }
+
+    ev_agent_ping_peer0org1 = {
         "agent_name": agent_name,
         "id": "100",
         "actions": [
@@ -458,7 +430,7 @@ def build_simple_fabric_cfg():
         ],
     }
 
-    ev_monitor_v2 = {
+    ev_monitor_container_peer0org1 = {
         "id": "101",
         "actions": [
             {
@@ -485,34 +457,42 @@ def build_simple_fabric_cfg():
 
     }
 
-    scenario.add_event("0", "fabric", ev_info_channels)
-    scenario.add_event("1", "fabric", ev_create_channel)
-    scenario.add_event_v2(1, "agent", ev_agent_v2)
-    scenario.add_event_v2(3, "monitor", ev_monitor_v2)
-    # scenario.add_event("3", "environment", ev_kill_container_peer0_org1)
-    # scenario.add_event("4", "environment", ev_kill_container_peer0_org2)
-    # scenario.add_event("6", "environment", ev_update_link)
-    # scenario.add_event("0", "environment", ev_update_link_peer1_org1_downlink)
-    # scenario.add_event("0", "environment", ev_update_link_peer1_org1_uplink)
-    scenario.add_event("2", "environment", ev_mem_limit_peer1_org1)
-    scenario.add_event("2", "environment", ev_cpu_limit_peer1_org2)
+    ev_get_topology = {
+        "command": "current_topology",
+    }
 
-    scenario.add_event("3", "fabric", ev_join_channel_org1)
-    scenario.add_event("3", "fabric", ev_join_channel_org2)
-    scenario.add_event("3", "fabric", ev_join_channel_org3)
-    scenario.add_event("3", "fabric", ev_join_channel_org4)
-    scenario.add_event("5", "fabric", ev_info_channel)
-    # scenario.add_event("5", "fabric", ev_info_channel_config)
 
-    # scenario.add_event("9", "fabric", ev_info_channels)
-    # scenario.add_event("10", "fabric", ev_info_network)
-    # scenario.add_event("11", "fabric", ev_chaincode_install_org1)
-    # scenario.add_event("11", "fabric", ev_chaincode_install_org2)
-    # scenario.add_event("13", "fabric", ev_chaincode_instantiate_org1)
-    # scenario.add_event("13", "fabric", ev_chaincode_instantiate_org2)
-    # scenario.add_event("23", "fabric", ev_chaincode_invoke_org1)
-    # scenario.add_event("30", "fabric", ev_chaincode_query_org1)
-    # scenario.add_event("32", "fabric", ev_chaincode_query_org2)
+    scenario.add_event_fabric("0", "fabric", ev_info_channels)
+    scenario.add_event_fabric("1", "fabric", ev_create_channel)
+    scenario.add_event_others(1, "agent", ev_agent_ping_peer0org1)
+    scenario.add_event_others(3, "monitor", ev_monitor_container_peer0org1)
+    # scenario.add_event_others(3, "environment", ev_kill_container_peer0_org1)
+    # scenario.add_event_others(4, "environment", ev_kill_container_peer0_org2)
+    # scenario.add_event_others(6, "environment", ev_update_link_res)
+    # scenario.add_event_others(3, "environment", ev_update_link_peer1_org1_downlink)
+    # scenario.add_event_others(3, "environment", ev_update_link_peer1_org1_uplink)
+    # scenario.add_event_others(1, "environment", ev_update_link_orderer_down)
+    # scenario.add_event_others(2, "environment", ev_update_link_orderer_up)
+    scenario.add_event_others(1, "environment", ev_mem_limit_peer1_org1)
+    scenario.add_event_others(1, "environment", ev_cpu_limit_peer1_org2)
+    scenario.add_event_others(3, "environment", ev_get_topology)
+
+    scenario.add_event_fabric("3", "fabric", ev_join_channel_org1)
+    scenario.add_event_fabric("3", "fabric", ev_join_channel_org2)
+    scenario.add_event_fabric("3", "fabric", ev_join_channel_org3)
+    scenario.add_event_fabric("3", "fabric", ev_join_channel_org4)
+    scenario.add_event_fabric("5", "fabric", ev_info_channel)
+    # scenario.add_event_fabric("5", "fabric", ev_info_channel_config)
+
+    scenario.add_event_fabric("9", "fabric", ev_info_channels)
+    scenario.add_event_fabric("10", "fabric", ev_info_network)
+    scenario.add_event_fabric("11", "fabric", ev_chaincode_install_org1)
+    scenario.add_event_fabric("11", "fabric", ev_chaincode_install_org2)
+    scenario.add_event_fabric("13", "fabric", ev_chaincode_instantiate_org1)
+    scenario.add_event_fabric("13", "fabric", ev_chaincode_instantiate_org2)
+    scenario.add_event_fabric("23", "fabric", ev_chaincode_invoke_org1)
+    scenario.add_event_fabric("35", "fabric", ev_chaincode_query_org1)
+    scenario.add_event_fabric("37", "fabric", ev_chaincode_query_org2)
 
     # Save config file
     scenario.save()

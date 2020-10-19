@@ -20,6 +20,8 @@ function printHelp() {
     echo "    <mode> - one of 'start' or 'stop'"
     echo "      - 'start' - bring up the network specified in the <config file path>"
     echo "      - 'stop' - stop and clear the started setup"
+    echo "          -r run post-processing script to generate report after setup teardown"
+    echo "             NOTE: -r requires simulation in debug mode. E.g. run.sh start ___ -d"
     echo "    -c <config file path> - filepath of a config created using umbra-configs"
     echo "    -d enable debug mode to print more logs"
     echo "  run.sh -h (print this message)"
@@ -51,12 +53,6 @@ reset() {
         kill_process_tree 1 $$
     fi
 
-    echo_bold "Cleaning logs"
-    files=(./logs/*)
-    if [ ${#files[@]} -gt 0 ]; then
-        rm ./logs/*
-    fi 
-
     scenarioPID=`ps -o pid --no-headers -C umbra-scenario`
     brokerPID=`ps -o pid --no-headers -C umbra-broker`
     monitorPID=`ps -o pid --no-headers -C umbra-monitor`
@@ -85,6 +81,23 @@ reset() {
         echo_bold "Stopping examples script ${examplesPID}"
         kill -9 $examplesPID &> /dev/null
     fi
+
+    # generate report and save all logs if '-r', else delete logs
+    if [[ ! -z "${REPORT}" ]]; then
+        timenow=`date +"%G_%m_%d_%H-%M-%S"`
+        echo_bold "Generate report to ./logs/${timenow}/REPORT.log"
+        python3 report.py
+        # save log file
+        echo_bold "-> Saving logs at ./logs/${timenow}"
+        mkdir ./logs/${timenow}
+        mv ./logs/*.log ./logs/${timenow}
+    else
+        echo_bold "Cleaning logs"
+        files=(./logs/*)
+        if [ ${#files[@]} -gt 0 ]; then
+            rm ./logs/*.log
+        fi
+    fi
 }
 
 function clearContainers() {
@@ -97,7 +110,7 @@ function clearContainers() {
 }
 
 
-while getopts ":h:c:d" opt; do
+while getopts ":hc:dr" opt; do
   case "${opt}" in
     h | \?)
         printHelp
@@ -108,6 +121,9 @@ while getopts ":h:c:d" opt; do
         ;;
     d)
         DEBUG='--debug'
+        ;;
+    r)
+        REPORT=1
         ;;
   esac
 done
@@ -159,7 +175,8 @@ case "$COMMAND" in
         echo "Running config ${CONFIG_SOURCE}"
         echo "########################################"
        
-        sleep 6
+        #sleep 6
+        until nc -z 172.17.0.1 8989; do sleep 1; done
         examples="/usr/bin/python3.7 ./examples.py --config ${CONFIG_SOURCE}"
         nohup ${examples} > logs/examples.log 2>&1 &
         examplesPID=$!

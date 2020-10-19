@@ -100,7 +100,7 @@ class Environment:
         self.switches = {}
         self.nodes_info = {}
         logger.debug("Environment Instance Created")
-        logger.debug(f"{json.dumps(self.topo, indent=4)}")
+        # logger.debug(f"{json.dumps(self.topo, indent=4)}")
 
     def update_link_resources(self, src, dst, resources):
         src = self.net.get(src)
@@ -318,6 +318,7 @@ class Environment:
                     "name": link_name,
                     "src": link.intf1.node.name,
                     "dst": link.intf2.node.name,
+                    "intf_isup": link.intf1.isUp() and link.intf2.isUp(),
                     "src-port": link.intf1.name,
                     "dst-port": link.intf2.name,
                 }
@@ -342,8 +343,9 @@ class Environment:
         self._start_network()
         logger.info("Experiment running")
         
+        self.nodes_info = self.parse_info(self.net.hosts, "hosts")
         info = {
-            "hosts": self.nodes_info,
+            "hosts": self.nodes_info.get("hosts"),
             "topology": self.net_topo_info(),
         }
         return True, info
@@ -352,6 +354,15 @@ class Environment:
         if self.net:
             self.net.stop()
             logger.info("Stopped network: %r" % self.net)
+
+    def get_current_topology(self):
+        self.nodes_info = self.parse_info(self.net.hosts, "hosts")
+        info = {
+            "hosts": self.nodes_info.get("hosts"),
+            "topology": self.net_topo_info(),
+        }
+
+        return True, info
 
     def kill_container(self, node_name):
         err_msg = None

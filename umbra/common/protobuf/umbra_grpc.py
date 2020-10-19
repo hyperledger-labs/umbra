@@ -64,10 +64,20 @@ class ScenarioBase(abc.ABC):
     async def Establish(self, stream: 'grpclib.server.Stream[umbra_pb2.Workflow, umbra_pb2.Status]') -> None:
         pass
 
+    @abc.abstractmethod
+    async def CurrentTopology(self, stream: 'grpclib.server.Stream[umbra_pb2.Workflow, umbra_pb2.Status]') -> None:
+        pass
+
     def __mapping__(self) -> typing.Dict[str, grpclib.const.Handler]:
         return {
             '/umbra.Scenario/Establish': grpclib.const.Handler(
                 self.Establish,
+                grpclib.const.Cardinality.UNARY_UNARY,
+                umbra_pb2.Workflow,
+                umbra_pb2.Status,
+            ),
+            '/umbra.Scenario/CurrentTopology': grpclib.const.Handler(
+                self.CurrentTopology,
                 grpclib.const.Cardinality.UNARY_UNARY,
                 umbra_pb2.Workflow,
                 umbra_pb2.Status,
@@ -81,6 +91,12 @@ class ScenarioStub:
         self.Establish = grpclib.client.UnaryUnaryMethod(
             channel,
             '/umbra.Scenario/Establish',
+            umbra_pb2.Workflow,
+            umbra_pb2.Status,
+        )
+        self.CurrentTopology = grpclib.client.UnaryUnaryMethod(
+            channel,
+            '/umbra.Scenario/CurrentTopology',
             umbra_pb2.Workflow,
             umbra_pb2.Status,
         )

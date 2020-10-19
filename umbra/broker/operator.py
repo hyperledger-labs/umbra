@@ -79,7 +79,7 @@ class Operator:
         logger.info(f"Deploying Scenario - {command}")
 
         scenario = self.serialize_bytes(topology)
-        deploy = Workflow(id=test, workflow=command, scenario=scenario)
+        deploy = Workflow(id=test, command=command, scenario=scenario)
         deploy.timestamp.FromDatetime(datetime.now())
         
         host, port = address.split(":")
@@ -133,9 +133,10 @@ class Operator:
         topo.fill_config(info_topology)
         topo.fill_hosts_config(info_hosts)
         self.topology = topo
+        logger.debug("DOT: %s", self.topology.to_dot())
         self.config_plugins()
 
-        events = scenario.get("events")
+        events = scenario.get("events_fabric")
         self.schedule_plugins(events)
 
     def config_env_event(self, wflow_id):
@@ -143,16 +144,40 @@ class Operator:
         self.plugins["environment"] = self.events_env
 
     async def call_env_event(self, wflow_id, scenario):
+        logger.info("Scheduling environment events...")
         self.config_env_event(wflow_id)
-        events = scenario.get("events")
+        env_events = scenario.get("events_others").get("environment")
 
-        # filter out non "environment" type events
-        env_events = {key: value for key, value in events.items()
-                        if value['category'] == "environment"}
-        await self.events_env.handle(env_events)
+        # Any better way to get the id of event=current_topology?
+        # Need it as the key to the 'result' dict which has
+        # the response of the query for current topology
+        curr_topo_id = None
+        for event in env_events:
+            if event["command"] == "current_topology":
+                curr_topo_id = event["id"]
+
+        result = await self.events_env.handle(env_events)
+
+        # BUG: what if you have > 1 current_topology events? Above
+        # `await` will block until you receive results from all tasks.
+        # Correct behavior would be to straightaway update topology
+        # after querying topology from umbra-scenario
+
+        # update the topology with the newly received topology
+        if curr_topo_id:
+            topo = self.scenario.get_topology()
+            updated_topo = result[curr_topo_id][1].get("topology")
+            updated_host = result[curr_topo_id][1].get("hosts")
+            topo.fill_config(updated_topo)
+            topo.fill_hosts_config(updated_host)
+            self.topology = topo
+            logger.debug("DOT: %s", self.topology.to_dot())
+
+        return result
 
     async def call_agent_event(self, scenario):
-        agent_events = scenario.get("eventsv2").get("agent")
+        logger.info("Scheduling agent events...")
+        agent_events = scenario.get("events_others").get("agent")
         # '[0]' because we assume only single agent exist, thus all
         # events should have the same "agent_name"
         agent_name = agent_events[0].get("agent_name")
@@ -178,7 +203,8 @@ class Operator:
         channel.close()
 
     async def call_monitor_event(self, scenario):
-        monitor_events = scenario.get("eventsv2").get("monitor")
+        logger.info("Scheduling monitor events...")
+        monitor_events = scenario.get("events_others").get("monitor")
 
         # extract all the actions from monitor_events to
         # construct the Instruction message
@@ -225,12 +251,13 @@ class Operator:
                 status_bytes = self.serialize_bytes(status_info)
                 report.status = status_bytes
 
-                await self.call_agent_event(scenario)
-                await self.call_monitor_event(scenario)
-                await self.call_env_event(request.id, scenario)
+                await asyncio.gather(
+                    self.call_agent_event(scenario),
+                    self.call_monitor_event(scenario),
+                    self.call_env_event(request.id, scenario)
+                )
 
             else:
                 ack,topo_info = await self.call_scenario(request.id, "stop", {}, address)
 
         return report
-
