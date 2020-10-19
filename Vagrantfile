@@ -8,7 +8,7 @@ Vagrant.configure("2") do |config|
   config.vm.define "umbra_virtualbox" do |umbra_virtualbox|
 
     umbra_virtualbox.vm.box = "ubuntu/focal64"    
-    umbra_virtualbox.vm.network :private_network, ip: "192.168.56.10"
+    umbra_virtualbox.vm.network :private_network, ip: "192.168.56.101"
     umbra_virtualbox.vm.hostname = "umbra"
     
     umbra_virtualbox.vm.provider "virtualbox" do |vb|
@@ -35,6 +35,9 @@ Vagrant.configure("2") do |config|
       libvirt.cpus = 2
       libvirt.memory = 2048
     end
+
+    umbra_libvirt.vm.network :private_network, ip: "192.168.121.101"
+
 
     umbra_libvirt.vm.synced_folder ".", "/home/umbra", mount_options: ["dmode=775"]
     umbra_libvirt.vm.provision :shell, inline: "apt update && apt install -y make"
