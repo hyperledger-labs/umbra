@@ -41,6 +41,8 @@ setup(
         "umbra/monitor/umbra-monitor",
     ],
     install_requires=[
+        "h2==3.2.0",
+        "multidict==4.7.6",
         "asyncio==3.4.3",
         "protobuf==3.12.2",
         "grpclib==0.3.2",

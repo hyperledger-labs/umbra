@@ -9,3 +9,4 @@ latex/
 dist/
 build/
 __pycache__/
+.vagrant

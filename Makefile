@@ -17,6 +17,22 @@ install-fabric:
 uninstall-fabric:
 	sh -c "cd $(DEPS_FOLDER) && ./$(DEPS_FABRIC) uninstall && cd - "
 
+vagrant-requirements-virtualbox:
+	sudo apt install -y vagrant
+
+	sudo apt install -y virtualbox
+	sudo apt-get install -y linux-headers-generic
+	sudo dpkg-reconfigure virtualbox-dkms
+	sudo dpkg-reconfigure virtualbox
+	sudo modprobe vboxdrv
+	sudo modprobe vboxnetflt
+
+vagrant-requirements-libvirt:
+	sudo apt install -y vagrant
+	sudo apt-get install -y qemu-kvm qemu-utils libvirt-daemon bridge-utils virt-manager libguestfs-tools virtinst rsync
+	sudo apt-get install -y ruby-libvirt libvirt-dev
+	vagrant plugin install vagrant-libvirt
+
 requirements:
 	sudo apt update && sudo apt install -y python3.8 python3-setuptools python3-pip
 	mkdir -p /tmp/umbra
@@ -70,6 +86,12 @@ docker-run: docker-build
 	--detach=false \
 	--name=umbra \
 	umbra:latest umbra-cli
+
+vagrant-run-virtualbox: requirements-vagrant-virtualbox
+	vagrant up --provider virtualbox
+
+vagrant-run-libvirt: vagrant-requirements-libvirt
+	vagrant up --provider libvirt
 
 start-aux-monitor:
 	sh -c "cd $(AUX_FOLDER) && ./$(AUX_MONITOR) start && cd - "
