@@ -1,9 +1,7 @@
 import os
-import sys
 import logging
 
-from umbra.design.configs import Profile, Topology, Experiment
-from umbra.design.configs import FabricTopology
+from umbra.design.configs import Experiment, FabricTopology
 
 from base_configtx.configtx_4orgs import (
     org1_policy,
@@ -16,16 +14,12 @@ from base_configtx.configtx_4orgs import (
 
 
 def builds():
-    # temp_dir = "/tmp/umbra/fabric_configs"
-    # configs_dir = os.path.abspath(os.path.join(temp_dir))
 
     temp_dir = "/tmp/umbra/fabric/chaincode"
     chaincode_dir = os.path.abspath(os.path.join(temp_dir))
 
-    # Defines Fabric Topology - main class to have orgs/peers/cas/orderers
     fab_topo = FabricTopology("local-4orgs", chaincode_dir=chaincode_dir)
 
-    # Defines experiment containing topology, later events can be added
     experiment = Experiment("local-4orgs")
     experiment.set_topology(fab_topo)
 
@@ -90,7 +84,6 @@ def builds():
         "ca", "org4", domain, "admin", "admin_pw", profile="nodes", image_tag=ca_tag
     )
 
-    # Configtx quick fixes - checks which paths from configtx needs to have full org desc
     fab_topo.configtx(configtx)
     p1 = "TwoOrgsOrdererGenesis.Consortiums.SampleConsortium.Organizations"
     p2 = "TwoOrgsOrdererGenesis.Orderer.Organizations"
@@ -105,16 +98,11 @@ def builds():
     fab_topo.add_org_network_link("org4", "s2", "links")
     fab_topo.add_org_network_link("orderer", "s1", "links")
 
-    # Defines resources for nodes and links
     node_resources = fab_topo.create_node_profile(cpus=1, memory=1024, disk=None)
     link_resources = fab_topo.create_link_profile(bw=1, delay="2ms", loss=None)
 
     fab_topo.add_node_profile(node_resources, profile="nodes")
     fab_topo.add_link_profile(link_resources, profile="links")
-
-    # topo_built = fab_topo.build()
-    # print(topo_built)
-    # fab_topo.show()
 
     ev_create_channel = {
         "action": "create_channel",

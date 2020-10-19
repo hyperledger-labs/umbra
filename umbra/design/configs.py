@@ -750,11 +750,11 @@ class FabricTopology(Topology):
     def configtx(self, conf):
         self._config_tx = conf
 
-    def add_org_network_link(self, org, network, link_profile):
+    def add_org_network_link(self, org, network, profile):
         if network in self._networks:
             net = self._networks[network]
             net["links"][org] = {
-                "profile": link_profile,
+                "profile": profile,
                 "type": "internal",
             }
 
