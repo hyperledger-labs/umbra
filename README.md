@@ -2,16 +2,10 @@
 
 An emulation platform for Hyperledger blockchains.
 
-To understand and run Umbra, please take a look at the [Umbra Docs](https://umbra-labs.readthedocs.io/en/latest/).
+This lab is intended to be an ongoing project to provide a research tool for understanding and improving the Hyperledger blockchain platforms as well as for conducting future research in consensus algorithms and scalability. This lab is not intended to be a shipping product but rather an ongoing collaboration between academic, corporate, and hobbyist researchers improving upon existing capabilities and also trying new things with Hyperledger blockchains.
 
-Also, if needed download an [Umbra virtual machine](https://intrig.dca.fee.unicamp.br:8840/owncloud/index.php/s/aKYbP8TxlxymRHY). 
-Use VirtualBox to import the source file umbra.ova. The recommended settings are 4 cores and 4GB of memory. To use the Umbra virtual machine, login: umbra / password: lives. The umbra source folder is located inside the home directory (/home/umbra/umbra). All the umbra components are in place and installed. Check the [documentation example](https://umbra-labs.readthedocs.io/en/latest/example.html) to give it a try.
+This project is the outcome of the 2019 and 2020 Hyperledger internship projects (e.g., [Hyperledger-Labs Umbra](https://wiki.hyperledger.org/display/INTERN/Hyperledger+Umbra%3A+Simulating+Hyperledger+Blockchains+using+Mininet)).
 
-This project is the outcome of the 2019 [internship project named Hyperledger Umbra](https://wiki.hyperledger.org/display/INTERN/Hyperledger+Umbra%3A+Simulating+Hyperledger+Blockchains+using+Mininet).
-
-This lab is intended to be an ongoing project to provide a research tool for understanding and improving the Hyperledger blockchain platforms as well as for conducting future research in consensus algorithms and scalability.
-
-This lab is not intended to be a shipping product but rather an ongoing collaboration between academic, corporate, and hobbyist researchers improving upon existing capabilities and also trying new things with Hyperledger blockchains.
 
 # Requirements
 
