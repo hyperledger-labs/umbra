@@ -1,3 +1,5 @@
+h2==3.2.0
+multidict==4.7.6
 grpcio==1.31.0
 mininet==3.0
 paramiko==2.6.0
@@ -12,3 +14,4 @@ networkx==2.5
 protobuf==3.13.0
 PyYAML==5.3.1
 scp==0.13.2
+aiohttp==3.6.2
