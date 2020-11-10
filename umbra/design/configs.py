@@ -1850,7 +1850,7 @@ class EventsFabric:
         self._events = data
 
 
-class EventsOthers:
+class Events:
     """
     Use this Event class for event category of: monitor, agent, and environment
     """
@@ -1859,7 +1859,7 @@ class EventsOthers:
         self._ev_id = 1
         self._events = defaultdict(lambda: [])
 
-    def add(self, when, category, ev_args, **kwargs):
+    def add(self, schedule, category, ev_args, **kwargs):
         """
         Input for kwargs:
 
@@ -1871,8 +1871,8 @@ class EventsOthers:
             command only once
 
         """
-        sched = {"from": when, "until": 0, "duration": 0, "interval": 0, "repeat": 0}
-        sched.update(kwargs)
+        sched = {"from": 0, "until": 0, "duration": 0, "interval": 0, "repeat": 0}
+        sched.update(schedule)
         ev_args["schedule"] = sched
         ev_args["id"] = self._ev_id
         self._events[category].append(ev_args)
@@ -1902,8 +1902,8 @@ class Experiment:
             return True
         return False
 
-    def add_event(self, when, category, params):
-        self.events.add(when, category, params)
+    def add_event(self, sched, category, params):
+        self.events.add(sched, category, params)
 
     def set_topology(self, topology):
         self.topology = topology
@@ -1918,8 +1918,7 @@ class Experiment:
         experiment = {
             "name": self.name,
             "topology": topo_built,
-            "events_fabric": events_fabric_built,
-            "events_others": events_others_built,
+            "events": events_built,
         }
         return experiment
 

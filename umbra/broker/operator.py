@@ -9,17 +9,14 @@ from grpclib.exceptions import GRPCError
 
 from google.protobuf import json_format
 
-from umbra.common.protobuf.umbra_grpc import ScenarioStub, AgentStub, MonitorStub
-from umbra.common.protobuf.umbra_pb2 import Report, Workflow, Instruction, Snapshot
+from umbra.common.protobuf.umbra_grpc import ScenarioStub, MonitorStub
+from umbra.common.protobuf.umbra_pb2 import Report, Workflow, Directrix, Status
 
 from umbra.design.configs import Topology, Experiment
 from umbra.broker.plugins.fabric import FabricEvents
-from umbra.broker.plugins.env import EnvEventHandler
+
 
 logger = logging.getLogger(__name__)
-
-# port that umbra-agent binds to
-AGENT_PORT = 8910
 
 
 class Operator:
@@ -28,9 +25,7 @@ class Operator:
         self.experiment = None
         self.topology = None
         self.events_fabric = FabricEvents()
-        self.events_env = EnvEventHandler()
         self.plugins = {}
-        self.agent_plugin = {}
 
     def parse_bytes(self, msg):
         msg_dict = {}
@@ -51,56 +46,95 @@ class Operator:
 
         return msg_bytes
 
-    def config_agent(self, deployed_topo, scenario):
-        """
-        Get agent(s) from 'scenario' and find its corresponding
-        IP:PORT from the 'deployed_topo'
+    async def call_monitor(self, address, data):
+        logger.info(f"Calling Monitor - {address}")
 
-        Arguments:
-            deployed_topo {dict} -- deployed topology from umbra-scenario
-            scenario {dict} -- the user-defined scenario
-
-        """
-        logger.info("Configuring umbra-agent plugin")
-        umbra_topo = scenario.get("umbra").get("topology")
-        agents = umbra_topo.get("agents")
-
-        deployed_hosts = deployed_topo.get("topology").get("hosts")
-
-        for hostname, host_val in deployed_hosts.items():
-            # tiny hack: e.g. umbraagent.example.com, strip the ".example.com"
-            subdomain = hostname.split(".")[0]
-
-            if subdomain in agents.keys():
-                agent_ip = host_val.get("host_ip")
-                self.agent_plugin[subdomain] = agent_ip + ":" + str(AGENT_PORT)
-                logger.info(
-                    "Added agent: agent_name = %s, at %s:%s",
-                    subdomain,
-                    agent_ip,
-                    AGENT_PORT,
-                )
-
-    async def call_scenario(self, test, command, topology, address):
-        logger.info(f"Deploying Scenario - {command}")
-
-        scenario = self.serialize_bytes(topology)
-        deploy = Workflow(id=test, command=command, scenario=scenario)
-        deploy.timestamp.FromDatetime(datetime.now())
-
+        directrix = json_format.ParseDict(data, Directrix())
         host, port = address.split(":")
-        channel = Channel(host, port)
-        stub = ScenarioStub(channel)
-        status = await stub.Establish(deploy)
 
-        if status.error:
+        try:
+            channel = Channel(host, port)
+            stub = MonitorStub(channel)
+            status = await stub.Measure(directrix)
+
+        except Exception as e:
             ack = False
-            logger.info(f"Scenario not deployed error: {status.error}")
+            info = repr(e)
+            logger.info(f"Error - monitor failed - {info}")
         else:
-            ack = True
-            logger.info(f"Scenario deployed: {status.ok}")
+            if status.error:
+                ack = False
+                logger.info(f"Monitor error: {status.error}")
+                info = status.error
+            else:
+                ack = True
+                if status.info:
+                    info = self.parse_bytes(status.info)
+                else:
+                    info = {}
+                logger.info(f"Monitor info: {info}")
+        finally:
+            channel.close()
 
-            info = self.parse_bytes(status.info)
+        return ack, info
+
+    def get_monitor_env_address(self, env):
+        envs = self.topology.get_environments()
+        env_data = envs.get(env)
+        env_components = env_data.get("components")
+        env_monitor_component = env_components.get("monitor")
+        env_monitor_address = env_monitor_component.get("address")
+        return env_monitor_address
+
+    def build_monitor_directrix(self, env, info, action):
+
+        if action == "start":
+            hosts = info.get("topology").get("hosts")
+            targets = repr(set(hosts.keys()))
+        else:
+            targets = repr(set())
+
+        data = {
+            "action": action,
+            "flush": {
+                "live": True,
+                "environment": env,
+                "address": self.info.get("address"),
+            },
+            "sources": [
+                {
+                    "id": 1,
+                    "name": "container",
+                    "parameters": {
+                        "targets": targets,
+                        "duration": "3600",
+                        "interval": "5",
+                    },
+                    "schedule": {},
+                },
+                {
+                    "id": 2,
+                    "name": "host",
+                    "parameters": {
+                        "duration": "3600",
+                        "interval": "5",
+                    },
+                    "schedule": {},
+                },
+            ],
+        }
+
+        return data
+
+    async def call_monitors(self, stats, action):
+        logger.info(f"Call monitors")
+
+        all_acks = {}
+        for env, info in stats.items():
+            data = self.build_monitor_directrix(env, info, action)
+            address = self.get_monitor_env_address(env)
+            ack, info = await self.call_monitor(address, data)
+            all_acks[env] = ack
 
         all_monitors_ack = all(all_acks.values())
         logger.info(f"Call monitors - action {action} - status: {all_monitors_ack}")
@@ -168,121 +202,31 @@ class Operator:
     async def call_events(self, info_deploy):
         logger.info("Scheduling events")
 
-        self.scenario = Scenario(None, None, None)
-        self.scenario.parse(scenario)
-
-        info_topology = info_deploy.get("topology")
-        info_hosts = info_deploy.get("hosts")
-
-        topo = self.scenario.get_topology()
-        topo.fill_config(info_topology)
-        topo.fill_hosts_config(info_hosts)
-        self.topology = topo
-        logger.debug("DOT: %s", self.topology.to_dot())
+        # info_topology = info_deploy.get("topology")
+        # info_hosts = info_deploy.get("hosts")
+        # topo = self.experiment.get_topology()
+        # topo.fill_config(info_topology)
+        # topo.fill_hosts_config(info_hosts)
+        # self.topology = topo
         self.config_plugins()
 
-        events = scenario.get("events_fabric")
+        events = self.experiment.events.get()
         self.schedule_plugins(events)
 
-    def config_env_event(self, wflow_id):
-        self.events_env.config(self.scenario.entrypoint.get("umbra-scenario"), wflow_id)
-        self.plugins["environment"] = self.events_env
-
-    async def call_env_event(self, wflow_id, scenario):
-        logger.info("Scheduling environment events...")
-        self.config_env_event(wflow_id)
-        env_events = scenario.get("events_others").get("environment")
-
-        # Any better way to get the id of event=current_topology?
-        # Need it as the key to the 'result' dict which has
-        # the response of the query for current topology
-        curr_topo_id = None
-        for event in env_events:
-            if event["command"] == "current_topology":
-                curr_topo_id = event["id"]
-
-        result = await self.events_env.handle(env_events)
-
-        # BUG: what if you have > 1 current_topology events? Above
-        # `await` will block until you receive results from all tasks.
-        # Correct behavior would be to straightaway update topology
-        # after querying topology from umbra-scenario
-
-        # update the topology with the newly received topology
-        if curr_topo_id:
-            topo = self.scenario.get_topology()
-            updated_topo = result[curr_topo_id][1].get("topology")
-            updated_host = result[curr_topo_id][1].get("hosts")
-            topo.fill_config(updated_topo)
-            topo.fill_hosts_config(updated_host)
-            self.topology = topo
-            logger.debug("DOT: %s", self.topology.to_dot())
-
-        return result
-
-    async def call_agent_event(self, scenario):
-        logger.info("Scheduling agent events...")
-        agent_events = scenario.get("events_others").get("agent")
-        # '[0]' because we assume only single agent exist, thus all
-        # events should have the same "agent_name"
-        agent_name = agent_events[0].get("agent_name")
-
-        # extract all the actions from agent_events to
-        # construct the Instruction message
-        agent_actions = []
-        for ev in agent_events:
-            for action in ev.get("actions"):
-                agent_actions.append(action)
-
-        instr_dict = {"id": scenario.get("id"), "actions": agent_actions}
-
-        ip, port = self.agent_plugin[agent_name].split(":")
-        channel = Channel(ip, int(port))
-        stub = AgentStub(channel)
-
-        instruction = json_format.ParseDict(instr_dict, Instruction())
-        reply = await stub.Probe(instruction)
-        channel.close()
-
-    async def call_monitor_event(self, scenario):
-        logger.info("Scheduling monitor events...")
-        monitor_events = scenario.get("events_others").get("monitor")
-
-        # extract all the actions from monitor_events to
-        # construct the Instruction message
-        monitor_actions = []
-        for ev in monitor_events:
-            for action in ev.get("actions"):
-                monitor_actions.append(action)
-
-        instr_dict = {"id": scenario.get("id"), "actions": monitor_actions}
-
-        ip, port = self.scenario.entrypoint.get("umbra-monitor").split(":")
-        channel = Channel(ip, int(port))
-        stub = MonitorStub(channel)
-
-        instruction = json_format.ParseDict(instr_dict, Instruction())
-        reply = await stub.Listen(instruction)
-        channel.close()
-
-    async def run(self, request):
-        logger.info("Running config request")
-        report = Report(id=request.id)
+    async def call_scenarios(self, uid, topology, action):
+        envs = topology.get_environments()
+        topo_envs = topology.build_environments()
 
         logger.info(f"Calling scenarios - {action}")
         logger.info(f"Environment scenarios - {envs}")
         logger.debug(f"Environment topologies - {topo_envs}")
 
-        if scenario:
-            topology = scenario.get("topology")
-            address = scenario.get("entrypoint").get("umbra-scenario")
-            ack, topo_info = await self.call_scenario(
-                request.id, "start", topology, address
-            )
-            self.config_agent(topo_info, topology)
+        acks = {}
+        envs_topo_info = {}
 
-            if ack:
-                events_info = await self.call_events(scenario, topo_info)
+        for env in topo_envs:
+            if env in envs:
+                env_data = envs.get(env)
 
                 env_components = env_data.get("components")
                 scenario_component = env_components.get("scenario")
@@ -369,12 +313,6 @@ class Operator:
 
             elif action == "stop":
                 info, error = await self.stop(uid)
-
-                await asyncio.gather(
-                    self.call_agent_event(scenario),
-                    self.call_monitor_event(scenario),
-                    self.call_env_event(request.id, scenario),
-                )
 
             else:
                 error = {

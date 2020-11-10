@@ -24,4 +24,3 @@ class UmbraMonitor(App):
 if __name__ == "__main__":
     app = UmbraMonitor()
     app.run(sys.argv[1:])
-

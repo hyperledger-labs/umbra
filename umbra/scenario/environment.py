@@ -109,7 +109,7 @@ class Environment:
         self._connected_to_docker = False
         self._docker_network = None
         logger.debug("Environment Instance Created")
-        # logger.debug(f"{json.dumps(self.topo, indent=4)}")
+        logger.debug(f"{json.dumps(self.topo, indent=4)}")
 
     def connect_docker(self):
         try:
@@ -245,51 +245,6 @@ class Environment:
             logger.debug(f"Could not remove docker container")
             return False
 
-    def update_link_resources(self, src, dst, resources):
-        src = self.net.get(src)
-        dst = self.net.get(dst)
-        links = src.connectionsTo(dst)
-        srcLink = links[0][0]
-        dstLink = links[0][1]
-        srcLink.config(**resources)
-        dstLink.config(**resources)
-
-    def update_link(self, src, dst, online, resources):
-        ack = False
-        if online:
-            self.net.configLinkStatus(src, dst, "up")
-            ack = True
-
-            if resources:
-                self.update_link_resources(src, dst, resources)
-                ack = True
-        else:
-            self.net.configLinkStatus(src, dst, "down")
-            ack = True
-        return ack
-
-    def update(self, events):
-        ack = False
-        err_msg = None
-
-        if self.net:
-            logger.info("Updating network: %r" % self.net)
-            logger.info("Events: %s", events)
-
-            for ev in events:
-                ev_group = ev.get("group")
-                ev_specs = ev.get("specs")
-
-                if ev_group == "links":
-                    act = ev_specs.get("action")
-
-                    if act == "update":
-                        online = ev_specs.get("online")
-                        resources = ev_specs.get("resources", None)
-                        (src, dst) = ev.get("targets")
-                        ack = self.update_link(src, dst, online, resources)
-        return ack, err_msg
-
     def _create_network(self):
         self.net = Containernet(controller=Controller, link=TCLink)
         self.net.addController("c0")
@@ -342,7 +297,6 @@ class Environment:
 
             if node_type == "container":
                 added_node = self._add_container(node)
-                # added_node.cmd("iperf3 -s &")
                 self.nodes[node_id] = added_node
 
             else:
@@ -579,7 +533,22 @@ class Environment:
             self.net.stop()
             logger.info("Stopped network: %r" % self.net)
 
-    def get_current_topology(self):
+    def mn_cleanup(self):
+        clean.cleanup()
+        self.remove_docker_container_chaincodes()
+        self.remove_docker_network()
+        self.prune_docker_volumes()
+
+    def stop(self):
+        self._stop_network()
+        self.mn_cleanup()
+        self.nodes = {}
+        self.switches = {}
+        self.nodes_info = {}
+        self.net = None
+        return True, {}
+
+    def stats(self):
         self.nodes_info = self.parse_info(self.net.hosts, "hosts")
         info = {
             "hosts": self.nodes_info.get("hosts"),
@@ -588,7 +557,7 @@ class Environment:
 
         return True, info
 
-    def kill_container(self, node_name):
+    def end_container(self, node_name):
         err_msg = None
         ok = True
 
@@ -643,17 +612,95 @@ class Environment:
 
         return ok, err_msg
 
-    def mn_cleanup(self):
-        clean.cleanup()
-        self.remove_docker_container_chaincodes()
-        self.remove_docker_network()
-        self.prune_docker_volumes()
+    def update_node_resources(self, node, resources):
+        self.nodes[node].update_resources(**resources)
 
-    def stop(self):
-        self._stop_network()
-        self.mn_cleanup()
-        self.nodes = {}
-        self.switches = {}
-        self.nodes_info = {}
-        self.net = None
-        return True, {}
+    def update_node(self, node, online, resources):
+        err_msg = None
+        ok = True
+
+        if node not in self.nodes:
+            err_msg = f"Container {node} does not exist"
+            ok = False
+            return ok, err_msg
+
+        try:
+            is_running = self.nodes[node]._is_container_running()
+            if is_running:
+                self.update_node_resources(node, resources)
+
+            if online:
+                if is_running:
+                    pass
+                else:
+                    self.nodes[node].start()
+
+            else:
+                if is_running:
+                    self.end_container(node)
+                else:
+                    pass
+
+            is_running = self.nodes[node]._is_container_running()
+            if is_running:
+                self.update_node_resources(node, resources)
+
+        except Exception as ex:
+            ok = False
+            err_msg = f"Failed to update {node} - exception {repr(ex)}"
+
+        return ok, err_msg
+
+    def update_link_resources(self, src, dst, resources):
+        src = self.net.get(src)
+        dst = self.net.get(dst)
+        links = src.connectionsTo(dst)
+        srcLink = links[0][0]
+        dstLink = links[0][1]
+        srcLink.config(**resources)
+        dstLink.config(**resources)
+
+    def update_link(self, src, dst, online, resources):
+        ack = False
+        if online:
+            self.net.configLinkStatus(src, dst, "up")
+            ack = True
+
+            if resources:
+                self.update_link_resources(src, dst, resources)
+                ack = True
+        else:
+            self.net.configLinkStatus(src, dst, "down")
+            ack = True
+        return ack
+
+    def update(self, events):
+        ack = False
+        err_msg = None
+
+        if self.net:
+            logger.info("Updating network: %r" % self.net)
+            logger.info("Events: %s", events)
+
+            for ev in events:
+                ev_group = ev.get("group")
+                ev_specs = ev.get("specs")
+
+                if ev_group == "links":
+                    act = ev_specs.get("action")
+
+                    if act == "update":
+                        online = ev_specs.get("online")
+                        resources = ev_specs.get("resources", None)
+                        (src, dst) = ev.get("targets")
+                        ack = self.update_link(src, dst, online, resources)
+
+                if ev_group == "nodes":
+                    act = ev_specs.get("action")
+                    online = ev_specs.get("online")
+                    resources = ev_specs.get("resources", None)
+                    node = ev.get("target")
+
+                    ack, err_msg = self.update_node(node, online, resources)
+
+        return ack, err_msg
