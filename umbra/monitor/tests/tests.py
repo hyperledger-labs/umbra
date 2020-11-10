@@ -15,15 +15,28 @@ actions = [
     {
         "id": "2",
         "tool": "host",
-        "output": {"live": False, "address": None,},
-        "parameters": {"interval": "1", "duration": "3",},
+        "output": {
+            "live": False,
+            "address": None,
+        },
+        "parameters": {
+            "interval": "1",
+            "duration": "3",
+        },
         "schedule": {"from": 0, "until": 14, "duration": 0, "interval": 2, "repeat": 2},
     },
     {
         "id": "3",
         "tool": "container",
-        "output": {"live": False, "address": None,},
-        "parameters": {"interval": "1", "duration": "3", "target": "ivan",},
+        "output": {
+            "live": False,
+            "address": None,
+        },
+        "parameters": {
+            "interval": "1",
+            "duration": "3",
+            "target": "ivan",
+        },
         "schedule": {
             "from": 5,
             "until": 10,
@@ -42,8 +55,14 @@ class TestMonitor(unittest.TestCase):
             {
                 "id": "3",
                 "tool": "dummy",
-                "output": {"live": False, "address": None,},
-                "parameters": {"interval": "1", "duration": "3",},
+                "output": {
+                    "live": False,
+                    "address": None,
+                },
+                "parameters": {
+                    "interval": "1",
+                    "duration": "3",
+                },
                 "schedule": {},
             },
         ]
@@ -62,30 +81,55 @@ class TestMonitor(unittest.TestCase):
             {
                 "id": "1",
                 "tool": "process",
-                "output": {"live": False, "address": None,},
-                "parameters": {"pid": "2417", "interval": "1", "duration": "3",},
+                "output": {
+                    "live": False,
+                    "address": None,
+                },
+                "parameters": {
+                    "pid": "2417",
+                    "interval": "1",
+                    "duration": "3",
+                },
                 "schedule": {},
             },
             {
                 "id": "2",
                 "tool": "container",
-                "output": {"live": False, "address": None,},
-                "parameters": {"target": "teste", "interval": "1", "duration": "3",},
+                "output": {
+                    "live": False,
+                    "address": None,
+                },
+                "parameters": {
+                    "target": "teste",
+                    "interval": "1",
+                    "duration": "3",
+                },
                 "schedule": {},
             },
             {
                 "id": "3",
                 "tool": "host",
-                "output": {"live": False, "address": None,},
-                "parameters": {"interval": "1", "duration": "3",},
+                "output": {
+                    "live": False,
+                    "address": None,
+                },
+                "parameters": {
+                    "interval": "1",
+                    "duration": "3",
+                },
                 "schedule": {},
             },
             {
                 "id": "4",
                 "tool": "tcpdump",
-                "output": {"live": False, "address": None,},
+                "output": {
+                    "live": False,
+                    "address": None,
+                },
                 "parameters": {"interface": "wlp82s0", "pcap": "wlp82s0.pcap"},
-                "schedule": {"duration": 3,},
+                "schedule": {
+                    "duration": 3,
+                },
             },
         ]
 

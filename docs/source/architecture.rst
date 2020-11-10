@@ -14,8 +14,10 @@ Umbra was designed having in mind the following guidance:
 Components
 **********
 
-Umbra has three independent components:
+Umbra has five independent components:
 
 * design: defines APIs to implement the topology and events that will be respectively deployed and triggered when testing a blockchain platform. 
-* broker: main component, responsible for the orchestration and management of the scenario (topology and events)  
+* broker: main component, responsible for the orchestration and management of the scenario (topology and events)
 * scenario: the actual interface that deploys the topology (i.e. network, containers, virtual switches)
+* agent: runs as one of the "peer" in the blockchain network. It can be used to generate stimulus to the network like interrupting a running blockchain transaction (via ``iperf``) and replay packets (via ``tcpreplay``).
+* monitor: runs on the host machine. Used to monitor the status/metrics of both host and containers

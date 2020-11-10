@@ -109,7 +109,7 @@ class Environment:
         self._connected_to_docker = False
         self._docker_network = None
         logger.debug("Environment Instance Created")
-        logger.debug(f"{json.dumps(self.topo, indent=4)}")
+        # logger.debug(f"{json.dumps(self.topo, indent=4)}")
 
     def connect_docker(self):
         try:
@@ -270,6 +270,7 @@ class Environment:
 
     def update(self, events):
         ack = False
+        err_msg = None
 
         if self.net:
             logger.info("Updating network: %r" % self.net)
@@ -287,7 +288,7 @@ class Environment:
                         resources = ev_specs.get("resources", None)
                         (src, dst) = ev.get("targets")
                         ack = self.update_link(src, dst, online, resources)
-        return ack
+        return ack, err_msg
 
     def _create_network(self):
         self.net = Containernet(controller=Controller, link=TCLink)
@@ -341,6 +342,7 @@ class Environment:
 
             if node_type == "container":
                 added_node = self._add_container(node)
+                # added_node.cmd("iperf3 -s &")
                 self.nodes[node_id] = added_node
 
             else:
@@ -514,6 +516,7 @@ class Environment:
                     "intfs": dict(
                         [(intf.name, port) for (intf, port) in host.ports.items()]
                     ),
+                    "host_ip": self.get_host_ips(self.nodes[host.name]).get("ip", None),
                 }
                 full_info["hosts"][host.name] = info
 
@@ -537,6 +540,7 @@ class Environment:
                     "name": link_name,
                     "src": link.intf1.node.name,
                     "dst": link.intf2.node.name,
+                    "intf_isup": link.intf1.isUp() and link.intf2.isUp(),
                     "src-port": link.intf1.name,
                     "dst-port": link.intf2.name,
                 }
@@ -563,8 +567,9 @@ class Environment:
         self._add_tun_links()
         logger.info("Experiment running")
 
+        self.nodes_info = self.parse_info(self.net.hosts, "hosts")
         info = {
-            "hosts": self.nodes_info,
+            "hosts": self.nodes_info.get("hosts"),
             "topology": self.net_topo_info(),
         }
         return True, info
@@ -573,6 +578,70 @@ class Environment:
         if self.net:
             self.net.stop()
             logger.info("Stopped network: %r" % self.net)
+
+    def get_current_topology(self):
+        self.nodes_info = self.parse_info(self.net.hosts, "hosts")
+        info = {
+            "hosts": self.nodes_info.get("hosts"),
+            "topology": self.net_topo_info(),
+        }
+
+        return True, info
+
+    def kill_container(self, node_name):
+        err_msg = None
+        ok = True
+
+        if node_name not in self.nodes:
+            err_msg = f"Container {node_name} does not exist"
+            ok = False
+            return ok, err_msg
+
+        try:
+            self.nodes[node_name].terminate()
+        except:
+            ok = False
+            err_msg = f"Failed to kill {node_name}"
+
+        return ok, err_msg
+
+    def update_cpu_limit(
+        self, node_name, cpu_quota=-1, cpu_period=-1, cpu_shares=-1, cores=None
+    ):
+        err_msg = None
+        ok = True
+
+        if node_name not in self.nodes:
+            err_msg = f"Container {node_name} does not exist"
+            ok = False
+            return ok, err_msg
+
+        try:
+            self.nodes[node_name].updateCpuLimit(
+                cpu_quota, cpu_period, cpu_shares, cores
+            )
+        except:
+            ok = False
+            err_msg = f"Failed to updateCpuLimit {node_name}"
+
+        return ok, err_msg
+
+    def update_memory_limit(self, node_name, mem_limit=-1, memswap_limit=-1):
+        err_msg = None
+        ok = True
+
+        if node_name not in self.nodes:
+            err_msg = f"Container {node_name} does not exist"
+            ok = False
+            return ok, err_msg
+
+        try:
+            self.nodes[node_name].updateMemoryLimit(mem_limit, memswap_limit)
+        except:
+            ok = False
+            err_msg = f"Failed to updateMemoryLimit {node_name}"
+
+        return ok, err_msg
 
     def mn_cleanup(self):
         clean.cleanup()

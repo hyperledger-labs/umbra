@@ -77,4 +77,6 @@ Directory Structure
 * **umbra/common**: contains all the common application models (i.e., protocol buffer messages and services) implemented to be used by the other Umbra components.
 * **umbra/broker**: contains all the component source code to install and run the orchestration logic of umbra, i.e., how to receive a scenario configuration request, deploy it and trigger the events programmed in the scenario logic. The executable umbra-broker contains plugins, each one specified for a different blockchain platform it supports.
 * **umbra/design**: contains all the component source code to install and enable APIs for the configuration logic of umbra, i.e., how to specify different topology APIs to build the configuration needed for each blockchain platform to be executed by umbra-broker. 
-* **umbra/scenario**: contains all the component source code to install and run the plugin that enables Containernet to deploy the topology needed to execute a blockchain platform. 
+* **umbra/scenario**: contains all the component source code to install and run the plugin that enables Containernet to deploy the topology needed to execute a blockchain platform.
+* **umbra/agent**: contains source code related to umbra-agent executable
+* **umbra/monitor**: contains source code related to umbra-monitor executable

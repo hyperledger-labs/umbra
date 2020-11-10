@@ -4,6 +4,7 @@ Example
 To examplify how Umbra can be utilized, an extension was coded to support Hyperledger Fabric v1.4.
 The details of how that was coded are exposed in the Extensions section. Here is just the explanation of what the Fabric example realizes.
 
+.. image:: /imgs/imgs/example_fabric_topology.JPG.JPG
 
 Building
 ********
@@ -47,11 +48,11 @@ The executable file named run.sh in the umbra/examples/ folder contains the comm
 
 Having that executed, all the instantiation of components from the saved FabricTopology will take place (i.e., peers, orderers, links, etc) and events will be called on them. 
 
-The commands bellow respectivelly start and stop the example experiment with Fabric.
+The commands below respectively start and stop the example experiment with Fabric.
 
 .. code-block:: bash
 
-    $ sudo -H ./run.sh start -c ./fabric/fabric_configs/config_fabric_simple.json 
+    $ sudo -H ./run.sh start -c ./fabric/fabric_configs/Fabric-Simple-01.json
 
     $ sudo -H ./run.sh stop
 
@@ -73,3 +74,132 @@ Modifying
 
 To modify the Fabric experiment, it is just needed to modify the build_configs.py file, changing how the FabricTopology instance is built, besides changing how the events are scheduled.
 If new orgs are added, the file fabric.py inside base_configtx folder needs to be modified accordingly to define the policies in configtx needed for the creation of the Fabric requirements.
+
+
+Changing environment during runtime
+***********************************
+
+We will use the broker's environment plugin (``umbra/broker/plugins/env.py``) to generate event that modifies the environment behavior. Refer `build_configs <https://github.com/hyperledger-labs/umbra/blob/master/examples/fabric/build_configs.py>`_.
+
+Following are example usecases:
+
+.. code-block:: python
+
+	# 1. Kill a container
+	ev_kill_container = {
+	    "command": "environment_event",
+	    "target_node": <peer_name>, # e.g. "peer0.org2.example.com"
+	    "action": "kill_container",
+	    "action_args": {},
+	}
+
+	# 2. Set mem limit
+	ev_mem_limit_peer1_org1 = {
+	    "command": "environment_event",
+	    "action": "update_memory_limit",
+	    "action_args": {
+	        "mem_limit": <amount_in_bytes>, # e.g. 256000000 for 256MB memory
+	        "memswap_limit": -1
+	    },
+	    "target_node": <peer_name>, # e.g. "peer0.org2.example.com"
+	}
+
+	# 3. Set cpu limit. More info at
+	# https://docs.docker.com/config/containers/resource_constraints/#cpu
+	# https://www.kernel.org/doc/Documentation/scheduler/sched-bwc.txt
+	ev_cpu_limit_peer1_org2 = {
+	    "command": "environment_event",
+	    "target_node": <peer_name>, # e.g. "peer0.org2.example.com"
+	    "action": "update_cpu_limit",
+	    "action_args": { # refer Docker docs for these values
+	        "cpu_quota": 10000,
+	        "cpu_period": 50000,
+	        "cpu_shares": -1,
+	        "cores": {}
+	    },
+	}
+
+	# 4. Update link resources
+	# Here, we change the resources of s0<-->peer1.org1 interface
+	# to bandwidth of 3Mbps, with 4ms delay, and packet loss rate of 10%
+	ev_update_link_res = {
+	    "command": "environment_event",
+	    "action": "update_link",
+	    "action_args": {
+	        "events": [
+	            {
+	                "group": "links",
+	                "specs": {
+	                    "action": "update",
+	                    "online": True,
+	                    "resources": {
+	                        "bw": 3, # Mbps
+	                        "delay": "4ms",
+	                        "loss": 10, #
+	                    }
+	                },
+	                "targets": ("s0", "peer1.org1.example.com")
+	            },
+	        ]
+	    },
+	}
+
+	# 5. Change link state, e.g. UP or DOWN
+	# Beginning of test all link should be up.
+	# Set the "online" key to either True or False
+	# Example below set the orderer interface to DOWN
+	ev_update_link_orderer_down = {
+	    "command": "environment_event",
+	    "action": "update_link",
+	    "action_args": {
+	        "events": [
+	            {
+	                "group": "links",
+	                "specs": {
+	                    "action": "update",
+	                    "online": <True|False>, # True=UP, False=DOWN
+	                    "resources": None
+	                },
+	                "targets": ("s0", "orderer.example.com")
+	            },
+	        ]
+	    },
+	}
+
+
+Creating stimulus in the network via agent
+******************************************
+
+`umbra-agent` currently supports `ping` to send ICMP echo, `iperf` to simulate heavy traffic, and `tcpreplay` to replay pcap packet. Only `ping` is tested thus far, other examples coming soon.
+
+.. code-block:: python
+
+	# Ping peer0.org1.example.com at 1 packet per second
+	# for 4 seconds
+	ev_agent_ping_peer0org1 = {
+	    "agent_name": agent_name,
+	    "id": "100",
+	    "actions": [
+	        {
+	            'id': "1",
+	            "tool": "ping",
+	            "output": {
+	                "live": False,
+	                "address": None,
+	            },
+	            'parameters': {
+	                "target": <target_node>, # e.g. "peer0.org1.example.com"
+	                "interval": "1",
+	                "duration": "4",
+	            },
+	            'schedule': {
+	                "from": 1,
+	                "until": 0,
+	                "duration": 0,
+	                "interval": 0,
+	                "repeat": 0
+	            },
+	        },
+	    ],
+	}
+

@@ -23,55 +23,129 @@ class BrokerBase(abc.ABC):
         pass
 
     @abc.abstractmethod
+<<<<<<< HEAD
     async def Collect(
         self, stream: "grpclib.server.Stream[umbra_pb2.Stats, umbra_pb2.Status]"
     ) -> None:
+||||||| 3052fe4
+    async def Run(self, stream: 'grpclib.server.Stream[umbra_pb2.Config, umbra_pb2.Report]') -> None:
+=======
+    async def Manage(self, stream: 'grpclib.server.Stream[umbra_pb2.Config, umbra_pb2.Report]') -> None:
+        pass
+
+    @abc.abstractmethod
+    async def Measure(self, stream: 'grpclib.server.Stream[umbra_pb2.Evaluation, umbra_pb2.Status]') -> None:
+>>>>>>> 091d3a4f7e95c782e110b79ee0a83fd1d49c8a00
         pass
 
     def __mapping__(self) -> typing.Dict[str, grpclib.const.Handler]:
         return {
+<<<<<<< HEAD
             "/umbra.Broker/Execute": grpclib.const.Handler(
                 self.Execute,
+||||||| 3052fe4
+            '/umbra.Broker/Run': grpclib.const.Handler(
+                self.Run,
+=======
+            '/umbra.Broker/Manage': grpclib.const.Handler(
+                self.Manage,
+>>>>>>> 091d3a4f7e95c782e110b79ee0a83fd1d49c8a00
                 grpclib.const.Cardinality.UNARY_UNARY,
                 umbra_pb2.Config,
                 umbra_pb2.Report,
             ),
+<<<<<<< HEAD
             "/umbra.Broker/Collect": grpclib.const.Handler(
                 self.Collect,
                 grpclib.const.Cardinality.UNARY_UNARY,
                 umbra_pb2.Stats,
                 umbra_pb2.Status,
             ),
+||||||| 3052fe4
+=======
+            '/umbra.Broker/Measure': grpclib.const.Handler(
+                self.Measure,
+                grpclib.const.Cardinality.UNARY_UNARY,
+                umbra_pb2.Evaluation,
+                umbra_pb2.Status,
+            ),
+>>>>>>> 091d3a4f7e95c782e110b79ee0a83fd1d49c8a00
         }
 
 
 class BrokerStub:
     def __init__(self, channel: grpclib.client.Channel) -> None:
+<<<<<<< HEAD
         self.Execute = grpclib.client.UnaryUnaryMethod(
+||||||| 3052fe4
+        self.Run = grpclib.client.UnaryUnaryMethod(
+=======
+        self.Manage = grpclib.client.UnaryUnaryMethod(
+>>>>>>> 091d3a4f7e95c782e110b79ee0a83fd1d49c8a00
             channel,
+<<<<<<< HEAD
             "/umbra.Broker/Execute",
+||||||| 3052fe4
+            '/umbra.Broker/Run',
+=======
+            '/umbra.Broker/Manage',
+>>>>>>> 091d3a4f7e95c782e110b79ee0a83fd1d49c8a00
             umbra_pb2.Config,
             umbra_pb2.Report,
         )
+<<<<<<< HEAD
         self.Collect = grpclib.client.UnaryUnaryMethod(
             channel,
             "/umbra.Broker/Collect",
             umbra_pb2.Stats,
             umbra_pb2.Status,
         )
+||||||| 3052fe4
+=======
+        self.Measure = grpclib.client.UnaryUnaryMethod(
+            channel,
+            '/umbra.Broker/Measure',
+            umbra_pb2.Evaluation,
+            umbra_pb2.Status,
+        )
+>>>>>>> 091d3a4f7e95c782e110b79ee0a83fd1d49c8a00
 
 
 class ScenarioBase(abc.ABC):
     @abc.abstractmethod
+<<<<<<< HEAD
     async def Establish(
         self, stream: "grpclib.server.Stream[umbra_pb2.Workflow, umbra_pb2.Status]"
     ) -> None:
+||||||| 3052fe4
+    async def Run(self, stream: 'grpclib.server.Stream[umbra_pb2.Deploy, umbra_pb2.Built]') -> None:
+=======
+    async def Establish(self, stream: 'grpclib.server.Stream[umbra_pb2.Workflow, umbra_pb2.Status]') -> None:
+        pass
+
+    @abc.abstractmethod
+    async def CurrentTopology(self, stream: 'grpclib.server.Stream[umbra_pb2.Workflow, umbra_pb2.Status]') -> None:
+>>>>>>> 091d3a4f7e95c782e110b79ee0a83fd1d49c8a00
         pass
 
     def __mapping__(self) -> typing.Dict[str, grpclib.const.Handler]:
         return {
+<<<<<<< HEAD
             "/umbra.Scenario/Establish": grpclib.const.Handler(
                 self.Establish,
+||||||| 3052fe4
+            '/umbra.Scenario/Run': grpclib.const.Handler(
+                self.Run,
+=======
+            '/umbra.Scenario/Establish': grpclib.const.Handler(
+                self.Establish,
+                grpclib.const.Cardinality.UNARY_UNARY,
+                umbra_pb2.Workflow,
+                umbra_pb2.Status,
+            ),
+            '/umbra.Scenario/CurrentTopology': grpclib.const.Handler(
+                self.CurrentTopology,
+>>>>>>> 091d3a4f7e95c782e110b79ee0a83fd1d49c8a00
                 grpclib.const.Cardinality.UNARY_UNARY,
                 umbra_pb2.Workflow,
                 umbra_pb2.Status,
@@ -165,9 +239,87 @@ class CLIBase(abc.ABC):
 
 class CLIStub:
     def __init__(self, channel: grpclib.client.Channel) -> None:
+<<<<<<< HEAD
         self.Inform = grpclib.client.UnaryUnaryMethod(
+||||||| 3052fe4
+        self.Run = grpclib.client.UnaryUnaryMethod(
+=======
+        self.Establish = grpclib.client.UnaryUnaryMethod(
             channel,
+            '/umbra.Scenario/Establish',
+            umbra_pb2.Workflow,
+            umbra_pb2.Status,
+        )
+        self.CurrentTopology = grpclib.client.UnaryUnaryMethod(
+            channel,
+            '/umbra.Scenario/CurrentTopology',
+            umbra_pb2.Workflow,
+            umbra_pb2.Status,
+        )
+
+
+class MonitorBase(abc.ABC):
+
+    @abc.abstractmethod
+    async def Listen(self, stream: 'grpclib.server.Stream[umbra_pb2.Instruction, umbra_pb2.Snapshot]') -> None:
+        pass
+
+    def __mapping__(self) -> typing.Dict[str, grpclib.const.Handler]:
+        return {
+            '/umbra.Monitor/Listen': grpclib.const.Handler(
+                self.Listen,
+                grpclib.const.Cardinality.UNARY_UNARY,
+                umbra_pb2.Instruction,
+                umbra_pb2.Snapshot,
+            ),
+        }
+
+
+class MonitorStub:
+
+    def __init__(self, channel: grpclib.client.Channel) -> None:
+        self.Listen = grpclib.client.UnaryUnaryMethod(
+            channel,
+            '/umbra.Monitor/Listen',
+            umbra_pb2.Instruction,
+            umbra_pb2.Snapshot,
+        )
+
+
+class AgentBase(abc.ABC):
+
+    @abc.abstractmethod
+    async def Probe(self, stream: 'grpclib.server.Stream[umbra_pb2.Instruction, umbra_pb2.Snapshot]') -> None:
+        pass
+
+    def __mapping__(self) -> typing.Dict[str, grpclib.const.Handler]:
+        return {
+            '/umbra.Agent/Probe': grpclib.const.Handler(
+                self.Probe,
+                grpclib.const.Cardinality.UNARY_UNARY,
+                umbra_pb2.Instruction,
+                umbra_pb2.Snapshot,
+            ),
+        }
+
+
+class AgentStub:
+
+    def __init__(self, channel: grpclib.client.Channel) -> None:
+        self.Probe = grpclib.client.UnaryUnaryMethod(
+>>>>>>> 091d3a4f7e95c782e110b79ee0a83fd1d49c8a00
+            channel,
+<<<<<<< HEAD
             "/umbra.CLI/Inform",
             umbra_pb2.State,
             umbra_pb2.Status,
+||||||| 3052fe4
+            '/umbra.Scenario/Run',
+            umbra_pb2.Deploy,
+            umbra_pb2.Built,
+=======
+            '/umbra.Agent/Probe',
+            umbra_pb2.Instruction,
+            umbra_pb2.Snapshot,
+>>>>>>> 091d3a4f7e95c782e110b79ee0a83fd1d49c8a00
         )
