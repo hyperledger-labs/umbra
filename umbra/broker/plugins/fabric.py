@@ -17,14 +17,14 @@ class FabricEvents:
         self._chaincode_dir = None
         self._config_sdk = None
         self._cli = None
-        self._topo = None
+        self._settings = None
 
-    def config(self, topology, configsdk, chaincode, configtx):
-        self._topo = topology
+    def config(self, settings, configsdk, chaincode, configtx):
+        self._settings = settings
         self._configtx_dir = configtx
         self._chaincode_dir = chaincode
         self._config_sdk = configsdk
-        if all([topology, configsdk, chaincode, configtx]):
+        if all([settings, configsdk, chaincode, configtx]):
             logger.info("FabricEvents configs OK")
             logger.info(
                 "configsdk %s, chaincode %s, configtx %s",
@@ -58,44 +58,22 @@ class FabricEvents:
         logger.info("Fabric Client SDK CLI Started")
 
     def schedule(self, events):
-        for _id, event in events.items():
-            event_category = event.get("category")
+        evs_sched = {}
 
-            if event_category == "fabric":
-                when = event.get("when")
+        for event in events:
+            ev_id = event.get("id")
+            ev_data = event.get("event")
+            action_call = self.create_call(ev_data)
+            if action_call:
+                evs_sched[ev_id] = (action_call, event.get("schedule"))
+            else:
                 logger.info(
-                    "Calling at %s event %s", when, event.get("params").get("action")
+                    f"Could not schedule fabric event task call for event {event}"
                 )
-                self.call_at(when, event.get("params"))
 
-    def sched_time(self, when):
-        if type(when) is float:
-            if when >= time.time():
-                rel_when = when - time.time()
-            else:
-                rel_when = 0
-        elif type(when) is str:
-            if when == "now":
-                rel_when = 0
-            else:
-                rel_when = float(when)
-        else:
-            rel_when = 0
-        return rel_when
+        return evs_sched
 
-    def call_at(self, when, event):
-        rel_when = self.sched_time(when)
-        self._async_loop.call_later(max(0, rel_when), self.call, event)
-
-    def run_task(self, task):
-        try:
-            self._async_loop.create_task(task)
-        except asyncio.CancelledError:
-            pass
-        except Exception as e:
-            logger.error(f"Exception in Fabric Event Task - {repr(e)}", exc_info=True)
-
-    def call(self, event):
+    def create_call(self, event):
         task = None
         action = event.get("action")
 
@@ -123,9 +101,10 @@ class FabricEvents:
             task = self.event_chaincode_query(event)
 
         if task:
-            self.run_task(task)
+            return task
         else:
             logger.info("Unkown task for event %s", event)
+            return None
 
     async def event_create_channel(self, ev):
         org_name = ev.get("org")
@@ -134,10 +113,10 @@ class FabricEvents:
         channel = ev.get("channel")
         profile = ev.get("profile")
 
-        orderer = self._topo.get("orderers").get(orderer_name)
+        orderer = self._settings.get("orderers").get(orderer_name)
         orderer_fqdn = orderer.get("orderer_fqdn")
 
-        org = self._topo.get("orgs").get(org_name)
+        org = self._settings.get("orgs").get(org_name)
         org_fqdn = org.get("org_fqdn")
 
         if org_fqdn and orderer_fqdn:
@@ -165,10 +144,10 @@ class FabricEvents:
         channel = ev.get("channel")
         peers_names = ev.get("peers")
 
-        orderer = self._topo.get("orderers").get(orderer_name)
+        orderer = self._settings.get("orderers").get(orderer_name)
         orderer_fqdn = orderer.get("orderer_fqdn")
 
-        org = self._topo.get("orgs").get(org_name)
+        org = self._settings.get("orgs").get(org_name)
         org_fqdn = org.get("org_fqdn")
 
         if org_fqdn and orderer_fqdn:
@@ -199,7 +178,7 @@ class FabricEvents:
         channel = ev.get("channel")
         peers_names = ev.get("peers")
 
-        org = self._topo.get("orgs").get(org_name)
+        org = self._settings.get("orgs").get(org_name)
         org_fqdn = org.get("org_fqdn")
 
         peers = org.get("peers")
@@ -226,7 +205,7 @@ class FabricEvents:
         user_name = ev.get("user")
         peers_names = ev.get("peers")
 
-        org = self._topo.get("orgs").get(org_name)
+        org = self._settings.get("orgs").get(org_name)
         org_fqdn = org.get("org_fqdn")
 
         peers = org.get("peers")
@@ -254,7 +233,7 @@ class FabricEvents:
         channel = ev.get("channel")
         peers_names = ev.get("peers")
 
-        org = self._topo.get("orgs").get(org_name)
+        org = self._settings.get("orgs").get(org_name)
         org_fqdn = org.get("org_fqdn")
 
         peers = org.get("peers")
@@ -284,7 +263,7 @@ class FabricEvents:
         user_name = ev.get("user")
         peers_names = ev.get("peers")
 
-        org = self._topo.get("orgs").get(org_name)
+        org = self._settings.get("orgs").get(org_name)
         org_fqdn = org.get("org_fqdn")
 
         peers = org.get("peers")
@@ -311,7 +290,7 @@ class FabricEvents:
 
     async def event_info_network(self, ev):
         orderer_name = ev.get("orderer")
-        orderer = self._topo.get("orderers").get(orderer_name)
+        orderer = self._settings.get("orderers").get(orderer_name)
         orderer_fqdn = orderer.get("orderer_fqdn")
 
         if orderer_fqdn:
@@ -330,7 +309,7 @@ class FabricEvents:
         chaincode_path = ev.get("chaincode_path")
         chaincode_version = ev.get("chaincode_version")
 
-        org = self._topo.get("orgs").get(org_name)
+        org = self._settings.get("orgs").get(org_name)
         org_fqdn = org.get("org_fqdn")
 
         peers = org.get("peers")
@@ -367,7 +346,7 @@ class FabricEvents:
         chaincode_name = ev.get("chaincode_name")
         chaincode_version = ev.get("chaincode_version")
 
-        org = self._topo.get("orgs").get(org_name)
+        org = self._settings.get("orgs").get(org_name)
         org_fqdn = org.get("org_fqdn")
 
         peers = org.get("peers")
@@ -405,7 +384,7 @@ class FabricEvents:
         chaincode_args = ev.get("chaincode_args")
         chaincode_name = ev.get("chaincode_name")
 
-        org = self._topo.get("orgs").get(org_name)
+        org = self._settings.get("orgs").get(org_name)
         org_fqdn = org.get("org_fqdn")
 
         peers = org.get("peers")
@@ -441,7 +420,7 @@ class FabricEvents:
         chaincode_args = ev.get("chaincode_args")
         chaincode_name = ev.get("chaincode_name")
 
-        org = self._topo.get("orgs").get(org_name)
+        org = self._settings.get("orgs").get(org_name)
         org_fqdn = org.get("org_fqdn")
 
         peers = org.get("peers")

@@ -12,8 +12,10 @@ from google.protobuf import json_format
 from umbra.common.protobuf.umbra_grpc import ScenarioStub, MonitorStub
 from umbra.common.protobuf.umbra_pb2 import Report, Workflow, Directrix, Status
 
+from umbra.common.scheduler import Handler
 from umbra.design.configs import Topology, Experiment
 from umbra.broker.plugins.fabric import FabricEvents
+from umbra.broker.plugins.scenario import ScenarioEvents
 
 
 logger = logging.getLogger(__name__)
@@ -24,8 +26,11 @@ class Operator:
         self.info = info
         self.experiment = None
         self.topology = None
-        self.events_fabric = FabricEvents()
         self.plugins = {}
+        self.events_handler = Handler()
+        self.events_fabric = FabricEvents()
+        self.events_scenario = ScenarioEvents()
+        self.events_results = {}
 
     def parse_bytes(self, msg):
         msg_dict = {}
@@ -177,42 +182,6 @@ class Operator:
 
         return ack, info
 
-    def config_plugins(self):
-        logger.info("Configuring Umbra plugins")
-        umbra_cfgs = self.topology.umbra
-        plugin = umbra_cfgs.get("plugin")
-
-        if plugin == "fabric":
-            logger.info("Configuring Fabric plugin")
-            topology = umbra_cfgs.get("topology")
-            configtx = umbra_cfgs.get("configtx")
-            configsdk = umbra_cfgs.get("configsdk")
-            chaincode = umbra_cfgs.get("chaincode")
-            ack_fabric = self.events_fabric.config(
-                topology, configsdk, chaincode, configtx
-            )
-            if ack_fabric:
-                self.plugins["fabric"] = self.events_fabric
-
-    def schedule_plugins(self, events):
-        for name, plugin in self.plugins.items():
-            logger.info("Scheduling plugin %s events", name)
-            plugin.schedule(events)
-
-    async def call_events(self, info_deploy):
-        logger.info("Scheduling events")
-
-        # info_topology = info_deploy.get("topology")
-        # info_hosts = info_deploy.get("hosts")
-        # topo = self.experiment.get_topology()
-        # topo.fill_config(info_topology)
-        # topo.fill_hosts_config(info_hosts)
-        # self.topology = topo
-        self.config_plugins()
-
-        events = self.experiment.events.get()
-        self.schedule_plugins(events)
-
     async def call_scenarios(self, uid, topology, action):
         envs = topology.get_environments()
         topo_envs = topology.build_environments()
@@ -309,7 +278,7 @@ class Operator:
                 info, error = await self.start(uid)
 
                 if not error:
-                    events_info = await self.call_events(info)
+                    await self.call_events(info)
 
             elif action == "stop":
                 info, error = await self.stop(uid)
@@ -326,3 +295,65 @@ class Operator:
             report = Report(id=config.id, error=error_msg)
 
         return report
+
+    def config_plugins(self):
+        logger.info("Configuring Umbra plugins")
+        
+        model = self.topology.get_model()
+        umbra = self.topology.get_umbra()        
+        umbra_model_cfgs = umbra.get(model)
+
+        if model == "fabric":
+            logger.info("Configuring Fabric plugin")
+            settings = umbra_model_cfgs.get("settings")
+            configtx = umbra_model_cfgs.get("configtx")
+            configsdk = umbra_model_cfgs.get("configsdk")
+            chaincode = umbra_model_cfgs.get("chaincode")
+            
+            ack_fabric = self.events_fabric.config(
+                settings, configsdk, chaincode, configtx
+            )
+            if ack_fabric:
+                self.plugins["fabric"] = self.events_fabric
+
+        self.events_scenario.config(self.topology)
+        self.plugins["scenario"] = self.events_scenario
+
+    async def handle_events(self, events):
+        events_calls = {}
+
+        for ev_plugin, evs in events.items():
+            evs_formatted = {
+                ev_id:ev for ev_id, ev in evs.items()
+            }
+            events_calls.update(evs_formatted)
+
+        self.events_results = await self.events_handler.run(events_calls)
+
+    def schedule_plugins(self):
+        sched_events = {}
+
+        for name, plugin in self.plugins.items():
+            logger.info("Scheduling plugin %s events", name)
+            events = self.experiment.events.get_by_category(name)
+            logger.info(f"Scheduling {len(events)} events: {events}")
+            plugin_sched_evs = plugin.schedule(events)
+            sched_events[plugin] = plugin_sched_evs
+
+        return sched_events
+
+    async def call_events(self, info_deploy):
+        logger.info("Scheduling events")
+
+        # info_topology = info_deploy.get("topology")
+        # info_hosts = info_deploy.get("hosts")
+        # topo = self.experiment.get_topology()
+        # topo.fill_config(info_topology)
+        # topo.fill_hosts_config(info_hosts)
+        # self.topology = topo
+        self.config_plugins()
+
+        sched_events = self.schedule_plugins()
+        # await self.handle_events(sched_events)
+        coro_events = self.handle_events(sched_events)
+        asyncio.create_task(coro_events)

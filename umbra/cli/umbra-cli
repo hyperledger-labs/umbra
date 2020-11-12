@@ -14,24 +14,14 @@ from umbra.common.protobuf.umbra_grpc import CLIBase
 from umbra.common.protobuf.umbra_pb2 import State, Status
 
 from umbra.common.app import App
+from umbra.common.scheduler import Loader
+from umbra.common.logs import Logs
 
 from umbra.cli.output import print_cli
 from umbra.cli.main import CLI
-from umbra.common.logs import Logs
 
 
 logger = logging.getLogger(__name__)
-
-
-class UmbraCLI:
-    def __init__(self):
-        logger.info("UmbraCLI init")
-        self.cli = CLI()
-
-    async def run(self):
-        logger.info("UmbraCLI run - cli session created")
-        await self.cli.init()
-        logger.info("UmbraCLI end - cli session finished")
 
 
 class UmbraCLIState(CLIBase):
@@ -53,12 +43,38 @@ class UmbraCLIApp(App):
     def __init__(self):
         App.__init__(self)
         self.args = {}
+        self.loader = Loader()
+
+    # def argparse(self, argv):
+    #     ack = self.cfg.parse(argv)
+    #     if ack:
+    #         self.args = self.cfg.get()
+    #         self.logs(screen=False)
+    #     return ack
+
+    def list_files(self, source):
+        files = []
+
+        if source:
+            source_path = os.path.normpath(os.path.join(os.getcwd(), source))
+            files = self.loader.files(source_path, suffix=".json", full_path=True)
+
+        return files
 
     def argparse(self, argv):
+        self.cfg.parser.add_argument(
+            "--source",
+            type=str,
+            help="Define the directory path from where VNF-BR files can be loaded.",
+        )
+
         ack = self.cfg.parse(argv)
         if ack:
-            self.args = self.cfg.get()
             self.logs(screen=False)
+            self.args = self.cfg.get()
+            source = self.cfg.get_cfg_attrib("source")
+            self.args["source"] = self.list_files(source)
+
         return ack
 
     async def run(self):
@@ -84,9 +100,9 @@ async def main(argv):
     app = UmbraCLIApp()
     ack = app.argparse(argv)
 
-    cli = UmbraCLI()
-
     if ack:
+        logger.info("UmbraCLI init")
+        cli = CLI(app.args)
 
         with patch_stdout():
             background_task = asyncio.create_task(app.run())
@@ -94,7 +110,7 @@ async def main(argv):
             try:
                 set_title("Umbra")
                 print_cli("\t\t<<< Welcome to Umbra >>>\t\t", style="main")
-                await cli.run()
+                await cli.init()
             finally:
                 background_task.cancel()
 

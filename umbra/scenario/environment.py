@@ -612,10 +612,65 @@ class Environment:
 
         return ok, err_msg
 
+    def start_node(self, node):
+        if node not in self.nodes:
+            err_msg = f"Container {node} does not exist"
+            logger.debug(err_msg)
+            return False
+
+        else:
+            self.connect_docker()
+
+            if self._connected_to_docker:
+                try:
+                    docker_container = self._docker_client.containers.get(node)
+                    docker_container.unpause()
+
+                except docker.errors.NotFound as e:
+                    logger.debug(f"Docker container not found - {e}")
+                except docker.errors.APIError as e:
+                    logger.debug(f"Docker container not started - API Error {e}")
+                    return False
+                else:
+                    logger.debug(f"Docker container - {node} - started")
+                    return True
+            else:
+                logger.debug(f"Docker container - {node} - not started")
+
+        return False
+
+    def stop_node(self, node):
+        if node not in self.nodes:
+            err_msg = f"Container {node} does not exist"
+            logger.debug(err_msg)
+            return False
+
+        else:
+            self.connect_docker()
+
+            if self._connected_to_docker:
+                try:
+                    docker_container = self._docker_client.containers.get(node)
+                    docker_container.pause()
+
+                except docker.errors.NotFound as e:
+                    logger.debug(f"Docker container not found - {e}")
+                except docker.errors.APIError as e:
+                    logger.debug(f"Docker container not stopped - API Error {e}")
+                    return False
+                else:
+                    logger.debug(f"Docker container - {node} - stopped")
+                    return True
+            else:
+                logger.debug(f"Docker container - {node} - not stopped")
+
+        return False
+
     def update_node_resources(self, node, resources):
         self.nodes[node].update_resources(**resources)
 
     def update_node(self, node, online, resources):
+        logger.info(f"Updating node {node}: online {online} - resources {resources}")
         err_msg = None
         ok = True
 
@@ -633,11 +688,11 @@ class Environment:
                 if is_running:
                     pass
                 else:
-                    self.nodes[node].start()
+                    self.start_node(node)
 
             else:
                 if is_running:
-                    self.end_container(node)
+                    self.stop_node(node)
                 else:
                     pass
 
@@ -649,6 +704,7 @@ class Environment:
             ok = False
             err_msg = f"Failed to update {node} - exception {repr(ex)}"
 
+        logger.info(f"Node updated: {ok}")
         return ok, err_msg
 
     def update_link_resources(self, src, dst, resources):
@@ -661,6 +717,9 @@ class Environment:
         dstLink.config(**resources)
 
     def update_link(self, src, dst, online, resources):
+        logger.info(
+            f"Updating link {(src, dst)}: online {online} - resources {resources}"
+        )
         ack = False
         if online:
             self.net.configLinkStatus(src, dst, "up")
@@ -672,35 +731,36 @@ class Environment:
         else:
             self.net.configLinkStatus(src, dst, "down")
             ack = True
+
+        logger.info(f"Link updated: {ack}")
         return ack
 
-    def update(self, events):
+    def update(self, event):
         ack = False
         err_msg = None
 
         if self.net:
             logger.info("Updating network: %r" % self.net)
-            logger.info("Events: %s", events)
+            logger.info("Event: %s", event)
 
-            for ev in events:
-                ev_group = ev.get("group")
-                ev_specs = ev.get("specs")
+            ev_group = event.get("group")
+            ev_specs = event.get("specs")
 
-                if ev_group == "links":
-                    act = ev_specs.get("action")
+            if ev_group == "links":
+                act = ev_specs.get("action")
 
-                    if act == "update":
-                        online = ev_specs.get("online")
-                        resources = ev_specs.get("resources", None)
-                        (src, dst) = ev.get("targets")
-                        ack = self.update_link(src, dst, online, resources)
-
-                if ev_group == "nodes":
-                    act = ev_specs.get("action")
+                if act == "update":
                     online = ev_specs.get("online")
                     resources = ev_specs.get("resources", None)
-                    node = ev.get("target")
+                    (src, dst) = event.get("target")
+                    ack = self.update_link(src, dst, online, resources)
 
-                    ack, err_msg = self.update_node(node, online, resources)
+            if ev_group == "nodes":
+                act = ev_specs.get("action")
+                online = ev_specs.get("online")
+                resources = ev_specs.get("resources", None)
+                node = event.get("target")
+
+                ack, err_msg = self.update_node(node, online, resources)
 
         return ack, err_msg

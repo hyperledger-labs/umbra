@@ -99,21 +99,21 @@ class Scenario(ScenarioBase):
         self.info = info
         self.playground = Playground(None, None)
 
-    async def play(self, id, command, scenario):
-        if command == "start":
+    async def play(self, id, action, scenario):
+        if action == "start":
             reply = self.playground.start(scenario)
 
-        elif command == "stop":
+        elif action == "stop":
             reply = self.playground.stop()
 
-        elif command == "update":
+        elif action == "update":
             reply = self.playground.update(scenario)
 
-        elif command == "stats":
+        elif action == "stats":
             reply = self.playground.stats()
 
         else:
-            logger.debug(f"Unkown playground command {command}")
+            logger.debug(f"Unkown playground command {action}")
             return False, {}
 
         ack, info = reply.get("ok"), reply.get("msg")

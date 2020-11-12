@@ -1,9 +1,80 @@
+import os
 import logging
 import asyncio
 from datetime import datetime
 
 
 logger = logging.getLogger(__name__)
+
+
+class Loader:
+    def __init__(self):
+        self._files = []
+
+    def _get_filepath(self, root, filename, full_path):
+        """Adds filepath (if relative or not) to self._files list
+
+        Arguments:
+            root {string} -- Root folder where filename is located
+            filename {string} -- Name of the file listed in root
+            full_path {bool} -- Flag for absolute file path or not
+        """
+
+        if full_path:
+            p = os.path.join(root, filename)
+            file_path = os.path.abspath(p)
+            self._files.append(file_path)
+        else:
+            self._files.append(filename)
+
+    def _load_file(self, root, f, prefix, suffix, full_path):
+        """Checks file suffix and prefix to add to files loaded
+
+        Arguments:
+            root {string} -- Root dir in file path
+            f {string} -- Filename
+            prefix {string} -- Prefix needed for filename
+            suffix {string} -- Suffix needed for filename
+            full_path {bool} -- If absolute or realtive file path must be loaded
+        """
+        prefix_ok = f.startswith(prefix) if prefix else True
+        suffix_ok = f.endswith(suffix) if suffix else True
+
+        if prefix_ok and suffix_ok:
+            self._get_filepath(root, f, full_path)
+        else:
+            pass
+            # logger.debug(f"Could not get file {f} path by suffix {suffix} or prefix {prefix}")
+
+    def files(self, folder=None, prefix=None, suffix=None, full_path=False):
+        """Gets all the names of files in a folder (not subfolders)
+
+        Keyword Arguments:
+            folder {string} -- Path to the folder name (default: {None})
+            prefix {string} -- Filter files that begin with prefix (default: {None})
+            suffix {string} -- Filter files that end with suffix (default: {None})
+            full_path {bool} -- If files should be in full/abs or relative path (default: {False})
+
+        Returns:
+            [list] -- All the file names inside a folder
+        """
+        logger.debug(
+            f"Loading files in folder {folder} - "
+            f"prefix {prefix} and suffix {suffix} - full/abs path {full_path}"
+        )
+
+        try:
+            for root, _, files in os.walk(folder):
+                for f in files:
+                    self._load_file(root, f, prefix, suffix, full_path)
+                break
+
+        except Exception as e:
+            logger.debug(f"Loading files exception - {e}")
+
+        finally:
+            logger.debug(f"Loaded files: {self._files}")
+            return self._files
 
 
 class Handler:
@@ -80,7 +151,7 @@ class Handler:
             finally:
                 result = None
 
-        logger.debug(f"Task result")
+        logger.debug(f"Task result: {result}")
         return result
 
     async def _schedule(self, uid, call, sched):
@@ -117,7 +188,13 @@ class Handler:
                 await asyncio.sleep(begin)
                 begin = interval
 
-                aw = call()
+                if asyncio.iscoroutine(call):
+                    logger.debug(f"Call is coroutine")
+                    aw = call
+                else:
+                    logger.debug(f"Call is not coroutine")
+                    aw = call()
+
                 task = loop.create_task(aw)
                 logger.debug(f"Task {uid} created {task}")
 

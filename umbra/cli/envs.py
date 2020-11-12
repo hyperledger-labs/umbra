@@ -232,6 +232,8 @@ class Proxy:
     def _workflow_monitor(self, action):
         logger.info(f"Workflow monitor {action}")
 
+        self._workflow_source_files("install")
+
         if action == "start":
             cmd = "cd /tmp/umbra/source && sudo make start-aux-monitor"
         elif action == "stop":
@@ -285,15 +287,32 @@ class Proxy:
         logger.info(f"Stats: {ack_action} - msg: {msg_action}")
         return ack_action, msg_action
 
+    def _workflow_source_hasfiles(self):
+        for dirpath, dirnames, files in os.walk("/tmp/umbra/source"):
+            if files:
+                logger.info(f"Source files - {dirpath} has files: {dirnames}")
+                return True
+            if not files:
+                logger.info(f"Source files - {dirpath} is empty: {dirnames}")
+                return False
+            break
+
     def _workflow_source_files(self, action):
         logger.info(f"Workflow source files - action {action}")
+        ack_source_files, msg_source_files = True, ""
 
         if action == "install":
-            self._workflow_source_files("uninstall")
+            # self._workflow_source_files("uninstall")
             clone_cmd = (
                 "git clone https://github.com/raphaelvrosa/umbra /tmp/umbra/source"
             )
-            ack_source_files, msg_source_files = self._plugin.execute_command(clone_cmd)
+
+            if self._workflow_source_hasfiles():
+                logger.info(f"Umbra source files already cloned to: /tmp/umbra/source")
+            else:
+                ack_source_files, msg_source_files = self._plugin.execute_command(
+                    clone_cmd
+                )
 
         if action == "uninstall":
             rm_cmd = "sudo rm -R /tmp/umbra/source"

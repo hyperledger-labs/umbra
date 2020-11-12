@@ -4,7 +4,7 @@ import asyncio
 import logging
 
 from prompt_toolkit.shortcuts import PromptSession
-from prompt_toolkit.completion import WordCompleter
+from prompt_toolkit.completion import WordCompleter, NestedCompleter
 from prompt_toolkit.styles import Style
 from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
 
@@ -280,9 +280,33 @@ class CLI:
         }
     )
 
-    def __init__(self):
+    def __init__(self, args):
+        self.args = args
         self.runner = CLIRunner()
         self._runner_cmds = self.runner.get_cmds()
+        self.umbra_completer = CLI.umbra_completer
+        self.update_completer()
+
+    def update_completer(self):
+        logger.info("updating cli completer")
+        nested_dict = {}
+        source_files = self.args.get("source", None)
+
+        if source_files:
+            logger.info(f"Updating completer with source files {source_files}")
+            source_files_dict = {filepath: None for filepath in source_files}
+
+            nested_dict = {
+                "load": source_files_dict,
+                "begin": None,
+                "end": None,
+                "start": None,
+                "stop": None,
+                "install": None,
+                "uninstall": None,
+            }
+
+            self.umbra_completer = NestedCompleter.from_nested_dict(nested_dict)
 
     def validator(self, text):
         words = text.split()
@@ -313,7 +337,7 @@ class CLI:
 
         session = PromptSession(
             complete_while_typing=True,
-            completer=CLI.umbra_completer,
+            completer=self.umbra_completer,
             style=CLI.umbra_style,
             auto_suggest=AutoSuggestFromHistory(),
         )

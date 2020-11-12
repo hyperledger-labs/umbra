@@ -264,6 +264,7 @@ class Topology(Graph):
         Graph.__init__(self)
         self.name = name
         self.model = model
+        self.model_settings = f"/tmp/umbra/{self.model}"
         self.settings = f"/tmp/umbra/{self.model}/{self.name}"
         self.topo = None
         self.umbra = {}
@@ -312,8 +313,14 @@ class Topology(Graph):
     def get_model(self):
         return self.model
 
+    def get_umbra(self):
+        return self.umbra
+
     def get_settings(self):
         return self.settings
+
+    def get_model_settings(self):
+        return self.model_settings
 
     def add_environment(self, env):
         env_id = env.get("id")
@@ -823,6 +830,7 @@ class FabricTopology(Topology):
                 self._networks[net] = {
                     "links": {},
                     "env": envid,
+                    "environment": envid,
                     "tun_ids": 1,
                 }
             else:
@@ -935,7 +943,7 @@ class FabricTopology(Topology):
             "anchor": anchor,
             "profile": profile,
             "port": self._peer_ports + self._peer_subports,
-            "ports": [self._peer_ports + self._peer_subports, self._iperf_port],
+            "ports": [self._peer_ports + self._peer_subports],
             "chaincode_port": self._peer_ports + self._peer_subports + 1,
             "image_tag": image_tag,
             "project_network": self.project_network,
@@ -944,6 +952,7 @@ class FabricTopology(Topology):
             "intf": 1,
             "ips": {},
             "environment-address": "",
+            "environment": "",
         }
 
         if org_name in self.orgs:
@@ -1081,6 +1090,7 @@ class FabricTopology(Topology):
             "working_dir": node_template.get("working_dir"),
             "network_mode": self.network_mode,
             "command": command,
+            "environment": node.get("environment")
         }
         return node_kwargs
 
@@ -1277,18 +1287,22 @@ class FabricTopology(Topology):
             if n in dns_nodes:
                 data["extra_hosts"] = dns_names
 
-    def dump(self, topo, envs):
-        fabric_cfgs = {"orgs": self.orgs, "orderers": self.orderers}
-
-        info = {
-            "plugin": "fabric",
+    def dump(self):
+        fabric_cfgs = {
             "configtx": self._configtx_path,
             "configsdk": self._configsdk_path,
             "chaincode": self._chaincode_path,
-            "topology": fabric_cfgs,
-            "envs": envs,
+            "settings":{
+                "orgs": self.orgs, 
+                "orderers": self.orderers,
+            }
         }
-        topo["umbra"] = info
+
+        info = {
+            "fabric": fabric_cfgs,
+        }
+
+        self.umbra = info
 
     def update_nodes_environment_address(self):
         logger.debug(f"Updating nodes environment address")
@@ -1309,13 +1323,16 @@ class FabricTopology(Topology):
 
                     for peer in org_peers.values():
                         peer["environment-address"] = env_address
+                        peer["environment"] = envid
 
                     for CA in org_CAs.values():
                         CA["environment-address"] = env_address
+                        CA["environment"] = envid
 
                 if org_name in self.orderers:
                     orderer = self.orderers.get(org_name, None)
                     orderer["environment-address"] = env_address
+                    orderer["environment"] = envid
 
     def build(self):
         self.update_nodes_environment_address()
@@ -1326,10 +1343,11 @@ class FabricTopology(Topology):
         self._build_agent()
         self._build_network()
         self._build_network_dns()
-        topo_envs = Topology.build_environments(self)
-        topo_built = Topology.build(self)
-        self.dump(topo_built, topo_envs)
-        return topo_built
+        self.dump()
+        # topo_envs = Topology.build_environments(self)
+        topo = Topology.build(self)
+        # self.dump(topo_built, topo_envs)
+        return topo
 
     def loading(self, root, file, full_path):
         files = []
@@ -1858,6 +1876,13 @@ class Events:
     def __init__(self):
         self._ev_id = 1
         self._events = defaultdict(lambda: [])
+        self._events_by_category = defaultdict(lambda: [])
+
+    def get_by_category(self, category):
+        return self._events_by_category.get(category, {})
+
+    def get(self):
+        return self._events
 
     def add(self, schedule, category, ev_args, **kwargs):
         """
@@ -1873,22 +1898,35 @@ class Events:
         """
         sched = {"from": 0, "until": 0, "duration": 0, "interval": 0, "repeat": 0}
         sched.update(schedule)
-        ev_args["schedule"] = sched
-        ev_args["id"] = self._ev_id
-        self._events[category].append(ev_args)
+
+        ev_id = self._ev_id
+        event = {
+            "id": ev_id,
+            "schedule": sched,
+            "category": category,
+            "event": ev_args,
+        }
+        self._events[ev_id] = event
+        self._events_by_category[category].append(event)
         self._ev_id += 1
 
     def build(self):
         return self._events
 
+    def parse_by_category(self):
+        for ev in self._events.values():
+            category = ev.get("category")
+            self._events_by_category[category].append(ev)
+
     def parse(self, data):
         self._events = data
+        self.parse_by_category()
 
 
 class Experiment:
     def __init__(self, name):
         self.name = name
-        self.folder = None
+        self.folder = "/tmp/umbra/"
         self.topology = None
         self.events = Events()
 
@@ -1907,7 +1945,8 @@ class Experiment:
 
     def set_topology(self, topology):
         self.topology = topology
-        self.folder = topology.get_settings()
+        # self.folder = topology.get_settings()
+        self.folder = topology.get_model_settings()
 
     def get_topology(self):
         return self.topology

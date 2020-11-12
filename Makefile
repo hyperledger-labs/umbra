@@ -34,7 +34,7 @@ vagrant-requirements-libvirt:
 	vagrant plugin install vagrant-libvirt
 
 requirements:
-	sudo apt update && sudo apt install -y python3.8 python3-setuptools python3-pip
+	sudo apt update && sudo apt install -y git python3.8 python3-setuptools python3-pip
 	mkdir -p /tmp/umbra
 	mkdir -p /tmp/umbra/logs
 	mkdir -p /tmp/umbra/source

@@ -1,3 +1,4 @@
+import os
 import logging
 import asyncio
 import signal
@@ -16,7 +17,16 @@ logging.getLogger("hpack").setLevel(logging.WARNING)
 
 class App:
     def __init__(self):
+        self.create_umbra_tmp_dirs()
         self.cfg = Config()
+
+    def create_umbra_tmp_dirs(self):
+        dir_names = ["/tmp/umbra/logs/", "/tmp/umbra/source/"]
+        for dir_name in dir_names:
+            try:
+                os.makedirs(dir_name)
+            except OSError:
+                pass
 
     def logs(self, screen=True):
         prefix = self.__class__.__name__

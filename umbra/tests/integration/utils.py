@@ -17,7 +17,7 @@ def _parse(out, err):
         err {bytes} -- The stderr of the process
 
     Returns:
-        tuple -- (string, string) Both process out and err 
+        tuple -- (string, string) Both process out and err
         in string format (utf-8)
     """
     output = out.decode("UTF-8")
@@ -75,4 +75,3 @@ def stop_process(p):
         # logger.debug(f"Process {pid} stopped - out {out}, err {err}")
         return True
     return False
-
