@@ -7,9 +7,7 @@ latex/
 *.egg-info
 *~
 dist/
-examples/fabric/fabric_configs/
-examples/.run.sh.lock
-
+.vagrant/
 
 # =======================
 # github/gitignore/Python

@@ -129,6 +129,10 @@ def builds():
     fab_topo.add_org_network_link("org1", "s1", "links")
     fab_topo.add_org_network_link("org2", "s1", "links")
     fab_topo.add_org_network_link("orderer", "s1", "links")
+    # If needed you can multiplex nodes of a org to be connected to separate networks
+    # Use the function add_node_network_link, with the params (org, node_name, network, profile_name)
+    # e.g., fab_topo.add_node_network_link("org1", "peer0", "s1", "links")
+    # Remember to add all the nodes of an org when using this function.
 
     # Defines the resource profiles for nodes and links.
     # The amount of node resources are defined as the maximum number of logical CPUs
@@ -193,5 +197,5 @@ def setup_logging(log_level=logging.DEBUG):
 
 
 if __name__ == "__main__":
-    setup_logging()
+    # setup_logging()
     builds()

@@ -151,6 +151,26 @@ def builds():
     fab_topo.add_node_profile(node_resources, profile="nodes")
     fab_topo.add_link_profile(link_resources, profile="links")
 
+
+    # Events are used to interact with the topology. 
+    # Events can be of scenario category when related to modifications
+    # that might happen in run-time with the deployed topology, be its nodes and/or links.
+    # In the case of a scenario event it must contain the specific group (nodes or links)
+    # that its target belongs to. 
+    # A target is the reference name to the node (full name) or link (src and dst in any order).
+    # The event specs contains the details about the event.
+    # For now in the specs of a scenario event, the action can be only update (later add/remove will be added too).
+    # In specs: online means if the node/link will be up or down; resources mean the definition of resource the 
+    # node or link will have.
+    # In links group, a link might have resources specified as bw (bandwidth Mbps), delay (string with number and unit)
+    # and loss (packet loss ration as percentage 0-100).
+    # In nodes group, a node might have resources specified as docker allows, to have a complete list
+    # see https://docs.docker.com/engine/reference/commandline/update/
+    # or API docs: https://docker-py.readthedocs.io/en/stable/api.html#module-docker.api.container
+    # examples of node resources are: blkio_weight, cpu_period, cpu_quota, cpu_shares, cpuset_cpus,
+    # cpuset_mems, mem_limit, mem_reservation, memswap_limit, kernel_memory, restart_policy
+    # When the action update is taken on a node, its is not actually stopped or started, it is 
+    # paused and unpaused (i.e., all its processes are paused or resumed).
     ev_scenario_01 = {
         "group": "links",
         "specs": {
@@ -185,13 +205,41 @@ def builds():
         "target": "peer0.org1.example.com",
     }
 
+    # Events are scheduled by the moment umbra-broker receives the confirmation
+    # the topology was successfully instantiated by umbra-scenario, it means time 0.
+    # From 0 on all events can be scheduled with the from keyword.
+    # The scheduling can take place with other keywords (all integers) too:
+    # e.g., sched = {"from": 0, "until": 0, "duration": 0, "interval": 0, "repeat": 0}
+    # from is the time when the event must be triggered (0-...)
+    # untill is the time the event stops
+    # duration is the total duration of time the event must be executed
+    # interval is the time the event must wait until its trigger is repeated
+    # repeat is the amount of times the event must be triggered
+    # For instance:
+    # e.g., sched = {"from": 0, "until": 10, "duration": 2, "interval": 1, "repeat": 3}
+    # The sched above will start the event in moment 0, repeat the event 3 times, waiting
+    # 1 second between each repeatition, have the event last no more than 2 seconds, until
+    # all the previous time summed reach 10 seconds. If the event finished before 2 seconds, 
+    # that's all fine.
+    # Summed, it has 2 (duration) x 3 (repeat) + 1 (interval) x (3 repeat) = 9 seconds 
+    # It will finish before the until 10 seconds is reached.
+    # The repeatitions stop when until timeout is reached.
     sched_ev_01 = {"from": 2}
     sched_ev_02 = {"from": 10}
     sched_ev_03 = {"from": 20}
 
-    experiment.add_event(sched_ev_01, "scenario", ev_scenario_01)
-    experiment.add_event(sched_ev_02, "scenario", ev_scenario_02)
-    experiment.add_event(sched_ev_03, "scenario", ev_scenario_03)
+    # Events are added by category.
+    # scenario refers to infrastructure/umbra-scenario events (nodes/links up/down 
+    # and resource updates)
+    # Other categories include blockchain models events. Meaning, fabric, iroha, indy, etc.
+    # The proper definition of the event must exist for each one of the blockchain projects.
+    # The events are defined according to the broker plugins. 
+    # In broker, a plugin is a extension that gives support to the events that a python SDK 
+    # of a particular blockchain project is consumed. 
+    # In local-4orgs-events.py example there are examples of fabric events.
+    experiment.add_event(sched=sched_ev_01, category="scenario", event=ev_scenario_01)
+    experiment.add_event(sched=sched_ev_02, category="scenario", event=ev_scenario_02)
+    experiment.add_event(sched=sched_ev_03, category="scenario", event=ev_scenario_03)
 
     # Save the experiment.
     # When saving, an experiment (topology and events) are properly compiled in a format
@@ -235,5 +283,5 @@ def setup_logging(log_level=logging.DEBUG):
 
 
 if __name__ == "__main__":
-    setup_logging()
+    # setup_logging()
     builds()

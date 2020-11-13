@@ -201,6 +201,7 @@ class FabricEvents:
         return None
 
     async def event_info_channels(self, ev):
+        logger.info("Event fabric: info_channels")
         org_name = ev.get("org")
         user_name = ev.get("user")
         peers_names = ev.get("peers")

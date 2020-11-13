@@ -92,8 +92,17 @@ def builds():
     fab_topo.set_configtx_profile(p2, ["orderer"])
     fab_topo.set_configtx_profile(p3, ["org1", "org2", "org3", "org4"])
 
-    fab_topo.add_org_network_link("org1", "s1", "links")
-    fab_topo.add_org_network_link("org2", "s2", "links")
+
+    # If needed you can multiplex nodes of a org to be connected to separate networks
+    # Use the function add_node_network_link, with the params (org, node_name, network, profile_name)
+    fab_topo.add_node_network_link("org1", "peer0", "s1", "links")
+    fab_topo.add_node_network_link("org1", "peer1", "s2", "links")
+    fab_topo.add_node_network_link("org1", "ca", "s2", "links")
+    # fab_topo.add_org_network_link("org1", "s1", "links")
+    fab_topo.add_node_network_link("org2", "peer0", "s1", "links")
+    fab_topo.add_node_network_link("org2", "peer1", "s2", "links")
+    fab_topo.add_node_network_link("org2", "ca", "s2", "links")
+    # fab_topo.add_org_network_link("org2", "s2", "links")
     fab_topo.add_org_network_link("org3", "s1", "links")
     fab_topo.add_org_network_link("org4", "s2", "links")
     fab_topo.add_org_network_link("orderer", "s1", "links")
@@ -104,168 +113,6 @@ def builds():
     fab_topo.add_node_profile(node_resources, profile="nodes")
     fab_topo.add_link_profile(link_resources, profile="links")
 
-    ev_create_channel = {
-        "action": "create_channel",
-        "org": "org1",
-        "user": "Admin",
-        "orderer": "orderer",
-        "channel": "testchannel",
-        "profile": "TwoOrgsChannel",
-    }
-
-    ev_join_channel_org1 = {
-        "action": "join_channel",
-        "org": "org1",
-        "user": "Admin",
-        "orderer": "orderer",
-        "channel": "testchannel",
-        "peers": ["peer0", "peer1"],
-    }
-
-    ev_join_channel_org2 = {
-        "action": "join_channel",
-        "org": "org2",
-        "user": "Admin",
-        "orderer": "orderer",
-        "channel": "testchannel",
-        "peers": ["peer0", "peer1"],
-    }
-
-    ev_join_channel_org3 = {
-        "action": "join_channel",
-        "org": "org3",
-        "user": "Admin",
-        "orderer": "orderer",
-        "channel": "testchannel",
-        "peers": ["peer0"],
-    }
-
-    ev_join_channel_org4 = {
-        "action": "join_channel",
-        "org": "org4",
-        "user": "Admin",
-        "orderer": "orderer",
-        "channel": "testchannel",
-        "peers": ["peer0"],
-    }
-
-    ev_info_channel = {
-        "action": "info_channel",
-        "org": "org1",
-        "user": "Admin",
-        "channel": "testchannel",
-        "peers": ["peer0"],
-    }
-
-    ev_info_channel_config = {
-        "action": "info_channel_config",
-        "org": "org1",
-        "user": "Admin",
-        "channel": "testchannel",
-        "peers": ["peer0"],
-    }
-
-    ev_info_channels = {
-        "action": "info_channels",
-        "org": "org1",
-        "user": "Admin",
-        "peers": ["peer0"],
-    }
-
-    ev_info_network = {
-        "action": "info_network",
-        "orderer": "orderer",
-    }
-
-    ev_chaincode_install_org1 = {
-        "action": "chaincode_install",
-        "org": "org1",
-        "user": "Admin",
-        "chaincode_name": "example_cc",
-        "chaincode_path": "github.com/example_cc",
-        "chaincode_version": "v1.0",
-        "peers": ["peer0", "peer1"],
-    }
-
-    ev_chaincode_install_org2 = {
-        "action": "chaincode_install",
-        "org": "org2",
-        "user": "Admin",
-        "chaincode_name": "example_cc",
-        "chaincode_path": "github.com/example_cc",
-        "chaincode_version": "v1.0",
-        "peers": ["peer0", "peer1"],
-    }
-
-    ev_chaincode_instantiate_org1 = {
-        "action": "chaincode_instantiate",
-        "org": "org1",
-        "user": "Admin",
-        "peers": ["peer1"],
-        "channel": "testchannel",
-        "chaincode_name": "example_cc",
-        "chaincode_args": ["a", "200", "b", "50"],
-        "chaincode_version": "v1.0",
-    }
-
-    ev_chaincode_instantiate_org2 = {
-        "action": "chaincode_instantiate",
-        "org": "org2",
-        "user": "Admin",
-        "peers": ["peer1"],
-        "channel": "testchannel",
-        "chaincode_name": "example_cc",
-        "chaincode_args": ["a", "200", "b", "50"],
-        "chaincode_version": "v1.0",
-    }
-
-    ev_chaincode_invoke_org1 = {
-        "action": "chaincode_invoke",
-        "org": "org1",
-        "user": "Admin",
-        "peers": ["peer1"],
-        "channel": "testchannel",
-        "chaincode_name": "example_cc",
-        "chaincode_args": ["a", "b", "100"],
-    }
-
-    ev_chaincode_query_org1 = {
-        "action": "chaincode_query",
-        "org": "org2",
-        "user": "Admin",
-        "peers": ["peer1"],
-        "channel": "testchannel",
-        "chaincode_name": "example_cc",
-        "chaincode_args": ["b"],
-    }
-
-    ev_chaincode_query_org2 = {
-        "action": "chaincode_query",
-        "org": "org2",
-        "user": "Admin",
-        "peers": ["peer1"],
-        "channel": "testchannel",
-        "chaincode_name": "example_cc",
-        "chaincode_args": ["b"],
-    }
-
-    # experiment.add_event("0", "fabric", ev_info_channels)
-    # experiment.add_event("1", "fabric", ev_create_channel)
-    # experiment.add_event("3", "fabric", ev_join_channel_org1)
-    # experiment.add_event("3", "fabric", ev_join_channel_org2)
-    # experiment.add_event("3", "fabric", ev_join_channel_org3)
-    # experiment.add_event("3", "fabric", ev_join_channel_org4)
-    # experiment.add_event("4", "fabric", ev_info_channel)
-    # experiment.add_event("5", "fabric", ev_info_channel_config)
-    # experiment.add_event("6", "fabric", ev_info_channels)
-    # experiment.add_event("7", "fabric", ev_info_network)
-    # experiment.add_event("8", "fabric", ev_chaincode_install_org1)
-    # experiment.add_event("8", "fabric", ev_chaincode_install_org2)
-    # experiment.add_event("10", "fabric", ev_chaincode_instantiate_org1)
-    # experiment.add_event("10", "fabric", ev_chaincode_instantiate_org2)
-    # experiment.add_event("20", "fabric", ev_chaincode_invoke_org1)
-    # experiment.add_event("30", "fabric", ev_chaincode_query_org1)
-    # experiment.add_event("32", "fabric", ev_chaincode_query_org2)
 
     # Save config file
     experiment.save()
@@ -303,5 +150,5 @@ def setup_logging(log_level=logging.DEBUG):
 
 
 if __name__ == "__main__":
-    setup_logging()
+    # setup_logging()
     builds()

@@ -47,7 +47,10 @@ uninstall-deps:
     
 install: requirements
 	sudo /usr/bin/python3.8 setup.py develop
-	# /usr/bin/python3.8 -m pip install .
+	# sudo /usr/bin/python3.8 -m pip install .
+
+develop: requirements
+	sudo /usr/bin/python3.8 setup.py develop
 
 uninstall:
 	sudo /usr/bin/python3.8 -m pip uninstall -y umbra
@@ -122,6 +125,8 @@ help:
 	@echo "         Install umbra-scenario dependencies (i.e., containernet)."
 	@echo "     uninstall-deps"
 	@echo "         Uninstall umbra-scenario dependencies (i.e., containernet)."
+	@echo "     develop"
+	@echo "         Run python3.8 setup.py develop."
 	@echo "     install"
 	@echo "         Setup with pip install . ."
 	@echo "     uninstall"

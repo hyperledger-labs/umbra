@@ -762,12 +762,41 @@ class FabricTopology(Topology):
     def configtx(self, conf):
         self._config_tx = conf
 
-    def add_org_network_link(self, org, network, profile):
+    def add_node_network_link(self, org, node, network, profile):
         if network in self._networks:
+            net = self._networks[network]
+            
+            if org in self.orgs:
+                org_data = self.orgs.get(org)
+                org_peers = org_data.get("peers")
+                org_CAs = org_data.get("CAs")
+
+                node_fqdn = None
+                if node in org_peers:
+                    peer = org_peers.get(node)
+                    node_fqdn = peer.get("peer_fqdn")
+
+
+                if node in org_CAs:
+                    CA = org_CAs.get(node)
+                    node_fqdn = CA.get("ca_fqdn")
+            
+                if node_fqdn:
+                    net["links"][node_fqdn] = {
+                        "profile": profile,
+                        "type": "internal",
+                        "org": org,
+                        "node": node,
+                    }
+
+    
+    def add_org_network_link(self, org, network, profile):
+        if network in self._networks and org in self.orgs:
             net = self._networks[network]
             net["links"][org] = {
                 "profile": profile,
                 "type": "internal",
+                "org": org,
             }
 
     def add_networks_link(self, src, dst):
@@ -1197,7 +1226,7 @@ class FabricTopology(Topology):
                             CA["intf"] += 1
                             CA["ips"][intf_name] = intf_ip.split("/")[0]
 
-                    if link_dst in self.orderers:
+                    elif link_dst in self.orderers:
                         orderer = self.orderers[link_dst]
                         orderer_fqdn = orderer.get("orderer_fqdn")
                         intf = orderer.get("intf")
@@ -1218,8 +1247,57 @@ class FabricTopology(Topology):
                         orderer["intf"] += 1
                         orderer["ips"][intf_name] = intf_ip.split("/")[0]
 
-                    if link_dst in self._networks:
+                    elif link_dst in self._networks:
                         self.add_link_nodes(link_dst, net_name, link_type, link_profile)
+                    
+                    else:
+                        link_org = links[link_dst].get("org", None)
+                        link_org_node = links[link_dst].get("node", None)
+
+                        if link_org and link_org_node and link_org in self.orgs:
+                            org_data = self.orgs.get(link_org)
+                            org_peers = org_data.get("peers")
+                            org_CAs = org_data.get("CAs")
+
+                            if link_org_node in org_peers:
+                                peer = org_peers.get(link_org_node)
+                                peer_fqdn = peer.get("peer_fqdn")
+                                intf = peer.get("intf")
+                                intf_name = "eth" + str(intf)
+                                intf_ip = self.get_network_ip()
+                                self.add_link_nodes(
+                                    peer_fqdn,
+                                    net_name,
+                                    link_type,
+                                    link_profile,
+                                    params_src={
+                                        "id": intf_name,
+                                        "interface": "ipv4",
+                                        "ip": intf_ip,
+                                    },
+                                )  # TODO verify params_src (intf and ipv4)
+                                peer["intf"] += 1
+                                peer["ips"][intf_name] = intf_ip.split("/")[0]
+                                
+                            if link_org_node in org_CAs:
+                                CA = org_CAs.get(link_org_node)
+                                ca_fqdn = CA.get("ca_fqdn")
+                                intf = CA.get("intf")
+                                intf_name = "eth" + str(intf)
+                                intf_ip = self.get_network_ip()
+                                self.add_link_nodes(
+                                    ca_fqdn,
+                                    net_name,
+                                    link_type,
+                                    link_profile,
+                                    params_src={
+                                        "id": intf_name,
+                                        "interface": "ipv4",
+                                        "ip": intf_ip,
+                                    },
+                                )  # TODO verify params_src (intf and ipv4)
+                                CA["intf"] += 1
+                                CA["ips"][intf_name] = intf_ip.split("/")[0]
 
                 if link_type == "external":
                     self.add_link_nodes(
@@ -1927,6 +2005,7 @@ class Experiment:
     def __init__(self, name):
         self.name = name
         self.folder = "/tmp/umbra/"
+        self.folder_settings = "/tmp/umbra/"
         self.topology = None
         self.events = Events()
 
@@ -1940,12 +2019,12 @@ class Experiment:
             return True
         return False
 
-    def add_event(self, sched, category, params):
-        self.events.add(sched, category, params)
+    def add_event(self, sched, category, event):
+        self.events.add(sched, category, event)
 
     def set_topology(self, topology):
         self.topology = topology
-        # self.folder = topology.get_settings()
+        self.folder_settings = topology.get_settings()
         self.folder = topology.get_model_settings()
 
     def get_topology(self):
@@ -1970,6 +2049,12 @@ class Experiment:
         with open(filepath, "w") as outfile:
             logger.info("Saving experiment config file %s", filepath)
             json.dump(data, outfile, indent=4, sort_keys=True)
+            print("\n")
+            print("\t\t############ umbra-design ################\t\t")
+            print("\t Experiment saved at", filepath)
+            print("\t Experiment settings in ", self.folder_settings)
+            print("\t\t############ umbra-design ################\t\t")
+            print("\n")
             return True
 
     def load(self, cfg_name):
