@@ -12,7 +12,6 @@ logger = logging.getLogger(__name__)
 
 class FabricEvents:
     def __init__(self):
-        self._async_loop = asyncio.get_event_loop()
         self._configtx_dir = None
         self._chaincode_dir = None
         self._config_sdk = None

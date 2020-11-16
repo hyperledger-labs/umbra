@@ -13,10 +13,12 @@ from umbra.common.protobuf.umbra_grpc import ScenarioStub, MonitorStub
 from umbra.common.protobuf.umbra_pb2 import Report, Workflow, Directrix, Status
 
 from umbra.common.scheduler import Handler
-from umbra.design.configs import Topology, Experiment
-from umbra.broker.plugins.fabric import FabricEvents
+from umbra.design.basis import Topology, Experiment
+
 from umbra.broker.plugins.scenario import ScenarioEvents
 
+from umbra.broker.plugins.fabric import FabricEvents
+from umbra.broker.plugins.iroha import IrohaEvents
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +31,7 @@ class Operator:
         self.plugins = {}
         self.events_handler = Handler()
         self.events_fabric = FabricEvents()
+        self.events_iroha = IrohaEvents()
         self.events_scenario = ScenarioEvents()
         self.events_results = {}
 
@@ -298,9 +301,9 @@ class Operator:
 
     def config_plugins(self):
         logger.info("Configuring Umbra plugins")
-        
+
         model = self.topology.get_model()
-        umbra = self.topology.get_umbra()        
+        umbra = self.topology.get_umbra()
         umbra_model_cfgs = umbra.get(model)
 
         if model == "fabric":
@@ -309,12 +312,16 @@ class Operator:
             configtx = umbra_model_cfgs.get("configtx")
             configsdk = umbra_model_cfgs.get("configsdk")
             chaincode = umbra_model_cfgs.get("chaincode")
-            
+
             ack_fabric = self.events_fabric.config(
                 settings, configsdk, chaincode, configtx
             )
             if ack_fabric:
                 self.plugins["fabric"] = self.events_fabric
+
+        if model == "iroha":
+            self.events_iroha.config(umbra_model_cfgs)
+            self.plugins["iroha"] = self.events_iroha
 
         self.events_scenario.config(self.topology)
         self.plugins["scenario"] = self.events_scenario
@@ -322,10 +329,8 @@ class Operator:
     async def handle_events(self, events):
         events_calls = {}
 
-        for ev_plugin, evs in events.items():
-            evs_formatted = {
-                ev_id:ev for ev_id, ev in evs.items()
-            }
+        for evs in events.values():
+            evs_formatted = {ev_id: ev for ev_id, ev in evs.items()}
             events_calls.update(evs_formatted)
 
         self.events_results = await self.events_handler.run(events_calls)

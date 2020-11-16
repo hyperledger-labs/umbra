@@ -4,7 +4,8 @@ import logging
 # First of all, import from umbra-design the configs that
 # refer to the construction of your Experiment using the
 # FabricTopology API.
-from umbra.design.configs import Experiment, FabricTopology
+from umbra.design.basis import Experiment
+from umbra.design.fabric import FabricTopology
 
 # Then, import the configtx definitions, which are going
 # to be used by each one of the orgs policies, and also

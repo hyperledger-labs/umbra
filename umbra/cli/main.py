@@ -8,7 +8,7 @@ from prompt_toolkit.completion import WordCompleter, NestedCompleter
 from prompt_toolkit.styles import Style
 from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
 
-from umbra.design.configs import Experiment
+from umbra.design.basis import Experiment
 from umbra.cli.envs import Environments
 from umbra.cli.interfaces import BrokerInterface
 from umbra.cli.output import print_cli, format_text

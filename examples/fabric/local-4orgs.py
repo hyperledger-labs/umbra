@@ -1,7 +1,8 @@
 import os
 import logging
 
-from umbra.design.configs import Experiment, FabricTopology
+from umbra.design.basis import Experiment
+from umbra.design.fabric import FabricTopology
 
 from base_configtx.configtx_4orgs import (
     org1_policy,
@@ -92,7 +93,6 @@ def builds():
     fab_topo.set_configtx_profile(p2, ["orderer"])
     fab_topo.set_configtx_profile(p3, ["org1", "org2", "org3", "org4"])
 
-
     # If needed you can multiplex nodes of a org to be connected to separate networks
     # Use the function add_node_network_link, with the params (org, node_name, network, profile_name)
     fab_topo.add_node_network_link("org1", "peer0", "s1", "links")
@@ -112,7 +112,6 @@ def builds():
 
     fab_topo.add_node_profile(node_resources, profile="nodes")
     fab_topo.add_link_profile(link_resources, profile="links")
-
 
     # Save config file
     experiment.save()

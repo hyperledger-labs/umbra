@@ -6,6 +6,7 @@ TEST_PATH=./umbra/tests
 DEPS_FOLDER=./deps
 DEPS=deps.sh
 DEPS_FABRIC=deps_fabric.sh
+DEPS_IROHA=deps_iroha.sh
 
 AUX_FOLDER=./aux
 AUX_MONITOR=monitor.sh
@@ -16,6 +17,12 @@ install-fabric:
 
 uninstall-fabric:
 	sh -c "cd $(DEPS_FOLDER) && ./$(DEPS_FABRIC) uninstall && cd - "
+
+install-iroha:
+	sh -c "cd $(DEPS_FOLDER) && ./$(DEPS_IROHA) install && cd - "
+
+uninstall-iroha:
+	sh -c "cd $(DEPS_FOLDER) && ./$(DEPS_IROHA) uninstall && cd - "
 
 vagrant-requirements-virtualbox:
 	sudo apt install -y vagrant
@@ -121,6 +128,10 @@ help:
 	@echo "         Install fabric dependencies (images, python SDK, golang)."
 	@echo "     uninstall-fabric"
 	@echo "         Remove fabric dependencies (images, python SDK, ...)."
+	@echo "     install-iroha"
+	@echo "         Install iroha dependencies (images, python SDK)."
+	@echo "     uninstall-iroha"
+	@echo "         Remove iroha dependencies (images, python SDK, ...)."
 	@echo "     install-deps"
 	@echo "         Install umbra-scenario dependencies (i.e., containernet)."
 	@echo "     uninstall-deps"

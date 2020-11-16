@@ -192,7 +192,7 @@ function uninstall() {
   cd git/fabric-sdk-py
   sudo python3.8 -m pip uninstall -y .
   cd - 
-  sudo rm git/fabric-sdk-py
+  sudo rm -R git/fabric-sdk-py
 
   echo "========================================================="
   echo "Uninstalling Go - Removing Go Dirs (bin, src, pkg)"
@@ -227,7 +227,7 @@ function install() {
   echo "========================================================="
 
   mkdir -p $HOME/hl/bin
-  cp ../umbra/design/fabric/bin/* $HOME/hl/bin/
+  cp ./fabric/* $HOME/hl/bin/
   sudo echo 'export PATH=$PATH:$HOME/hl/bin' >> ~/.profile
   source ~/.profile
 

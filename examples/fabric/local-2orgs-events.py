@@ -1,10 +1,11 @@
 import os
 import logging
 
-# First of all, import from umbra-design the configs that
+# First of all, import from umbra-design the basis that
 # refer to the construction of your Experiment using the
 # FabricTopology API.
-from umbra.design.configs import Experiment, FabricTopology
+from umbra.design.basis import Experiment
+from umbra.design.fabric import FabricTopology
 
 # Then, import the configtx definitions, which are going
 # to be used by each one of the orgs policies, and also
@@ -151,16 +152,15 @@ def builds():
     fab_topo.add_node_profile(node_resources, profile="nodes")
     fab_topo.add_link_profile(link_resources, profile="links")
 
-
-    # Events are used to interact with the topology. 
+    # Events are used to interact with the topology.
     # Events can be of scenario category when related to modifications
     # that might happen in run-time with the deployed topology, be its nodes and/or links.
     # In the case of a scenario event it must contain the specific group (nodes or links)
-    # that its target belongs to. 
+    # that its target belongs to.
     # A target is the reference name to the node (full name) or link (src and dst in any order).
     # The event specs contains the details about the event.
     # For now in the specs of a scenario event, the action can be only update (later add/remove will be added too).
-    # In specs: online means if the node/link will be up or down; resources mean the definition of resource the 
+    # In specs: online means if the node/link will be up or down; resources mean the definition of resource the
     # node or link will have.
     # In links group, a link might have resources specified as bw (bandwidth Mbps), delay (string with number and unit)
     # and loss (packet loss ration as percentage 0-100).
@@ -169,7 +169,7 @@ def builds():
     # or API docs: https://docker-py.readthedocs.io/en/stable/api.html#module-docker.api.container
     # examples of node resources are: blkio_weight, cpu_period, cpu_quota, cpu_shares, cpuset_cpus,
     # cpuset_mems, mem_limit, mem_reservation, memswap_limit, kernel_memory, restart_policy
-    # When the action update is taken on a node, its is not actually stopped or started, it is 
+    # When the action update is taken on a node, its is not actually stopped or started, it is
     # paused and unpaused (i.e., all its processes are paused or resumed).
     ev_scenario_01 = {
         "group": "links",
@@ -219,9 +219,9 @@ def builds():
     # e.g., sched = {"from": 0, "until": 10, "duration": 2, "interval": 1, "repeat": 3}
     # The sched above will start the event in moment 0, repeat the event 3 times, waiting
     # 1 second between each repeatition, have the event last no more than 2 seconds, until
-    # all the previous time summed reach 10 seconds. If the event finished before 2 seconds, 
+    # all the previous time summed reach 10 seconds. If the event finished before 2 seconds,
     # that's all fine.
-    # Summed, it has 2 (duration) x 3 (repeat) + 1 (interval) x (3 repeat) = 9 seconds 
+    # Summed, it has 2 (duration) x 3 (repeat) + 1 (interval) x (3 repeat) = 9 seconds
     # It will finish before the until 10 seconds is reached.
     # The repeatitions stop when until timeout is reached.
     sched_ev_01 = {"from": 2}
@@ -229,13 +229,13 @@ def builds():
     sched_ev_03 = {"from": 20}
 
     # Events are added by category.
-    # scenario refers to infrastructure/umbra-scenario events (nodes/links up/down 
+    # scenario refers to infrastructure/umbra-scenario events (nodes/links up/down
     # and resource updates)
     # Other categories include blockchain models events. Meaning, fabric, iroha, indy, etc.
     # The proper definition of the event must exist for each one of the blockchain projects.
-    # The events are defined according to the broker plugins. 
-    # In broker, a plugin is a extension that gives support to the events that a python SDK 
-    # of a particular blockchain project is consumed. 
+    # The events are defined according to the broker plugins.
+    # In broker, a plugin is a extension that gives support to the events that a python SDK
+    # of a particular blockchain project is consumed.
     # In local-4orgs-events.py example there are examples of fabric events.
     experiment.add_event(sched=sched_ev_01, category="scenario", event=ev_scenario_01)
     experiment.add_event(sched=sched_ev_02, category="scenario", event=ev_scenario_02)

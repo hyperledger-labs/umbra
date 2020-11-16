@@ -1,7 +1,8 @@
 import os
 import logging
 
-from umbra.design.configs import Experiment, FabricTopology
+from umbra.design.basis import Experiment
+from umbra.design.fabric import FabricTopology
 
 from base_configtx.configtx_4orgs import (
     org1_policy,
