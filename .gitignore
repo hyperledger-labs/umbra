@@ -1,10 +1,4 @@
-build/containernet/
-build/git/
-build/oflops/
-build/oftest/
-build/openflow/
-build/pox/
-examples/logs/
+build/
 .vscode/
 *.pyc
 html/
@@ -13,9 +7,7 @@ latex/
 *.egg-info
 *~
 dist/
-examples/fabric/fabric_configs/
-examples/.run.sh.lock
-
+.vagrant/
 
 # =======================
 # github/gitignore/Python

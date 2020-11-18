@@ -1,0 +1,60 @@
+node:
+  image: hyperledger/iroha:{image_tag}
+  environment: []
+  environment_format:
+    - "KEY={nodekey}"
+    - "IROHA_POSTGRES_HOST={postgres_host}"
+    - "IROHA_POSTGRES_PORT={postgres_port}"
+  volumes:
+      - "{folder}:/opt/iroha_data:rw"
+      - "{blockstore_volume}:/tmp/blockstore/:rw"      
+  ports:
+    - "{port}:{port}"
+  working_dir: "/opt/iroha_data"
+  command: "/entrypoint.sh irohad"
+  # command: "bash -c 'sleep 10s && exec irohad --genesis_block genesis.block --config config.docker --keypair_name $KEY'"
+
+node_postgres:
+  image: postgres:{postgres_image_tag}
+  environment: []
+  environment_format:
+    - POSTGRES_USER={postgres_user}
+    - POSTGRES_PASSWORD={postgres_pass}
+  volumes: []
+  ports: []
+  command: "{postgres_command}"
+
+node_settings:
+  block_store_path: "/tmp/blockstore/"
+  torii_port: 50051
+  internal_port: 10001
+  # pg_opt: "host={postgres_host} port={postgres_port} user={postgres_user} password={postgres_pass}"
+  max_proposal_size: 10
+  proposal_delay: 5000
+  vote_delay: 5000
+  mst_enable: false
+  mst_expiration_time : 1440
+  max_rounds_delay: 3000
+  stale_stream_max_rounds: 2
+  database: 
+    host: {postgres_host}
+    port: {postgres_port}
+    user: {postgres_user}
+    password: {postgres_pass}
+    working database: "iroha_data"
+    maintenance database: "postgres"
+  log: 
+    level: "info"
+    patterns: 
+      debug: "don't panic, it's %v."
+      error: "MAMA MIA! %v!!!"
+    children: 
+      KeysManager:
+        level: "trace"
+      Irohad: 
+        children: 
+          Storage: 
+            level: "trace"
+            patterns: 
+              debug: "thread %t: %v."
+  

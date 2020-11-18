@@ -2,16 +2,58 @@
 
 An emulation platform for Hyperledger blockchains.
 
-To understand and run Umbra, please take a look at the [Umbra Docs](https://umbra-labs.readthedocs.io/en/latest/).
+This lab is intended to be an ongoing project to provide a research tool for understanding and improving the Hyperledger blockchain platforms as well as for conducting future research in consensus algorithms and scalability. This lab is not intended to be a shipping product but rather an ongoing collaboration between academic, corporate, and hobbyist researchers improving upon existing capabilities and also trying new things with Hyperledger blockchains.
 
-Also, if needed download an [Umbra virtual machine](https://intrig.dca.fee.unicamp.br:8840/owncloud/index.php/s/aKYbP8TxlxymRHY). 
-Use VirtualBox to import the source file umbra.ova. The recommended settings are 4 cores and 4GB of memory. To use the Umbra virtual machine, login: umbra / password: lives. The umbra source folder is located inside the home directory (/home/umbra/umbra). All the umbra components are in place and installed. Check the [documentation example](https://umbra-labs.readthedocs.io/en/latest/example.html) to give it a try.
+This project is the outcome of the 2019 and 2020 Hyperledger internship projects (e.g., [Hyperledger-Labs Umbra](https://wiki.hyperledger.org/display/INTERN/Hyperledger+Umbra%3A+Simulating+Hyperledger+Blockchains+using+Mininet)).
 
-This project is the outcome of the 2019 [internship project named Hyperledger Umbra](https://wiki.hyperledger.org/display/INTERN/Hyperledger+Umbra%3A+Simulating+Hyperledger+Blockchains+using+Mininet).
 
-This lab is intended to be an ongoing project to provide a research tool for understanding and improving the Hyperledger blockchain platforms as well as for conducting future research in consensus algorithms and scalability.
+# Requirements
 
-This lab is not intended to be a shipping product but rather an ongoing collaboration between academic, corporate, and hobbyist researchers improving upon existing capabilities and also trying new things with Hyperledger blockchains.
+Umbra is developed and tested in Ubuntu 20.04.
+
+The hardware requirements needed for umbra will depend on the scale of the experiments to be played with it (e.g., number of nodes in a blockchain topology, amount of events triggered into the topology, the topology resource settings, etc).
+For a simple setup its recommended to have available at least: 4 logical cpu cores, 8 GB of RAM, and 10GB of storage.
+
+To begin with umbra there is the need to only install the make package. All the python packages needed by umbra are listed in the file requirements.txt. 
+
+```bash
+sudo apt install make
+```
+
+
+# Installing
+
+First of all, obtain the umbra source code.
+
+```bash
+git clone https://github.com/raphaelvrosa/umbra
+cd umbra
+```
+
+Given the installation of the umbra requirements, the commands below install umbra.
+
+```bash
+sudo make install
+```
+
+Umbra can also be installed using a Vagrant virtual machine, either using qemu-kvm/libvirt or virtualbox as providers, as stated below:
+
+```bash
+sudo make vagrant-run-libvirt # Installs umbra in a virtual machine using qemu-kvm/libvirt, and turn it up
+sudo make vagrant-run-virtualbox # Installs umbra in a virtual machine using virtualbox, and turn it up
+```
+
+As any other Vagrant virtual machine (box), it is possible to interact with it via vagrant commands, such as using ssh to login (i.e., vagrant ssh).
+
+
+# Running
+
+Having umbra installed, it is possible to experiment with it using the provided examples, inside examples/ folder.
+
+The README.md file in the examples folder provide the instructions to experiment with umbra.
+
+Inside the configuration files of the examples, the comments provide guidelines on how to compose umbra experiments.
+
 
 # License
 

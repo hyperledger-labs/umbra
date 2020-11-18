@@ -17,25 +17,25 @@ from umbra.common.protobuf import umbra_pb2
 class BrokerBase(abc.ABC):
 
     @abc.abstractmethod
-    async def Manage(self, stream: 'grpclib.server.Stream[umbra_pb2.Config, umbra_pb2.Report]') -> None:
+    async def Execute(self, stream: 'grpclib.server.Stream[umbra_pb2.Config, umbra_pb2.Report]') -> None:
         pass
 
     @abc.abstractmethod
-    async def Measure(self, stream: 'grpclib.server.Stream[umbra_pb2.Evaluation, umbra_pb2.Status]') -> None:
+    async def Collect(self, stream: 'grpclib.server.Stream[umbra_pb2.Stats, umbra_pb2.Status]') -> None:
         pass
 
     def __mapping__(self) -> typing.Dict[str, grpclib.const.Handler]:
         return {
-            '/umbra.Broker/Manage': grpclib.const.Handler(
-                self.Manage,
+            '/umbra.Broker/Execute': grpclib.const.Handler(
+                self.Execute,
                 grpclib.const.Cardinality.UNARY_UNARY,
                 umbra_pb2.Config,
                 umbra_pb2.Report,
             ),
-            '/umbra.Broker/Measure': grpclib.const.Handler(
-                self.Measure,
+            '/umbra.Broker/Collect': grpclib.const.Handler(
+                self.Collect,
                 grpclib.const.Cardinality.UNARY_UNARY,
-                umbra_pb2.Evaluation,
+                umbra_pb2.Stats,
                 umbra_pb2.Status,
             ),
         }
@@ -44,16 +44,16 @@ class BrokerBase(abc.ABC):
 class BrokerStub:
 
     def __init__(self, channel: grpclib.client.Channel) -> None:
-        self.Manage = grpclib.client.UnaryUnaryMethod(
+        self.Execute = grpclib.client.UnaryUnaryMethod(
             channel,
-            '/umbra.Broker/Manage',
+            '/umbra.Broker/Execute',
             umbra_pb2.Config,
             umbra_pb2.Report,
         )
-        self.Measure = grpclib.client.UnaryUnaryMethod(
+        self.Collect = grpclib.client.UnaryUnaryMethod(
             channel,
-            '/umbra.Broker/Measure',
-            umbra_pb2.Evaluation,
+            '/umbra.Broker/Collect',
+            umbra_pb2.Stats,
             umbra_pb2.Status,
         )
 
@@ -65,7 +65,7 @@ class ScenarioBase(abc.ABC):
         pass
 
     @abc.abstractmethod
-    async def CurrentTopology(self, stream: 'grpclib.server.Stream[umbra_pb2.Workflow, umbra_pb2.Status]') -> None:
+    async def Stats(self, stream: 'grpclib.server.Stream[umbra_pb2.Workflow, umbra_pb2.Status]') -> None:
         pass
 
     def __mapping__(self) -> typing.Dict[str, grpclib.const.Handler]:
@@ -76,8 +76,8 @@ class ScenarioBase(abc.ABC):
                 umbra_pb2.Workflow,
                 umbra_pb2.Status,
             ),
-            '/umbra.Scenario/CurrentTopology': grpclib.const.Handler(
-                self.CurrentTopology,
+            '/umbra.Scenario/Stats': grpclib.const.Handler(
+                self.Stats,
                 grpclib.const.Cardinality.UNARY_UNARY,
                 umbra_pb2.Workflow,
                 umbra_pb2.Status,
@@ -94,9 +94,9 @@ class ScenarioStub:
             umbra_pb2.Workflow,
             umbra_pb2.Status,
         )
-        self.CurrentTopology = grpclib.client.UnaryUnaryMethod(
+        self.Stats = grpclib.client.UnaryUnaryMethod(
             channel,
-            '/umbra.Scenario/CurrentTopology',
+            '/umbra.Scenario/Stats',
             umbra_pb2.Workflow,
             umbra_pb2.Status,
         )
@@ -105,16 +105,16 @@ class ScenarioStub:
 class MonitorBase(abc.ABC):
 
     @abc.abstractmethod
-    async def Listen(self, stream: 'grpclib.server.Stream[umbra_pb2.Instruction, umbra_pb2.Snapshot]') -> None:
+    async def Measure(self, stream: 'grpclib.server.Stream[umbra_pb2.Directrix, umbra_pb2.Status]') -> None:
         pass
 
     def __mapping__(self) -> typing.Dict[str, grpclib.const.Handler]:
         return {
-            '/umbra.Monitor/Listen': grpclib.const.Handler(
-                self.Listen,
+            '/umbra.Monitor/Measure': grpclib.const.Handler(
+                self.Measure,
                 grpclib.const.Cardinality.UNARY_UNARY,
-                umbra_pb2.Instruction,
-                umbra_pb2.Snapshot,
+                umbra_pb2.Directrix,
+                umbra_pb2.Status,
             ),
         }
 
@@ -122,11 +122,11 @@ class MonitorBase(abc.ABC):
 class MonitorStub:
 
     def __init__(self, channel: grpclib.client.Channel) -> None:
-        self.Listen = grpclib.client.UnaryUnaryMethod(
+        self.Measure = grpclib.client.UnaryUnaryMethod(
             channel,
-            '/umbra.Monitor/Listen',
-            umbra_pb2.Instruction,
-            umbra_pb2.Snapshot,
+            '/umbra.Monitor/Measure',
+            umbra_pb2.Directrix,
+            umbra_pb2.Status,
         )
 
 
@@ -155,4 +155,32 @@ class AgentStub:
             '/umbra.Agent/Probe',
             umbra_pb2.Instruction,
             umbra_pb2.Snapshot,
+        )
+
+
+class CLIBase(abc.ABC):
+
+    @abc.abstractmethod
+    async def Inform(self, stream: 'grpclib.server.Stream[umbra_pb2.State, umbra_pb2.Status]') -> None:
+        pass
+
+    def __mapping__(self) -> typing.Dict[str, grpclib.const.Handler]:
+        return {
+            '/umbra.CLI/Inform': grpclib.const.Handler(
+                self.Inform,
+                grpclib.const.Cardinality.UNARY_UNARY,
+                umbra_pb2.State,
+                umbra_pb2.Status,
+            ),
+        }
+
+
+class CLIStub:
+
+    def __init__(self, channel: grpclib.client.Channel) -> None:
+        self.Inform = grpclib.client.UnaryUnaryMethod(
+            channel,
+            '/umbra.CLI/Inform',
+            umbra_pb2.State,
+            umbra_pb2.Status,
         )

@@ -1,0 +1,122 @@
+#!/usr/bin/env python3.8
+# coding=utf-8
+import logging
+import os
+import sys
+import asyncio
+
+from prompt_toolkit.patch_stdout import patch_stdout
+from prompt_toolkit.shortcuts import set_title
+
+from google.protobuf import json_format
+
+from umbra.common.protobuf.umbra_grpc import CLIBase
+from umbra.common.protobuf.umbra_pb2 import State, Status
+
+from umbra.common.app import App
+from umbra.common.scheduler import Loader
+from umbra.common.logs import Logs
+
+from umbra.cli.output import print_cli
+from umbra.cli.main import CLI
+
+
+logger = logging.getLogger(__name__)
+
+
+class UmbraCLIState(CLIBase):
+    def __init__(self, info):
+        self.info = info
+
+    async def show_state(self, state):
+        state_dict = json_format.MessageToDict(state)
+        print_cli(state_dict)
+        return Status()
+
+    async def Inform(self, stream):
+        request = await stream.recv_message()
+        reply = await self.show_state(request)
+        await stream.send_message(reply)
+
+
+class UmbraCLIApp(App):
+    def __init__(self):
+        App.__init__(self)
+        self.args = {}
+        self.loader = Loader()
+
+    # def argparse(self, argv):
+    #     ack = self.cfg.parse(argv)
+    #     if ack:
+    #         self.args = self.cfg.get()
+    #         self.logs(screen=False)
+    #     return ack
+
+    def list_files(self, source):
+        files = []
+
+        if source:
+            source_path = os.path.normpath(os.path.join(os.getcwd(), source))
+            files = self.loader.files(source_path, suffix=".json", full_path=True)
+
+        return files
+
+    def argparse(self, argv):
+        self.cfg.parser.add_argument(
+            "--source",
+            type=str,
+            help="Define the directory path from where VNF-BR files can be loaded.",
+        )
+
+        ack = self.cfg.parse(argv)
+        if ack:
+            self.logs(screen=False)
+            self.args = self.cfg.get()
+            source = self.cfg.get_cfg_attrib("source")
+            self.args["source"] = self.list_files(source)
+
+        return ack
+
+    async def run(self):
+        try:
+            app_cls = UmbraCLIState
+            app_args = self.args
+            await self.main(app_cls, app_args)
+
+        except asyncio.CancelledError:
+            print_cli("\t<<< See you soon! Cheers, Umbra >>>\t\t", style="main")
+
+
+def create_umbra_logs_dir():
+    dir_name = "/tmp/umbra/logs/"
+    try:
+        os.makedirs(dir_name)
+    except OSError:
+        pass
+
+
+async def main(argv):
+    create_umbra_logs_dir()
+    app = UmbraCLIApp()
+    ack = app.argparse(argv)
+
+    if ack:
+        logger.info("UmbraCLI init")
+        cli = CLI(app.args)
+
+        with patch_stdout():
+            background_task = asyncio.create_task(app.run())
+
+            try:
+                set_title("Umbra")
+                print_cli("\t\t<<< Welcome to Umbra >>>\t\t", style="main")
+                await cli.init()
+            finally:
+                background_task.cancel()
+
+    else:
+        print_cli("CLI did not start - Argv was not correctly defined.", style="error")
+
+
+if __name__ == "__main__":
+    asyncio.run(main(sys.argv[1:]))
