@@ -46,6 +46,24 @@ sudo make vagrant-run-virtualbox # Installs umbra in a virtual machine using vir
 As any other Vagrant virtual machine (box), it is possible to interact with it via vagrant commands, such as using ssh to login (i.e., vagrant ssh).
 
 
+# Installing the Blockchains Dependencies
+
+Currently umbra supports Fabric and Iroha projects. Installing the dependencies for Fabric and/or Iroha is needed to run their respective examples.
+
+Important: umbra supports Fabric 2.0+, however the scheduling of events using the fabric-python-sdk is not yet supported, because fabric-python-sdk does not support Fabric 2.0+ yet. Support for Fabric 1.4 is discontinued in umbra. 
+
+To install the Fabric dependencies (download docker images, install the fabric-python-sdk, and the binaries configtxgen and cryptogen):
+
+```bash
+make install-fabric
+```
+
+To install the Iroha dependencies (download docker images, install the iroha-python-sdk):
+
+```bash
+make install-iroha
+```
+
 # Running
 
 Having umbra installed, it is possible to experiment with it using the provided examples, inside examples/ folder.
