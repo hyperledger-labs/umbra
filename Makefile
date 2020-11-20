@@ -52,7 +52,7 @@ install-deps:
 uninstall-deps:
 	sh -c "cd $(DEPS_FOLDER) && ./$(DEPS) uninstall && cd - "
     
-install: requirements
+install: requirements install-deps
 	sudo /usr/bin/python3.8 setup.py develop
 	# sudo /usr/bin/python3.8 -m pip install .
 
@@ -85,7 +85,7 @@ test: clean-pyc
 	py.test --verbose --color=yes $(TEST_PATH)
 
 run: install
-	umbra-cli
+	umbra-cli --help
 
 docker-build:
 	docker build \

@@ -251,9 +251,41 @@ class Proxy:
         if self.envid == "umbra-default" and name == "broker":
             self._workflow_monitor(action="start")
 
-        cmd = "sudo umbra-{name} --uuid {uuid} --address {address} --debug &".format(
-            name=name, uuid=info.get("uuid"), address=info.get("address")
-        )
+        if name == "scenario":
+            source = self.settings.get("source")
+            destination = self.settings.get("destination")
+
+            if self.remote:
+                create_dir_cmd = f"mkdir -p {destination}"
+                ack_create_dir_cmd, msg_create_dir_cmd = self._plugin.execute_command(
+                    create_dir_cmd
+                )
+                logger.info(
+                    f"Creating remote dir - {ack_create_dir_cmd} - {msg_create_dir_cmd}"
+                )
+
+            ack = self._plugin.copy_files(source, destination)
+
+            if ack:
+                logger.debug(
+                    f"Copied source files to scenario environment uuid {info.get('uuid')}"
+                )
+            else:
+                logger.debug(
+                    f"Could not copy source files to scenario environment uuid {info.get('uuid')}"
+                )
+
+            cmd = (
+                "sudo umbra-{name} --uuid {uuid} --address {address} --debug &".format(
+                    name=name, uuid=info.get("uuid"), address=info.get("address")
+                )
+            )
+
+        else:
+            cmd = "umbra-{name} --uuid {uuid} --address {address} --debug &".format(
+                name=name, uuid=info.get("uuid"), address=info.get("address")
+            )
+
         ack, msg = self._plugin.execute_command(cmd, daemon=True)
 
         output = {
@@ -323,44 +355,24 @@ class Proxy:
     def _workflow_install(self):
         logger.info(f"Workflow install")
 
-        source = self.settings.get("source")
-        destination = self.settings.get("destination")
+        ack_clone, msg_clone = self._workflow_source_files("install")
+        logger.info("Executing command - install requirements, deps, umbra install")
+        install_cmd = "cd /tmp/umbra/source && sudo apt install -y make && sudo make requirements install-deps install"
+        ack_install, msg_install = self._plugin.execute_command(install_cmd)
 
-        if self.remote:
-            create_dir_cmd = f"mkdir -p {destination}"
-            ack_create_dir_cmd, msg_create_dir_cmd = self._plugin.execute_command(
-                create_dir_cmd
-            )
-            logger.info(
-                f"Creating remote dir - {ack_create_dir_cmd} - {msg_create_dir_cmd}"
-            )
+        ack_install_model, msg_install_model = self._workflow_model("install")
 
-        ack = self._plugin.copy_files(source, destination)
+        ack = ack_clone and ack_install and ack_install_model
+        msg = [
+            "clone: " + msg_clone,
+            "install: " + msg_install,
+            "install-model :" + msg_install_model,
+        ]
+        output = {
+            "ack": ack,
+            "msg": msg,
+        }
 
-        if ack:
-            ack_clone, msg_clone = self._workflow_source_files("install")
-            logger.info("Executing command - install requirements, deps, umbra install")
-            install_cmd = "cd /tmp/umbra/source && sudo apt install -y make && sudo make requirements install-deps install"
-            ack_install, msg_install = self._plugin.execute_command(install_cmd)
-
-            ack_install_model, msg_install_model = self._workflow_model("install")
-
-            ack = ack_clone and ack_install and ack_install_model
-            msg = [
-                "clone: " + msg_clone,
-                "install: " + msg_install,
-                "install-model :" + msg_install_model,
-            ]
-            output = {
-                "ack": ack,
-                "msg": msg,
-            }
-
-        else:
-            output = {
-                "ack": ack,
-                "msg": "Could not upload configuration files to remote",
-            }
         return output
 
     def _workflow_uninstall(self):

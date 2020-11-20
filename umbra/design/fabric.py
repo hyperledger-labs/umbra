@@ -282,7 +282,7 @@ class FabricTopology(Topology):
             "project_network": self.project_network,
             "peer_anchor_fqdn": None,  # TODO add anchor fqdn when build_configs
             "peer_anchor_port": None,
-            "intf": 1,
+            "intf": 10,
             "ips": {},
             "environment-address": "",
             "environment": "",

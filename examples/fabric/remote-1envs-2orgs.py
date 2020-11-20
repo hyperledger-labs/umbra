@@ -62,7 +62,7 @@ def builds():
         "components": {
             "broker": {
                 "uuid": "default-broker",
-                "address": "192.168.122.1:8956",
+                "address": "192.168.121.1:8956",
             },
         },
     }
@@ -85,18 +85,18 @@ def builds():
         "remote": True,
         "host": {
             "user": "umbra",
-            "address": "192.168.122.44",
+            "address": "192.168.122.101",
             "port": "22",
             "password": "L1v3s.",
         },
         "components": {
             "scenario": {
                 "uuid": "y-scenario",
-                "address": "192.168.122.44:8957",
+                "address": "192.168.121.101:8957",
             },
             "monitor": {
                 "uuid": "y-monitor",
-                "address": "192.168.122.44:8958",
+                "address": "192.168.121.101:8958",
             },
         },
     }
