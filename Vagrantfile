@@ -8,15 +8,15 @@ Vagrant.configure("2") do |config|
   config.vm.define "umbra_virtualbox" do |umbra_virtualbox|
 
     umbra_virtualbox.vm.box = "ubuntu/focal64"    
-    umbra_virtualbox.vm.network :private_network, ip: "192.168.56.101"
+    umbra_virtualbox.vm.network :private_network, ip: "192.168.122.101"
     umbra_virtualbox.vm.hostname = "umbra"
     
     umbra_virtualbox.vm.provider "virtualbox" do |vb|
       vb.name = "umbra"
       opts = ["modifyvm", :id, "--natdnshostresolver1", "on"]
       vb.customize opts
-      vb.cpus = 2
-      vb.memory = "2048"
+      vb.cpus = 4
+      vb.memory = "4096"
     end
 
     umbra_virtualbox.vm.synced_folder ".", "/home/umbra", mount_options: ["dmode=775"]
@@ -32,8 +32,8 @@ Vagrant.configure("2") do |config|
     umbra_libvirt.vm.hostname = "umbra"
 
     umbra_libvirt.vm.provider "libvirt" do |libvirt|
-      libvirt.cpus = 2
-      libvirt.memory = 2048
+      libvirt.cpus = 4
+      libvirt.memory = 4096
     end
 
     umbra_libvirt.vm.network :private_network, ip: "192.168.121.101"
