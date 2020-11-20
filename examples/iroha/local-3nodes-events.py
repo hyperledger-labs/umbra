@@ -8,9 +8,9 @@ logger = logging.getLogger(__name__)
 
 
 def build():
-    iroha_topo = IrohaTopology("local-3nodes")
+    iroha_topo = IrohaTopology("local-3nodes-events")
 
-    experiment = Experiment("local-3nodes")
+    experiment = Experiment("local-3nodes-events")
     experiment.set_topology(iroha_topo)
 
     iroha_topo.add_iroha_node("node1", "nodes")
@@ -170,5 +170,5 @@ def setup_logging(log_level=logging.DEBUG):
 
 
 if __name__ == "__main__":
-    setup_logging()
+    # setup_logging()
     build()

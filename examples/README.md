@@ -28,7 +28,17 @@ python3 iroha/local-3nodes.py
 The command will compile the definition of the experiment (and its artifacts) and save it in /tmp/umbra/iroha. A file named local-3nodes.json will be created inside /tmp/umbra/iroha defining the topology and its events, and all the needed material to run the iroha network will be inside the /tmp/umbra/iroha/local-3nodes folder (e.g., the genesis.block, and the configs of each iroha node).
 
 
-## Running the configurations
+When compiling an experiment, it means a .json file will be created, containing all the topology and, if existent, the events needed to execute the experiment. 
+For instance, in case you coded an experiment (e.g., iroha-local-5nodes.py) you just need to share it with your peer, so she can compile and run the same experiment (as long as umbra is installed too).
+
+
+## Running the Experiments
+
+To run local experiments, first you need to install the dependencies of the project you are working with, as defined by the umbra README file.
+To run remote experiments, you can start with 1 remote environment if you can build the umbra virtual machine with Vagrant (e.g., as explained by the umbra README file, make vagrant-run-libvirt or make vagrant-run-virtualbox). The virtual machine will contain all the requirements to run the examples with 1 remote environment (i.e., user, password, ip, port).
+
+**Important:** If you are going to use custom remote environments, the user specified in the environment settings must be in the sudoers without the need of password (e.g., if the username is umbra, then: echo 'umbra  ALL=(ALL) NOPASSWD:ALL' | sudo tee /etc/sudoers.d/umbra). 
+
 
 
 1. Start the umbra-cli component:

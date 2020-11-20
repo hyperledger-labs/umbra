@@ -6,6 +6,9 @@ This lab is intended to be an ongoing project to provide a research tool for und
 
 This project is the outcome of the 2019 and 2020 Hyperledger internship projects (e.g., [Hyperledger-Labs Umbra](https://wiki.hyperledger.org/display/INTERN/Hyperledger+Umbra%3A+Simulating+Hyperledger+Blockchains+using+Mininet)).
 
+Umbra is well described in a [Hyperleder Webinar](https://www.youtube.com/watch?v=Aw3AjGiNPF8).
+
+Currently, umbra documentation is being updated, so for now please do not consider the docs inside umbra readthedocs, those are deprecated/old ones.
 
 # Requirements
 
@@ -80,13 +83,31 @@ Umbra contains the following components:
 
 - **umbra-scenario:** it is a component that consumes Containernet (Mininet) APIs to properly interact (instantiate, tear-down, modify, etc) with the topology (containers, links, switches). The umbra-scenario can have its instances deployed in multiple servers (in umbra these are called environments) so it can enable umbra to be deployed at scale.
 
-- **umbra-broker:**
-- **umbra-monitor:**
-- **umbra-agent:**
-- **umbra-cli:**
+- **umbra-broker:** consists of the core component of umbra, it realizes the coordination of messages among the other components (e.g., to deploy a topology in umbra-scenario, to start umbra-monitor to extract measurements in an environment, or to call blockchain SDK events). 
+
+- **umbra-monitor:** defines the element that monitors the host environment and the topology nodes (i.e., containers). It extracts different metrics from them, sending them to umbra-broker, which parses those metrics and insert them into a database (influxdb) to be shown in graphics (graphana).
+
+- **umbra-agent:** it is an ongoing work, it is designed to be added to the instantiated topology in order to cause anomalies in the network (e.g., consume cpu resources, trigger network traffic congestion, and in the future possibly it can behave as a malicious blockchain node).
+
+- **umbra-cli:** it is the component that automates the experiments of umbra, realizing the installation and instantiation of all the needed components in one or multiple environments and interfaces those components to experiment with them. With umbra-cli one can load an experiment configuration, install umbra in the environments, start the components and trigger the topology instantiation so as its events, similarly it can uninstall umbra and stop components in environments too. 
+
+In a short story, a user composes an experiment using umbra-design APIs, it starts umbra-cli and loads that experiment configuration file on it. Using umbra-cli the user can install umbra in the experiment environments, start the components on them. After that, a user can trigger the instantiation of the topology and the trigger of the experiment events, meanwhile, a monitor component will be instantiated in each environment, sending metrics of the host and the containers (i.e., blockchain nodes deployed by umbra). Those metrics are received by umbra-broker and ploted in graphana after inserted to influxdb. After finishing the experiment, using umbra-cli a user can stop the components and uninstall umbra from all the environments defined in the experiment. 
+
+Each blockchain node (e.g., a fabric peer, or a iroha node, etc) in umbra is instantiated as a docker container, containers are interconnected with virtual switches, an abstraction called network by umbra. When running in multiple environments (i.e., servers) the instances of umbra-scenario in each environment interconnect with each other via GRE tunnels. This provides the notion that every node in the whole network belongs to the same broadcast domain (i.e., layer 2 domain). Umbra makes easy to compose blockchain networks in any size and in different environments, generating and installing all the dependencies needed transparently to the user.
+
 
 The workflow, a day in umbra's shoes, is described in the steps below:
-1. 
+1. Every experiment starts with the composition of itself, using umbra-design APIs. See the examples folder for more information about, some examples there are commented, so it is possible to understand them and start creating your own experiments.
+2. After that, a user can start umbra-cli (see the README in the examples folder) to perform interactions with umbra. With umbra-cli, the user can load the experiment configuration.
+3. When triggering the install command inside the cli, umbra-cli is going to recognize each environment settings, defined by the loaded experiment configurationo file, and install umbra and the needed components to execute the blockchain topology. For instance, if the experiment refers to a Iroha topology, umbra-cli is going to install all the Iroha dependencies for umbra to enable the proper execution of the Iroha nodes.
+4. Together with the installation, umbra-cli also performs the copy of the crypto material, or accessory files (e.g., genesis block) to each environment, so blockchain nodes (i.e., containers) can have their correct set of volumes mounted on them and their internal configuration available to start their blockchain software components.
+5. Triggerint the start command in umbra-cli, the user will notice that in each environment all the needed umbra components will be started. For instance, it is mandatory to have umbra-scenario and umbra-monitor components in each environment, while just a single umbra-broker can synchronize and coordinate all the other components.
+6. Triggering the begin command in umbra-cli, it will send the experiment configuration to umbra-broker, which will call each umbra-scenario to start its part of the topology in its own environment, and also to start each umbra-monitor component to send host/container metrics back to it. After acknowledged the topology deployments, umbra-broker will trigger the events in the topology.
+7. In the umbra-cli console the user will notice ok or error messages, signaling the correct or wrong execution of the topology and/or events. In each environment logs of the components are placed in /tmp/umbra/logs, so the user can debug the errors.
+8. Finally, the user can call end, so umbra-cli send a sign to umbra-broker to required the tear-down of the topology in each environment. This will also make umbra-broker send a sign to umbra-monitor components to stop monitoring hosts/containers in their environment.
+9. After that the user can trigger the stop command, so all the umbra components in the experiment environments be stopped.
+10. And finally if needed, the user can call the uninstall command in the umbra-cli console, so umbra and its blockchain dependencies are uninstalled from the environments. With a <ctrl+d> command the user exits the umbra-cli console.
+
 
 # License
 

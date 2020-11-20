@@ -266,7 +266,7 @@ class IrohaTopology(Topology):
             "settings": node_settings,
             "keys": node_keys,
             "profile": profile,
-            "intf": 1,
+            "intf": 10,
             "ips": {},
             "environment-address": "",
             "environment": "",
