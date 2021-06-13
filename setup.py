@@ -55,7 +55,7 @@ setup(
         "scp==0.13.2",
         "prompt_toolkit==3.0.6",
         "influxdb==5.3.0",
-        "aiohttp==3.6.2",
+        "aiohttp==3.7.4",
     ],
     python_requires=">=3.8",
     setup_requires=["setuptools>=41.1.0"],
