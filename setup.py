@@ -47,7 +47,7 @@ setup(
         "protobuf==3.12.2",
         "grpclib==0.3.2",
         "grpcio-tools==1.31.0",
-        "PyYAML==5.3.1",
+        "PyYAML==5.4",
         "networkx==2.4",
         "psutil==5.7.0",
         "docker==4.1.0",
