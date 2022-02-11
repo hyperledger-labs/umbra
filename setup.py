@@ -44,7 +44,7 @@ setup(
         "h2==3.2.0",
         "multidict==4.7.6",
         "asyncio==3.4.3",
-        "protobuf==3.12.2",
+        "protobuf==3.15.0",
         "grpclib==0.3.2",
         "grpcio-tools==1.31.0",
         "PyYAML==5.4",
