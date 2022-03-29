@@ -51,7 +51,7 @@ setup(
         "networkx==2.4",
         "psutil==5.7.0",
         "docker==4.1.0",
-        "paramiko==2.6.0",
+        "paramiko==2.10.1",
         "scp==0.13.2",
         "prompt_toolkit==3.0.6",
         "influxdb==5.3.0",
